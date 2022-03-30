@@ -1,0 +1,19 @@
+# Nextflow usual output #
+#########################
+
+timeline.html*
+trace.txt*
+flowchart.png*
+report.html*
+.nextflow.log*
+/work
+.nextflow*
+.nextflow/*
+.*
+!.gitignore
+
+# Error and output files #
+##########################
+
+*.error
+*.out

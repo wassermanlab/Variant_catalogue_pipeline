@@ -9,7 +9,7 @@
 process MT_Liftover {
         tag "${MT_call_variants_shifted.simpleName}"
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/Mutect2/Liftover/",  pattern: "*_rejected_variants.vcf",  mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/Liftover/",  pattern: "*_rejected_variants.vcf",  mode: 'copy'
 
 	input :
         file MT_call_variants_shifted

@@ -6,18 +6,20 @@
 // Overview of the process goal and characteristics :
 // Run a R script that organize the SNV variants information in the tables expected to be displayed in the IBVL interface
 
-process SNV_data_organization {
-        tag "${SNV_vcf}"
+process STR_data_organization {
 
-        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/", mode: 'copy'
+        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/str/", mode: 'copy', pattern: "str.tsv"
+	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_str.tsv"
+        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/genes/", mode: 'copy', pattern: "genes_str.tsv"
+        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/sv_consequences/", mode: 'copy', pattern: "sv_consequences_str.tsv"
+
 
 	input :
-	path gnomad_SNV_frequ
-	path SNV_vcf
-	path SNV_annot_merged
+	path STR_vcf
+	path STR_catalogue
 	val assembly
 	val run
-	path sex_table
+	val var_type 
 
 	output :
 	path '*'
@@ -33,9 +35,6 @@ process SNV_data_organization {
 	mkdir -p \${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 
-	vcf_name=\$(echo ${SNV_vcf.simpleName} | sed 's/_[^_]*\$//' )
-	chr=\$(echo ${SNV_vcf.simpleName} | sed 's/^.*_\\([^_]*\\)\$/\\1/' )
-
-	Rscript ../../../modules/SNV_data_organization.R $assembly gnomad_frequency_table_\${chr}.tsv ${SNV_vcf} \${vcf_name}_\${chr}_annotation_table_merged_nohash.tsv $sex_table $run
+	Rscript ../../../modules/STR_data_organization.R $assembly ${STR_vcf} ${STR_catalogue}  $run ${var_type}
 	"""
 }

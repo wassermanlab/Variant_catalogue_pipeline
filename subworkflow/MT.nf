@@ -24,12 +24,12 @@ include { MT_Merge_stat_file } from "./../modules/MT_Merge_stat_file"
 include { MT_Filter_Mutect_Calls } from "./../modules/MT_Filter_Mutect_Calls"
 include { MT_LeftAlignAndTrimVariants } from "./../modules/MT_LeftAlignAndTrimVariants"
 include { MT_FilterOut_sites } from "./../modules/MT_FilterOut_sites"
-include { MT_vcfs_txt } from "./../modules/MT_vcfs_txt"
-include { MT_merge_samples } from "./../modules/MT_merge_samples"
+include { list_vcfs_txt } from "./../modules/list_vcfs_txt"
+include { merge_samples } from "./../modules/merge_samples"
 include { Bcftools_stats } from "./../modules/Bcftools_stats"
 include { Vcftools_TsTv_by_qual } from "./../modules/Vcftools_TsTv_by_qual"
 include { annotation_table_merged } from "./../modules/annotation_table_merged"
-include { MT_data_organization } from "./../modules/MT_data_organization"
+//include { MT_data_organization } from "./../modules/MT_data_organization"
 include { multiqc_pop } from "./../modules/multiqc_pop"
 
 // MT Workflow
@@ -63,6 +63,7 @@ workflow MT {
 	blacklist_sites_hg38_MT_index_file      = file (params.blacklist_sites_hg38_MT_index)
 	ShiftBack_chain                         = file (params.ShiftBack_chain)
 	gnomad_MT_frequ				= file (params.gnomad_MT_frequ)
+	MT					= params.MT
 
         take : 
 		bam
@@ -86,12 +87,12 @@ workflow MT {
 		MT_Filter_Mutect_Calls(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_MergeVcfs.out.vcf, MT_MergeVcfs.out.index, MT_Merge_stat_file.out.collect())
 		MT_LeftAlignAndTrimVariants(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_Filter_Mutect_Calls.out.vcf, MT_Filter_Mutect_Calls.out.index)
 		MT_FilterOut_sites(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_LeftAlignAndTrimVariants.out.vcf, MT_LeftAlignAndTrimVariants.out.index, blacklist_sites_hg38_MT_file, blacklist_sites_hg38_MT_index_file, assembly, batch, run)
-		MT_vcfs_txt(MT_FilterOut_sites.out.collect(), assembly, batch, run)
-		MT_merge_samples(MT_vcfs_txt.out, assembly, batch, run)
-		QC1 = Bcftools_stats(MT_merge_samples.out.vcf, MT_merge_samples.out.index, assembly, run)
-		QC2 = Vcftools_TsTv_by_qual(MT_merge_samples.out.vcf, MT_merge_samples.out.index, assembly, run)
-		annotation_table_merged(MT_merge_samples.out.vcf, MT_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly_MT, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chrM)
-		MT_data_organization(gnomad_MT_frequ, MT_merge_samples.out.vcf, annotation_table_merged.out.annot_table_merged_R, assembly, run)
+		list_vcfs_txt(MT_FilterOut_sites.out.collect(), assembly, batch, run, MT)
+		merge_samples(list_vcfs_txt.out, assembly, batch, run, MT)
+		QC1 = Bcftools_stats(merge_samples.out.vcf, merge_samples.out.index, assembly, run)
+		QC2 = Vcftools_TsTv_by_qual(merge_samples.out.vcf, merge_samples.out.index, assembly, run)
+		annotation_table_merged(merge_samples.out.vcf, merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly_MT, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chrM, MT)
+//		MT_data_organization(gnomad_MT_frequ, merge_samples.out.vcf, annotation_table_merged.out.annot_table_merged_R, assembly, run)
 		quality_metrics	= QC1.concat(QC2, annotation_table_merged.out.vep_merged_stat).collect()
 		multiqc_pop(quality_metrics, assembly, run, Mitochondrial_chromosome)
 }

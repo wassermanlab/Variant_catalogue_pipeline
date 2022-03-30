@@ -7,12 +7,14 @@
 // Create a file with the list of variants and their annotation
 // Same process for SNV and MT variants (using vep, obtaining a tsv)
 // The last line remove the # in front of "Uploaded_varaintion", which is necessary for downstream analysis
+// Can add the StructuralVariantOverlap plugin to customise your overlap criteria and annotate your variants with information from other SV sets, such as the population frequency data from the Genome Aggregation Database (gnomAD).
+//It is important to note that VEP only annotates variants with a size of up to 10MB by default. You can change this with the –max_sv_size option of the command line tool, but this will increase your memory requirements. 
 
-process annotation_table_merged {
+process SV_annotation {
 	tag "${chr}"
 
-        publishDir "$params.outdir_pop/${assembly}/${run}/${var_type}/VEP_annotation/", mode: 'copy', pattern : '*_annotation_table_merged.tsv'
-	publishDir "$params.outdir_pop/${assembly}/${run}/QC/${var_type}/${vcf.simpleName}/", mode: 'copy', pattern : '*_VEP_stats*'
+        publishDir "$params.outdir_pop/${assembly}/${run}/SV/VEP_annotation/", mode: 'copy', pattern : '*_annotation_table_merged.tsv'
+	publishDir "$params.outdir_pop/${assembly}/${run}/QC/SV/${vcf.simpleName}/", mode: 'copy', pattern : '*_VEP_stats*'
 
         input :
         file vcf
@@ -27,7 +29,6 @@ process annotation_table_merged {
 	file CADD_1_6_InDels
 	file CADD_1_6_InDels_index
 	each chr
-	val var_type 
 
         output :
         path '*_annotation_table_merged.tsv', emit :  annotation_table_merged
@@ -42,7 +43,7 @@ process annotation_table_merged {
 
 	vep \
         -i ${vcf} \
-        -o ${vcf.simpleName}_${chr}_${var_type}_annotation_table_merged.tsv \
+        -o ${vcf.simpleName}_${chr}_annotation_table_merged.tsv \
 	--chr ${chr}  \
 	--offline \
 	--merged \
@@ -62,12 +63,11 @@ process annotation_table_merged {
 	--hgvs \
         --check_existing \
         --var_synonyms \
-	--tsl \
-	--tab \
+        --tab \
         --dir_plugins /mnt/common/SILENT/Act3/VEP/Plugins/ \
         --plugin CADD,$CADD_1_6_whole_genome_SNVs,$CADD_1_6_InDels \
         --stats_file ${vcf.simpleName}_${chr}_VEP_merged_stats
 
-	sed 's/#Uploaded_variation/Uploaded_variation/g' ${vcf.simpleName}_${chr}_${var_type}_annotation_table_merged.tsv > ${vcf.simpleName}_${chr}_${var_type}_annotation_table_merged_nohash.tsv
+	sed 's/#Uploaded_variation/Uploaded_variation/g' ${vcf.simpleName}_${chr}_annotation_table_merged.tsv > ${vcf.simpleName}_${chr}_annotation_table_merged_nohash.tsv
         """
 }

@@ -169,8 +169,8 @@ for (i in 1:nrow(AF_table_ID)) {
   
   		#clinvar_VCV : From annotation file, "VCV" info
   		#If clinvar number is specified (If column contains ClinVar)
-  		if (grepl("ClinVar::VCV", MT_raw_annotaton_i$VAR_SYNONYMS)) {
-    			clinvar_vcv = str_match(MT_raw_annotaton_i$VAR_SYNONYMS, "ClinVar::VCV\\s*(.*?)\\s*,*")[,2]
+  		if (grepl("ClinVar::", MT_raw_annotaton_i$VAR_SYNONYMS)) {
+    			clinvar_vcv = str_extract(MT_raw_annotaton_i$VAR_SYNONYMS, "(?<=VCV)[0-9]*")
     			# clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920
     			clinvar_url=paste0("https://www.ncbi.nlm.nih.gov/clinvar/variation/", clinvar_vcv, "/")
   		} else {
@@ -201,7 +201,7 @@ for (i in 1:nrow(AF_table_ID)) {
 
   		# MT_annotation
   		# variant_ID, pos, ref, alt, intergenic (Y/N), UCSC_URL, mitomap_URL, gnomad_URL, dbsnp_id, dbsnp_url, clinvar_url
-  		temp_table_annot_MT_i = cbind(variant, pos, ref, alt, intergenic, ucsc_url, mitomap_url, gnomad_url, dbsnp_id, dbsnp_url, clinvar_vcv, clinvar_url)
+  		temp_table_annot_MT_i = cbind(variant, pos, ref, alt, ucsc_url, mitomap_url, gnomad_url, dbsnp_id, dbsnp_url, clinvar_vcv, clinvar_url)
     		table_annot_MT=unique(rbind.data.frame(table_annot_MT, temp_table_annot_MT_i))
 
 		#Variants Table
@@ -274,7 +274,7 @@ transcript_table=as.data.frame(unique(MT_raw_annotaton_file[,c("Feature", "SYMBO
 colnames(transcript_table)=c("transcript_id", "gene", "transcript_type")
 transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "Ensembl", "E"))
 transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "Refseq", "R"))
-transcript_table=transcript_table[!grepl("^-$", transcript_table$transcript),]
+transcript_table=transcript_table[!grepl("^-$", transcript_table$transcript_id),]
 write.table(transcript_table, file="transcripts_MT.tsv", quote=FALSE, row.names = FALSE, sep="\t")
 
 

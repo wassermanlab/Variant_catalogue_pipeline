@@ -65,6 +65,7 @@ gnomad_file=cbind(ID_db_gnomad, gnomad_file)
 SNV_vcf=read.vcfR(args[3])
 #Ectract the GT
 GT_table=extract.gt(SNV_vcf,element = "GT")
+colnames(GT_table)= sub("_.*","",colnames(GT_table))
 GT_table_ID=cbind(SNV_vcf@fix[,c("ID")], GT_table)
 chromosome=SNV_vcf@fix[1,c("CHROM")]
 
@@ -95,8 +96,7 @@ for (j in 1:(length(slots_var)-1)){
 	table_variant_consequence=data.frame()
         table_variant_annotation=data.frame()
 	table_variant_annotation_i=data.frame()
-	variants_table=data.frame()
-
+	
 	for (i in min_i: max_i){
 		#show(i)
 		variant=SNV_vcf@fix[i,c("ID")]
@@ -116,13 +116,13 @@ for (j in 1:(length(slots_var)-1)){
   
   		# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY
   		# AN_tot : number of 0/0, 0/1 and 1/1 genotypes (avoid counting the ./.)
-  		an_total = 2*(sum(GT_table_i == "0/0") + sum(GT_table_i == "0/1") + sum(GT_table_i == "1/1")) 
+  		an_total = 2*(sum(GT_table_i == "0/0", na.rm=T) + sum(GT_table_i == "0/1", na.rm=T) + sum(GT_table_i == "1/1", na.rm=T)) 
   		#AC tot
-  		ac_total = sum(GT_table_i == "0/1") + 2*sum(GT_table_i == "1/1")
+  		ac_total = sum(GT_table_i == "0/1", na.rm=T) + 2*sum(GT_table_i == "1/1", na.rm=T)
   		#AF tot = AC/AN
   		af_total = ac_total/an_total
   		#Number of individus homozygotes for the alternative allele (1/1)
-  		hom_alt_total = sum(GT_table_i == "1/1") 
+  		hom_alt_total = sum(GT_table_i == "1/1", na.rm=T) 
 
   		#For XX individuals
   		#For now, make fake false with individuals and sex : 
@@ -131,26 +131,26 @@ for (j in 1:(length(slots_var)-1)){
   		XX_Samples = sex_table[sex_table$Sex=="XX",1]
   		XX_GT_table_i = GT_table_i[XX_Samples]
   		# AN_XX
-  		an_XX = 2*(sum(XX_GT_table_i == "0/0") + sum(XX_GT_table_i == "0/1") + sum(XX_GT_table_i == "1/1")) 
+  		an_XX = 2*(sum(XX_GT_table_i == "0/0", na.rm=T) + sum(XX_GT_table_i == "0/1", na.rm=T) + sum(XX_GT_table_i == "1/1", na.rm=T)) 
   		#AC XX
-  		ac_XX = sum(XX_GT_table_i == "0/1") + 2*sum(XX_GT_table_i == "1/1")
+  		ac_XX = sum(XX_GT_table_i == "0/1", na.rm=T) + 2*sum(XX_GT_table_i == "1/1", na.rm=T)
   		#AF X = AC/AN
   		af_XX = ac_XX/an_XX
   		#Number of individus homozygotes for the alternative allele (1/1)
-  		hom_alt_XX = sum(XX_GT_table_i == "1/1") 
+  		hom_alt_XX = sum(XX_GT_table_i == "1/1", na.rm=T) 
   
   		#For XY individuals
   		#Subset the GT_Table for XY individuals
   		XY_Samples = sex_table[sex_table$Sex=="XY",1]
   		XY_GT_table_i = GT_table_i[XY_Samples]
   		# AN_XY
-  		an_XY = 2*(sum(XY_GT_table_i == "0/0") + sum(XY_GT_table_i == "0/1") + sum(XY_GT_table_i == "1/1")) 
+  		an_XY = 2*(sum(XY_GT_table_i == "0/0", na.rm=T) + sum(XY_GT_table_i == "0/1", na.rm=T) + sum(XY_GT_table_i == "1/1", na.rm=T)) 
   		#AC XY
-  		ac_XY = sum(XY_GT_table_i == "0/1") + 2*sum(XY_GT_table_i == "1/1")
+  		ac_XY = sum(XY_GT_table_i == "0/1", na.rm=T) + 2*sum(XY_GT_table_i == "1/1", na.rm=T)
   		#AF X = AC/AN
   		af_XY = ac_XY/an_XY
   		#Number of individus homozygotes for the alternative allele (1/1)
-  		hom_alt_XY = sum(XY_GT_table_i == "1/1") 
+  		hom_alt_XY = sum(XY_GT_table_i == "1/1", na.rm=T) 
 
 
   		# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
@@ -209,7 +209,7 @@ for (j in 1:(length(slots_var)-1)){
   		#clinvar_VCV : From annotation file, "VCV" info
   		#If clinvar number is specified (If column contains ClinVar)
   		if (grepl("ClinVar::VCV", SNV_annot_i$VAR_SYNONYMS)) {
-    			clinvar_vcv = str_match(SNV_annot_i$VAR_SYNONYMS, "ClinVar::VCV\\s*(.*?)\\s*,RCV*")[,2]
+    			clinvar_vcv = str_extract(SNV_annot_i$VAR_SYNONYMS, "(?<=VCV)[0-9]*") 
     			#clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920
     			clinvar_url=paste0("https://www.ncbi.nlm.nih.gov/clinvar/variation/", clinvar_vcv, "/")
   		} else {
@@ -274,10 +274,6 @@ for (j in 1:(length(slots_var)-1)){
 		table_variant_annotation_i=cbind(variant_transcript, hgvsp, polyphen, sift)
 		table_variant_annotation=unique(rbind.data.frame(table_variant_annotation, table_variant_annotation_i))
 
-		#Variants Table
-		# Variant_id, variant_type (SNV/MT/SV)
-		variants_table_i=cbind(variant, "SNV")
-		variants_table=unique(rbind.data.frame(variants_table, variants_table_i))
 	}       
        
 	### Write table slots
@@ -288,7 +284,6 @@ for (j in 1:(length(slots_var)-1)){
 	write.table(table_variant_consequence_split, file=paste0("table_variant_consequence_slot", j), quote=FALSE, row.names = FALSE)
         table_variant_annotation_nodash=table_variant_annotation[!grepl("^-$", table_variant_annotation$hgvsp),]
 	write.table(table_variant_annotation_nodash, file=paste0("table_variant_annotation_slot", j), quote=FALSE, row.names = FALSE)
-	write.table(variants_table, file=paste0("table_variants_slot", j), quote=FALSE, row.names = FALSE)
 }
 
 ### Write tables 
@@ -331,12 +326,9 @@ write.table(combined_tables_variant_annotation_slots, file=paste0("variant_annot
 file.remove(list_variant_annotation_tables_slots)
 
 #Variants
-list_variant_tables_slots <- list.files(pattern = paste0("table_variants_slot"))
-tables_variant_slots=lapply(list_variant_tables_slots, read.table, header=TRUE)
-combined_tables_variant_slots=do.call(rbind, tables_variant_slots)
-colnames(combined_tables_variant_slots)=c("variant_id", "var_type")
-write.table(combined_tables_variant_slots, file=paste0("variants_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
-file.remove(list_variant_tables_slots)
+variants_table=cbind(as.data.frame(unique(SNV_raw_annotaton_file[,c("Uploaded_variation")])), "SNV")
+colnames(variants_table)=c("variant_id", "var_type")
+write.table(variants_table, file=paste0("variants", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 
 # SNV_gnomAD_frequency
 # Variant_ID, AF_tot, AC_tot, AN_tot, Hom_alt_tot

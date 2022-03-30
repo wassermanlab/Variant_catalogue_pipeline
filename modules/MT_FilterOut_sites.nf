@@ -10,7 +10,7 @@
 process MT_FilterOut_sites {
         tag "${MT_trimmed.simpleName}"
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/Mutect2/Sample/", mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/Sample/", mode: 'copy'
 
         input :
         file ref_genome_MT

@@ -13,6 +13,7 @@ process Extract_MT_Read {
         input :
         file bam
 	file bai
+	val Mitochondrial_chromosome
 
         output :
         file '*_chrM.bam'
@@ -20,7 +21,7 @@ process Extract_MT_Read {
         script :
         """
 	gatk PrintReads \
-        -L MT \
+        -L ${Mitochondrial_chromosome} \
         --read-filter MateOnSameContigOrNoMappedMateReadFilter \
         --read-filter MateUnmappedAndUnmappedReadFilter \
         -I ${bam.simpleName}.bam \

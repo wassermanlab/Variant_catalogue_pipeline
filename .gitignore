@@ -11,6 +11,9 @@ report.html*
 .nextflow/*
 .*
 !.gitignore
+/hail
+*.ipynb
+hail*
 
 # Error and output files #
 ##########################

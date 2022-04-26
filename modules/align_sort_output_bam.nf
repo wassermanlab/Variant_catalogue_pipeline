@@ -8,7 +8,7 @@
 //	      Sort and index with samtools
 
 
-process sorted_bam_files {
+process align_sort_output_bam {
 	tag "$sampleId"
 
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/BAM/", mode: 'copy'

@@ -9,7 +9,7 @@
 
 
 // Load the modules for the ALN workflow
-include { sorted_bam_files } from "./../modules/align_sort_bam"
+include { align_sort_output_bam } from "./../modules/align_sort_output_bam"
 include { bwa_index; bwa_index as bwa_index_shifted } from "./../modules/bwa_index"
 
 // ALN workflow
@@ -27,10 +27,10 @@ workflow ALN {
 
 	main:
 		bwa_index(reference)
-		sorted_bam_files(reference, bwa_index.out, read_pairs_ch, assembly, batch, run)
+		align_sort_output_bam(reference, bwa_index.out, read_pairs_ch, assembly, batch, run)
 	emit :
-		reference_index = bwa_index.out.collect()
-		bam_sorted = sorted_bam_files.out.samples_bam
-		bam_sorted_index=sorted_bam_files.out.samples_bam_index
+		reference_index 	= bwa_index.out.collect()
+		bam_sorted 		= align_sort_output_bam.out.samples_bam
+		bam_sorted_index 	= align_sort_output_bam.out.samples_bam_index
 }
 

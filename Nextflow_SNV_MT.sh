@@ -12,4 +12,4 @@
 #SBATCH --error=%x-%j.error
 
 module load singularity
-nextflow run Nextflow_SNV_MT_211220.nf -profile GRCh37 -resume -with-trace -with-report -with-timeline  -with-dag flowchart.png
+nextflow run Nextflow_SNV_MT_211220.nf -profile GRCh38 -resume -with-trace -with-report -with-timeline  -with-dag flowchart.png

@@ -71,7 +71,7 @@ workflow MT {
 	main:
 		bwa_index(ref_MT_fasta)
 		bwa_index_shifted(ref_MT_shifted_fasta)
-		Extract_MT_Read(bam, bai)
+		Extract_MT_Read(bam, bai, Mitochondrial_chromosome)
 		MT_SamtoFastq(Extract_MT_Read.out)
 		align_to_MT(ref_MT_fasta, bwa_index.out, MT_SamtoFastq.out.fastq_MT)
 		align_to_MT_shifted(ref_MT_shifted_fasta, bwa_index_shifted.out, MT_SamtoFastq.out.fastq_MT)

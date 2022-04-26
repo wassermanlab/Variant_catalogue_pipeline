@@ -16,6 +16,7 @@ process plink_sex_inference {
 
 	input :
 	path vcf
+	val assembly_hg
 	val assembly
 	val batch
 	val run
@@ -29,7 +30,7 @@ process plink_sex_inference {
 	source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
 	module load plink/1.9b_5.2-x86_64
 
-	plink --vcf ${vcf} --split-x 2699520 154931044 --make-bed --vcf-half-call m --out ${vcf.simpleName}_plink_x_splitted
-	plink --bfile ${vcf.simpleName}_plink_x_splitted --recode --impute-sex 0.5 0.8 --out ${vcf.simpleName}_plink_sex
+	plink --vcf ${vcf} --split-x ${assembly_hg} --allow-extra-chr --make-bed --vcf-half-call m --out ${vcf.simpleName}_plink_x_splitted
+	plink --bfile ${vcf.simpleName}_plink_x_splitted  --allow-extra-chr --recode --impute-sex 0.5 0.8 --out ${vcf.simpleName}_plink_sex
 	"""
 }

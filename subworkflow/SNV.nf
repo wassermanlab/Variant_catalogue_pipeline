@@ -35,6 +35,7 @@ workflow SNV {
 	run             			= params.run
 	batch           			= params.batch
 	assembly        			= params.assembly
+	assembly_hg				= params.assembly_hg
 	reference       			= file (params.ref)
 	reference_index 			= file (params.ref_index)
 	vep_cache_merged 			= file (params.vep_cache_merged)
@@ -66,7 +67,7 @@ workflow SNV {
                 count_variants_gatk_2(count_variants_gatk.out.collect(), assembly, batch, run)
                 count_variants_vcftools(bcf_to_vcf.out.vcf, bcf_to_vcf.out.index, assembly, batch, run)
                 count_bcftools_stats(bcf_to_vcf.out.vcf, bcf_to_vcf.out.index, assembly, batch, run)
-                plink_sex_inference(bcf_to_vcf.out.vcf, assembly, batch, run)
+                plink_sex_inference(bcf_to_vcf.out.vcf, assembly_hg, assembly, batch, run)
 		sample_QC(plink_sex_inference.out, assembly, batch, run, count_variants_vcftools.out, count_variants_gatk_2.out, count_bcftools_stats.out, mosdepth)
 
 		split_vcf_by_chr(bcf_to_vcf.out.vcf, assembly, batch, run, chr)

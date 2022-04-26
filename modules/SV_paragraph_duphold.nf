@@ -1,6 +1,11 @@
 process SV_paragraph_duphold {
         tag "${bam.simpleName}"
 
+// 	For GRCh38, error
+//	[Genotyping] [289700] [critical] ERROR: This thread caught an exception first 
+//	subprocess.CalledProcessError: Command '/opt/miniconda/bin/grmpy --response-file=/tmp/tmpl89weswu.txt' returned non-zero exit status 1.
+//	Possibly due to the reference genome, trying to include the reference genome without the unassembled contigs
+
 //	Issue with the script from paragraph   [E::idx_find_and_load] Could not retrieve index file for 'paragraph_output/variants.vcf.gz'
 // 	According to github, workaround is to modify multigrmpy.py : https://github.com/Illumina/paragraph/issues/59
 	errorStrategy 'ignore' // TODO: change after debugging is done

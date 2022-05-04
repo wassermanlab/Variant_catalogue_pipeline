@@ -12,35 +12,25 @@
 //		Visualization of the distributions using the graph will allow to define threasholds relevant to the IBVL
 
 
-process sample_QC {
+process Hail_variant_QC {
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/R/", mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/", mode: 'copy', pattern : '*.html'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : '*filtered_samples_variants.vcf.bgz'
 
 	input :
-	file plink_sex_inference
+	file vcf_sample_filtered
 	val assembly
 	val batch
-	val run
-	file singleton
-	file SNPs_count
-	file bcftools_stat
-	file mosdepth 
+	val run 
 
 	output :
-	path '*.pdf', emit : graph
-	path 'QC_sample.tsv', emit : sample_QC_file
+	path '*.html', emit : graph
+	path 'filtered_samples_variants.vcf.bgz', emit : vcf_samples_variants_filtered
+
+	conda '/home/BCRICWH.LAN/Solenne.Correard/miniconda3/envs/hail'
 
 	script:
 	"""
-	source /cm/shared/BCCHR-apps/env_vars/unset_BCM.sh
-	source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
-	module load StdEnv/2020
-	module load r/4.1.2
-
-	Silent_Genomes_R=/mnt/common/SILENT/Act3/R/
-	mkdir -p \${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
-	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
-
-	Rscript ../../../modules/sample_QC.R $assembly $batch $run $plink_sex_inference $singleton $SNPs_count $bcftools_stat
+        #!/usr/bin/env python ../../../modules/Hail_variant_QC.py $vcf_sample_filtered
 	"""
 }

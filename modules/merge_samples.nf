@@ -10,6 +10,7 @@
 process merge_samples {
 
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/${var_type}/", mode: 'copy'
+//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_pre_hail/", mode: 'copy'
 
         input :
         file list_vcf

@@ -10,7 +10,7 @@
 process Mosdepth {
         tag "$bam"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/${bam.simpleName}/Mosdepth/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${bam.simpleName}/Mosdepth/", mode: 'copy'
 
 	input :
 	file bam

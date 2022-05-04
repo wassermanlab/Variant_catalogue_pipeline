@@ -9,7 +9,7 @@
 
 process count_variants_gatk_2 {
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Out_MultiQC/variant_count/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/variant_count/", mode: 'copy'
 
 	input :
 	path gatk_count_variant

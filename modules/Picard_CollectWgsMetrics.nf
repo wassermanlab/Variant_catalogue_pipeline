@@ -11,7 +11,7 @@
 process Picard_CollectWgsMetrics {
         tag "${bam.simpleName}"
  
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/${bam.simpleName}/Picard_Metrics/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/", mode: 'copy'
 
 	input :
 	file bam

@@ -9,7 +9,7 @@
 
 process multiqc_indiv {
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/multiqc/", mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/multiqc/", mode: 'copy'
 
 	input :
 	file '*' 

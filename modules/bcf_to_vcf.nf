@@ -9,6 +9,7 @@
 
 process bcf_to_vcf {
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/GLnexus/", mode: 'copy'
+//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_pre_hail/", mode: 'copy'
 
 	input :
 	file bcf_file

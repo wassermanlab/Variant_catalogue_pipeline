@@ -9,7 +9,7 @@
 process fastqc {
         tag "$sample"
 	
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/${sample}_sorted/Fastqc/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${sample}_sorted/Fastqc/", mode: 'copy'
 
 	input:
         tuple (val(sample), file(reads)) 

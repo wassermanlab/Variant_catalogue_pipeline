@@ -14,7 +14,7 @@
 process count_bcftools_stats {
         tag "${vcf}"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Out_MultiQC/variant_count/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/variant_count/", mode: 'copy'
 
 	input :
 	file vcf 

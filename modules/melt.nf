@@ -1,10 +1,15 @@
-// merge all files into one file
-// add gene annotation file as a parameter
+// Nextflow process
+// Owned by the Silent Genomes Project Activity 3 team
+// Developped to build the IBVL, a background variant library
+
+// Overview of the process goal and characteristics :
+// SV calling. Call Mobile Element Insertions (MEI) using MELT
+// Rename varaints, compress the vcf and index the compressed vcf
 
 process melt {
 	tag "${bam.simpleName}"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MEI/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MEI/Sample/", mode: 'copy'
 	
 //	module = "BCCHR/Java/1.8.0_231"
 //	conda  "/home/BCRICWH.LAN/Mohammed.Mohammed/miniconda3/envs/sv"   

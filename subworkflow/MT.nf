@@ -26,11 +26,6 @@ include { MT_LeftAlignAndTrimVariants } from "./../modules/MT_LeftAlignAndTrimVa
 include { MT_FilterOut_sites } from "./../modules/MT_FilterOut_sites"
 include { list_vcfs_txt } from "./../modules/list_vcfs_txt"
 include { merge_samples } from "./../modules/merge_samples"
-include { Bcftools_stats } from "./../modules/Bcftools_stats"
-include { Vcftools_TsTv_by_qual } from "./../modules/Vcftools_TsTv_by_qual"
-//include { annotation_table_merged } from "./../modules/annotation_table_merged"
-//include { MT_data_organization } from "./../modules/MT_data_organization"
-include { multiqc_pop } from "./../modules/multiqc_pop"
 
 // MT Workflow
 
@@ -44,12 +39,6 @@ workflow MT {
 	chrM					= params.chrM
 	reference                               = file (params.ref)
 	reference_index                      	= file (params.ref_index)
-	vep_cache_merged 			= params.vep_cache_merged
-	vep_cache_merged_version		= params.vep_cache_merged_version
-        CADD_1_6_whole_genome_SNVs 		= file (params.CADD_1_6_whole_genome_SNVs)
-        CADD_1_6_whole_genome_SNVs_index 	= file (params.CADD_1_6_whole_genome_SNVs_index)
-        CADD_1_6_InDels 			= file (params.CADD_1_6_InDels)
-        CADD_1_6_InDels_index 			= file (params.CADD_1_6_InDels_index)
 
 	// Load the MT specific files
 	Mitochondrial_chromosome                = params.Mitochondrial_chromosome
@@ -89,11 +78,29 @@ workflow MT {
 		MT_FilterOut_sites(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_LeftAlignAndTrimVariants.out.vcf, MT_LeftAlignAndTrimVariants.out.index, blacklist_sites_hg38_MT_file, blacklist_sites_hg38_MT_index_file, assembly, batch, run)
 		list_vcfs_txt(MT_FilterOut_sites.out.collect(), assembly, batch, run, MT)
 		merge_samples(list_vcfs_txt.out, assembly, batch, run, MT)
-		QC1 = Bcftools_stats(merge_samples.out.vcf, merge_samples.out.index, assembly, run)
-		QC2 = Vcftools_TsTv_by_qual(merge_samples.out.vcf, merge_samples.out.index, assembly, run)
-//		annotation_table_merged(merge_samples.out.vcf, merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly_MT, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chrM, MT)
-//		MT_data_organization(gnomad_MT_frequ, merge_samples.out.vcf, annotation_table_merged.out.annot_table_merged_R, assembly, run)
-//		quality_metrics	= QC1.concat(QC2, annotation_table_merged.out.vep_merged_stat).collect()
-		quality_metrics = QC1.concat(QC2).collect()
-		multiqc_pop(quality_metrics, assembly, run, Mitochondrial_chromosome)
 }
+
+
+
+// Modules that may be reintegrated if not included in hail 
+
+//include { Bcftools_stats } from "./../modules/Bcftools_stats"
+//include { Vcftools_TsTv_by_qual } from "./../modules/Vcftools_TsTv_by_qual"
+//include { annotation_table_merged } from "./../modules/annotation_table_merged"
+//include { MT_data_organization } from "./../modules/MT_data_organization"
+//include { multiqc_pop } from "./../modules/multiqc_pop"
+
+//        vep_cache_merged                        = params.vep_cache_merged
+//        vep_cache_merged_version                = params.vep_cache_merged_version
+//        CADD_1_6_whole_genome_SNVs              = file (params.CADD_1_6_whole_genome_SNVs)
+//        CADD_1_6_whole_genome_SNVs_index        = file (params.CADD_1_6_whole_genome_SNVs_index)
+//        CADD_1_6_InDels                         = file (params.CADD_1_6_InDels)
+//        CADD_1_6_InDels_index                   = file (params.CADD_1_6_InDels_index)
+
+//              QC1 = Bcftools_stats(merge_samples.out.vcf, merge_samples.out.index, assembly, run)
+//              QC2 = Vcftools_TsTv_by_qual(merge_samples.out.vcf, merge_samples.out.index, assembly, run)
+//              annotation_table_merged(merge_samples.out.vcf, merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly_MT, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chrM, MT)
+//              MT_data_organization(gnomad_MT_frequ, merge_samples.out.vcf, annotation_table_merged.out.annot_table_merged_R, assembly, run)
+//              quality_metrics = QC1.concat(QC2, annotation_table_merged.out.vep_merged_stat).collect()
+//              quality_metrics = QC1.concat(QC2).collect()
+//              multiqc_pop(quality_metrics, assembly, run, Mitochondrial_chromosome)

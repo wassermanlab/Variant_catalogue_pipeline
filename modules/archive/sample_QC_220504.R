@@ -33,17 +33,17 @@ plink_F_file =read.table(args[4], header=TRUE)
 #plink_F_file =read.table("work/35/96a2ce6cf4ebbed3596f786a1928a5/DeepVariant_GLnexus_Run_20211220_plink_sex.sexcheck", header=TRUE)
 
 #Load the file with number of singletons per sample created using vcftools
-#singleton_file = read.table(args[5], header=TRUE)
+singleton_file = read.table(args[5], header=TRUE)
 #singleton_file = read.table("work/b4/b9555c434b5aac68b983d69646c42c/singleton_per_ind.tsv", header=TRUE)
 
 #Load the file with number of SNPs per sample created using GATK
-#SNPs_file = read.table(args[6], sep=":")
+SNPs_file = read.table(args[6], sep=":")
 #SNPs_file = read.table("/mnt/scratch/SILENT/Act3/Processed/Individual/GRCh37/Batch_DryRun/Run_20211220/QC/Count_variants/SNP_count.tsv", sep=":")
 
 #Load the bcftools stat file. It includes also the number of singletons per sample (Number differ from number given by vcftools, need to compare both) and the het/hom ratio
-#bcftools_stats= read.table(args[7])
+bcftools_stats= read.table(args[7])
 #bcftools_stats= read.table("work/bd/df922cd588aafa56ef445e82931848/bcftools_stats.tsv")
-#colnames(bcftools_stats)=c("PSC", "[2]id", "sample", "[4]nRefHom", "nNonRefHom", "nHets", "[7]nTransitions", "[8]nTransversions", "[9]nIndels", "[10]average_depth", "nSingletons", "[12]nHapRef", "[13]nHapAlt", "[14]nMissing")
+colnames(bcftools_stats)=c("PSC", "[2]id", "sample", "[4]nRefHom", "nNonRefHom", "nHets", "[7]nTransitions", "[8]nTransversions", "[9]nIndels", "[10]average_depth", "nSingletons", "[12]nHapRef", "[13]nHapAlt", "[14]nMissing")
 
 
 table_QC=data.frame()
@@ -71,13 +71,12 @@ for (i in 1: nrow(plink_F_file)) {
 		Sex = "ambiguous"
 	}
 
-#	singleton = singleton_file$X1[singleton_file$INDV==sample]
-#	SNPs = SNPs_file$V2[SNPs_file$V1==paste0(sample, "_sorted_gatk_count_variants")]
-#	singleton_bcftools = bcftools_stats$nSingletons[bcftools_stats$sample==sample]
-#	het_hom_ratio = bcftools_stats$nHets[bcftools_stats$sample==sample] / bcftools_stats$nNonRefHom[bcftools_stats$sample==sample]
+	singleton = singleton_file$X1[singleton_file$INDV==sample]
+	SNPs = SNPs_file$V2[SNPs_file$V1==paste0(sample, "_sorted_gatk_count_variants")]
+	singleton_bcftools = bcftools_stats$nSingletons[bcftools_stats$sample==sample]
+	het_hom_ratio = bcftools_stats$nHets[bcftools_stats$sample==sample] / bcftools_stats$nNonRefHom[bcftools_stats$sample==sample]
 
-#	temp_table_QC = cbind(sample, Sex, mean_coverage, singleton, SNPs, singleton_bcftools, het_hom_ratio, plink_F, X_normalized_coverage, Y_normalized_coverage)
-        temp_table_QC = cbind(sample, Sex, mean_coverage, plink_F, X_normalized_coverage, Y_normalized_coverage)
+	temp_table_QC = cbind(sample, Sex, mean_coverage, singleton, SNPs, singleton_bcftools, het_hom_ratio, plink_F, X_normalized_coverage, Y_normalized_coverage)
 	table_QC=rbind.data.frame(table_QC, temp_table_QC)
 }
 
@@ -107,41 +106,41 @@ ggsave("sex_graph.pdf")
 # gnomAD threashold: 100,000 
 
 #Number of singletons counted using vcftools
-#pdf(file="singleton_graph.pdf", width = 4, height = 4)
-#hist(as.numeric(table_QC$singleton), breaks=12, xlab="Number of singleton SNV per sample",
-#     xlim = c(50000,3000000), main="Singleton distribution by vcftools")
-#  abline(v = 100000, col="blue")
-#dev.off()
+pdf(file="singleton_graph.pdf", width = 4, height = 4)
+hist(as.numeric(table_QC$singleton), breaks=12, xlab="Number of singleton SNV per sample",
+     xlim = c(50000,3000000), main="Singleton distribution by vcftools")
+  abline(v = 100000, col="blue")
+dev.off()
 
 #Number of singletons counted using bcftools
-#pdf(file="singleton_bcftools_graph.pdf", width = 4, height = 4)
-#hist(as.numeric(table_QC$singleton_bcftools), breaks=12, xlab="Number of singleton SNV per sample",
-#     main="Singleton distribution by bcftools")
-#  abline(v = 100000, col="blue")
-#dev.off()
+pdf(file="singleton_bcftools_graph.pdf", width = 4, height = 4)
+hist(as.numeric(table_QC$singleton_bcftools), breaks=12, xlab="Number of singleton SNV per sample",
+     main="Singleton distribution by bcftools")
+  abline(v = 100000, col="blue")
+dev.off()
 
 #Coverage graph
 # Distribution of the coverage by individual (on the whole genome, while gnomAD does it only based on chr20)
 # gnomAD : samples were filtered if they had a mean coverage on chromosome 20 < 15X
 # gnomAD threashold : 15
 
-#pdf(file="coverage_graph.pdf", width = 4, height = 4)
-#hist(as.numeric(table_QC$mean_coverage), breaks=12, xlab="Mean coverage per sample",
-#     xlim = c(0,50), main = "Mean coverage distribution")
-#abline(v = 15, col="blue")  	
-#dev.off()
+pdf(file="coverage_graph.pdf", width = 4, height = 4)
+hist(as.numeric(table_QC$mean_coverage), breaks=12, xlab="Mean coverage per sample",
+     xlim = c(0,50), main = "Mean coverage distribution")
+abline(v = 15, col="blue")  	
+dev.off()
 
 # Total number of SNP graph
 # Distribution of the total number of SNPs by individuals
 # gnomAD : Outliers were filtered using the following cutoffs: Number of SNVs: < 2.4M or > 3.75M
 # gnomAD threasholds at < 2.4M and > 3.75M
 
-#pdf(file="SNPs_count_graph.pdf", width = 4, height = 4)
-#hist(as.numeric(table_QC$SNPs), breaks=12, xlab="Total number of SNPs per sample",
-#       xlim = c(200000,10000000), main = "SNPs count distribution")
-#  abline(v = 2400000, col="blue")+
-#    abline(v = 3750000, col="blue")
-#dev.off()
+pdf(file="SNPs_count_graph.pdf", width = 4, height = 4)
+hist(as.numeric(table_QC$SNPs), breaks=12, xlab="Total number of SNPs per sample",
+       xlim = c(200000,10000000), main = "SNPs count distribution")
+  abline(v = 2400000, col="blue")+
+    abline(v = 3750000, col="blue")
+dev.off()
 
 
 # Ratio number of heterozygous variants / number of homozygous variants
@@ -149,10 +148,10 @@ ggsave("sex_graph.pdf")
 # gnomAD : Outliers were filtered using the following cutoffs: Ratio of heterozygous to homozygous variants: > 3.3
 # gnomAD threashold at 3.3
 
-#pdf(file="het_hom_ratio_graph.pdf", width = 4, height = 4)
-#hist(as.numeric(table_QC$het_hom_ratio), breaks=12, xlab="Het/Hom ratio per sample",
-#       xlim = c(0,5), main = "Het/Hom distribution")
-#  abline(v = 3.3, col="blue")
-#dev.off()
+pdf(file="het_hom_ratio_graph.pdf", width = 4, height = 4)
+hist(as.numeric(table_QC$het_hom_ratio), breaks=12, xlab="Het/Hom ratio per sample",
+       xlim = c(0,5), main = "Het/Hom distribution")
+  abline(v = 3.3, col="blue")
+dev.off()
 
 

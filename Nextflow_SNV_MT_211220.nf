@@ -27,6 +27,7 @@ include { QC_indiv } from "./subworkflow/QC_indiv"
 include { SNV } from "./subworkflow/SNV"
 include { MT } from "./subworkflow/MT"
 include { SV } from "./subworkflow/SV"
+include { Hail } from "./subworkflow/Hail"
 
 workflow{
 	samples 	= Channel
@@ -44,28 +45,5 @@ workflow{
         SNV(ALN.out.bam_sorted, ALN.out.bam_sorted_index, QC_indiv.out.mosdepth_output)
         MT(ALN.out.bam_sorted, ALN.out.bam_sorted_index)
 	SV(ALN.out.bam_sorted, ALN.out.bam_sorted_index, SNV.out.sample_sex_file)
+	Hail(SNV.out.SNV_vcf)
 }
-
-//Will have to add to the SV pipeline the output from SNV that defines the sex of each individual : SNV.out.{file_name}
-
-// The main worflow can directly call the named workflows from the modules
-//workflow {
-//        ALN()
-//	QC_indiv(ALN.out.bam_sorted, ALN.out.bam_sorted_index)
-//        SNV(ALN.out.bam_sorted, ALN.out.bam_sorted_index, QC_indiv.out.mosdepth_output)
-//        MT(ALN.out.bam_sorted, ALN.out.bam_sorted_index)
-//}
-
-
-
-
-
-
-
-
-
-
-
-
-
-

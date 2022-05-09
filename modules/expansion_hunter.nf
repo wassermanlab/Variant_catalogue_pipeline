@@ -1,11 +1,20 @@
+// Nextflow process
+// Owned by the Silent Genomes Project Activity 3 team
+// Developped to build the IBVL, a background variant library
+
+// Overview of the process goal and characteristics :
+// SV calling. Genotype the Short Tendem Repeat (STR) using Expension Hunter
+// Rename the STR, compress the vcf and index the compressed vcf
+
+// Future possible improvement : Use ExpensionHunterDeNovo
+
+
 process expansion_hunter {
 	tag "${bam.simpleName}"
 
-//	publishDir "PipeRes", mode: 'copy'
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/STR", mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/STR/Sample/", mode: 'copy'
 
 	input:
-//        tuple(val(sample_name), path(bam), path(index))
 	file bam
 	file bai
 	file reference
@@ -16,10 +25,8 @@ process expansion_hunter {
         val run
 
 	output:
-//	path '*.json', emit : json
 	path '*_str.vcf.gz', emit : vcf
         path '*_str.vcf.gz.tbi', emit : vcf_index
-//        tuple(file("${sample_name}_str.vcf"), val(sample_name))
 
 	script:
 	"""

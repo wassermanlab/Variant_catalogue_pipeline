@@ -1,10 +1,13 @@
+// Nextflow process
+// Owned by the Silent Genomes Project Activity 3 team
+// Developped to build the IBVL, a background variant library
+
+// Overview of the process goal and characteristics :
+// SV calling
+// STEP TO DESCRIBE
+
 process SV_paragraph_duphold {
         tag "${bam.simpleName}"
-
-// 	For GRCh38, error
-//	[Genotyping] [289700] [critical] ERROR: This thread caught an exception first 
-//	subprocess.CalledProcessError: Command '/opt/miniconda/bin/grmpy --response-file=/tmp/tmpl89weswu.txt' returned non-zero exit status 1.
-//	Possibly due to the reference genome, trying to include the reference genome without the unassembled contigs
 
 //	Issue with the script from paragraph   [E::idx_find_and_load] Could not retrieve index file for 'paragraph_output/variants.vcf.gz'
 // 	According to github, workaround is to modify multigrmpy.py : https://github.com/Illumina/paragraph/issues/59
@@ -15,7 +18,6 @@ process SV_paragraph_duphold {
 
 	input:
 	tuple(path(site_vcf), path(site_vcf_index))
-//	tuple(val(sample), path(bam), path(index))
 	file bam
 	file bai
 	file reference
@@ -27,7 +29,6 @@ process SV_paragraph_duphold {
 	output:
         path '*_genotypes_setid.vcf.gz.tbi', emit : index 
 	path '*_genotypes_setid.vcf.gz', emit : vcf	
-//	tuple(path("${output_file}"), path("${output_file}.csi"))
 
 	script:
 	output_file = "${bam.simpleName}.paragraph.vcf.gz"

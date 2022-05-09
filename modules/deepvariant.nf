@@ -10,7 +10,7 @@
 process deepvariant_call {
         tag "${bam.simpleName}"
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/DeepVariant/", mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SNV/Sample/", mode: 'copy'
 
 	input :
 	file reference

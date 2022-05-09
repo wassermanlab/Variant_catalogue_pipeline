@@ -1,3 +1,13 @@
+// Nextflow process
+// Owned by the Silent Genomes Project Activity 3 team
+// Developped to build the IBVL, a background variant library
+
+// Overview of the process goal and characteristics :
+// SV calling. 
+// DESCRIPTION OF THIS STEP TO DO
+
+
+
 process SV_jasmine {
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/jasmine", mode: 'copy'
 

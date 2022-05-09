@@ -21,9 +21,9 @@ process sample_QC {
 	val assembly
 	val batch
 	val run
-	file singleton
-	file SNPs_count
-	file bcftools_stat
+//	file singleton
+//	file SNPs_count
+//	file bcftools_stat
 	file mosdepth 
 
 	output :
@@ -41,6 +41,9 @@ process sample_QC {
 	mkdir -p \${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 
-	Rscript ../../../modules/sample_QC.R $assembly $batch $run $plink_sex_inference $singleton $SNPs_count $bcftools_stat
+	Rscript ../../../modules/sample_QC.R $assembly $batch $run $plink_sex_inference
 	"""
 }
+
+//        Rscript ../../../modules/sample_QC.R $assembly $batch $run $plink_sex_inference $singleton $SNPs_count $bcftools_stat
+

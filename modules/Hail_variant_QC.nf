@@ -4,13 +4,9 @@
 // Developped to build the IBVL, a background variant library
 
 // Overview of the process goal and characteristics :
-// Run a R script to
-//	Attribute a sex to each sample based on F coefficient, X and Y normalized coverage
-//	Create graph with number of SNPs per individual, number of singletons per individual, het/hom ratio by individuals. 
-// 		Blue lines in the graph are gnomAD threashold for sample to pass QC (Sample outside of the threasholds are removed in gnomAD)
-//		No hard filter has been included to remove samples in the IBVL yet as the threasholds may differ from the threaholds applied by gnomAD
-//		Visualization of the distributions using the graph will allow to define threasholds relevant to the IBVL
-
+// Run a python script with Hail to identify outliers variants
+// It includes a step to filter the variants
+// Future update : Include gnomAD frequency to each varaint, annotate the varaints using vep
 
 process Hail_variant_QC {
 

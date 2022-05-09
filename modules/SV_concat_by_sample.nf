@@ -1,3 +1,12 @@
+// Nextflow process
+// Owned by the Silent Genomes Project Activity 3 team
+// Developped to build the IBVL, a background variant library
+
+// Overview of the process goal and characteristics :
+// SV calling. Concatenante the SVs called by different callers for each sample
+
+
+
 process SV_concat_by_sample {
 	tag "${sample_name}"
 

@@ -19,12 +19,9 @@ process fastqc {
 	val run
 
 	output :
-//	file ("${sample}_fastqc/*.zip")
 	file ("*.zip")
 
 	script:
-//        mkdir -p ${sample}_fastqc
-//        fastqc --outdir ${sample}_fastqc -t ${task.cpus} ${reads.get(0)} ${reads.get(1)}
         """
 	fastqc -t ${task.cpus} ${reads.get(0)} ${reads.get(1)}
         """

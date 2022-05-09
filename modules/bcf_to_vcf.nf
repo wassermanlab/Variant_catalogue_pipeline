@@ -4,11 +4,13 @@
 // Developped to build the IBVL, a background variant library
 
 // Overview of the process goal and characteristics :
-// SNV Calling. Transform the bcf into a vcf and index the vcf
-//	And split the vcf into one vcf by chr
+// SNV Calling. 
+// Split the multiallelic varaints (norm step) and transform the bcf into a vcf 
+// Rename the varaints and compress the vcf into a vcf.gz
+// Index the compressed vcf
 
 process bcf_to_vcf {
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/GLnexus/", mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SNV/", mode: 'copy'
 //        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_pre_hail/", mode: 'copy'
 
 	input :

@@ -10,7 +10,7 @@
 process MT_MergeVcfs {
         tag "${MT_call_variants.simpleName}"
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/Sample/", mode: 'copy'
+//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/Sample/", mode: 'copy'
 
         input :
         file MT_Liftover

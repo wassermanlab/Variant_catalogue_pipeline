@@ -58,15 +58,23 @@ gnomad_file=cbind(ID_db_gnomad, gnomad_file)
 
 ##MT vcf from the database (IBVL)
 #Read the vcf file with MT calls
-MT_vcf=read.vcfR(args[3])
+#MT_vcf=read.vcfR(args[3])
 #Ectract the AF
-AF_table=extract.gt(MT_vcf,element = "AF")
+#AF_table=extract.gt(MT_vcf,element = "AF")
 #Temporarily : Replace NA by zero because no joint calling
-AF_table[is.na(AF_table)] <- 0
+#AF_table[is.na(AF_table)] <- 0
 #Create the variant ID (chr-Pos_ref_alt)
-ID_table_IBVL=as.data.frame(MT_vcf@fix[,c("CHROM", "POS", "REF", "ALT")])
-ID_db_IBVL=paste(ID_table_IBVL$CHROM, ID_table_IBVL$POS, ID_table_IBVL$REF, ID_table_IBVL$ALT, sep="_")
-AF_table_ID=cbind(ID_db_IBVL, AF_table)
+#ID_table_IBVL=as.data.frame(MT_vcf@fix[,c("CHROM", "POS", "REF", "ALT")])
+#ID_db_IBVL=paste(ID_table_IBVL$CHROM, ID_table_IBVL$POS, ID_table_IBVL$REF, ID_table_IBVL$ALT, sep="_")
+#AF_table_ID=cbind(ID_db_IBVL, AF_table)
+
+#Can take Hail table with alrady calculated info rather than vcf with individual genotype info
+Hail_MT_output=read.table(args[3], header=TRUE)
+#Create the variant ID (chr-Pos_ref_alt)
+ID_table_Hail=as.data.frame(Hail_MT_output[,c("chromosome", "position", "ref", "alt")])
+ID_db_Hail=paste(ID_table_Hail$chromosome, ID_table_Hail$position, ID_table_Hail$ref, ID_table_Hail$alt, sep="_")
+Hail_MT_output_ID=cbind(ID_db_Hail, Hail_MT_output)
+
 
 ##MT annotation table (IBVL)
 ### !!!! Need to remove the hashtag in front of the header line outside of R
@@ -82,17 +90,24 @@ table_variant_transcript=data.frame()
 table_variant_consequence=data.frame()
 table_variant_annotation=data.frame()
 
-for (i in 1:nrow(AF_table_ID)) {
+for (i in 1:nrow(Hail_MT_output_ID)) {
 	#show(i)
-  	variant=AF_table_ID[c(i),1]
-  	AF_table_i = AF_table[c(i),]
-  	ID_table_IBVL_i=ID_table_IBVL[c(i),]
+  	#variant=AF_table_ID[c(i),1]
+  	#AF_table_i = AF_table[c(i),]
+  	#ID_table_IBVL_i=ID_table_IBVL[c(i),]
 
   	#Define variables specific to variant i
-  	pos=as.numeric(as.character(ID_table_IBVL_i$POS))
-  	ref=ID_table_IBVL_i$REF
-  	alt=ID_table_IBVL_i$ALT
-  
+  	#pos=as.numeric(as.character(ID_table_IBVL_i$POS))
+  	#ref=ID_table_IBVL_i$REF
+  	#alt=ID_table_IBVL_i$ALT
+  	
+	Hail_MT_output_ID_i  = Hail_MT_output_ID[c(i),]
+	variant = Hail_MT_output_ID_i$ID_db_Hail
+	chrom = Hail_MT_output_ID_i$chromosome
+	pos = Hail_MT_output_ID_i$position
+	ref = Hail_MT_output_ID_i$ref
+	alt = Hail_MT_output_ID_i$alt
+	
   	#Several annotation per variant, need to subset the annotation table to extract the annotation corresponding to variant i
   	#For indel, need to remove the letter common between the ref and alt and add 1 to the pos to match the vep output
   	#In gnomAD, indels are identified as M-105-CGGAGCA-C
@@ -111,30 +126,40 @@ for (i in 1:nrow(AF_table_ID)) {
     		modified_ID_variant_i=paste("chrM", modified_variant_POS, modified_variant_REF, modified_variant_ALT, sep="_")
     		MT_raw_annotaton_i= MT_raw_annotaton_file[(MT_raw_annotaton_file$Uploaded_variation == modified_ID_variant_i),]
   	} 
-
+	
 	#gnomad filters : Given these large numbers of false positive calls for variants with V AF < 0.10, for the initial release we chose to exclude samples with mtCN < 50 and to report only variants with V AF 0.10 as we have greater confidence that such variants represent genuine heteroplasmies and not NUMT-derived false positives
   	# AN : number of cells with value
-  	an = length(AF_table_i[AF_table_i>=0])*2
+  	#an = length(AF_table_i[AF_table_i>=0])*2
   	#AC hom
-  	ac_hom = sum(AF_table_i > 0.95)
+  	#ac_hom = sum(AF_table_i > 0.95)
   	#AF hom
-  	af_hom = ac_hom/an
+  	#af_hom = ac_hom/an
   	#AC het
-  	ac_het = sum(AF_table_i > 0.1 & AF_table_i < 0.95)
+  	#ac_het = sum(AF_table_i > 0.1 & AF_table_i < 0.95)
   	#AF het
-  	af_het = ac_het/an
+  	#af_het = ac_het/an
   	
+	an = Hail_MT_output_ID_i$AN
+	ac_hom = Hail_MT_output_ID_i$AC_hom
+	af_hom = Hail_MT_output_ID_i$AF_hom
+	ac_het = Hail_MT_output_ID_i$AC_het
+	af_het = Hail_MT_output_ID_i$AF_het
+	max_hl = Hail_MT_output_ID_i$max_observed_heteroplasmy
+
+	hl_hist_temp = gsub("[\\[\\]]", "", regmatches(Hail_MT_output_ID_i$heteroplasmy_histogram, gregexpr("\\[.*?\\]", Hail_MT_output_ID_i$heteroplasmy_histogram))[[1]])[2]
+	hl_hist  = substring(hl_hist_temp, 2, nchar(hl_hist_temp)-1)
+
 	if (ac_hom==0 & ac_het ==0) {
 		next
 	}else {
   		#hl hist
   		#Calculate the stat for each row (Each variant) with heteroplasmy level superior to 0
-  		freq_i = hist(as.numeric(AF_table_i)[as.numeric(AF_table_i) > 0.1 ], breaks=seq(0,1,by=0.1), plot=FALSE)
+  		#freq_i = hist(as.numeric(AF_table_i)[as.numeric(AF_table_i) > 0.1 ], breaks=seq(0,1,by=0.1), plot=FALSE)
   		#Extract the count from each bin
-  		counts_i =as.data.frame(t(freq_i$counts))
-  		hl_hist=paste(counts_i$V1, counts_i$V2, counts_i$V3, counts_i$V4, counts_i$V5, counts_i$V6, counts_i$V7, counts_i$V8, counts_i$V9, counts_i$V10, sep=",")
+  		#counts_i =as.data.frame(t(freq_i$counts))
+  		#hl_hist=paste(counts_i$V1, counts_i$V2, counts_i$V3, counts_i$V4, counts_i$V5, counts_i$V6, counts_i$V7, counts_i$V8, counts_i$V9, counts_i$V10, sep=",")
   		#Max hl
-  		max_hl = max(AF_table_i)
+  		#max_hl = max(AF_table_i)
   
   		# Intergenic (Y/N) : From annotation file, if there is a cDNA_position --> Y, else N
   		if (max(as.character(MT_raw_annotaton_i$cDNA_position)) > 0) { 
@@ -251,7 +276,8 @@ write.table(table_variant_annotation, file="variant_annotations_MT.tsv", quote=F
 # MT_gnomAD_frequency
 # Variant_ID, AN, AC_hom, AC_het, AF_hom, AF_het, max_hl
 #Extract only the variant that are present in the IBVL
-gnomad_intersect = gnomad_file[gnomad_file$ID_db  %in%  as.data.frame(AF_table_ID)$ID_db_IBVL, ]
+#gnomad_intersect = gnomad_file[gnomad_file$ID_db  %in%  as.data.frame(AF_table_ID)$ID_db_IBVL, ]
+gnomad_intersect = gnomad_file[gnomad_file$ID_db_gnomad  %in% table_frequ_db$variant, ]
 #Keep only the wanted info
 gnomad_intersect_mini=gnomad_intersect[,c("ID_db_gnomad", "AN", "AC_hom", "AC_het", "AF_hom", "AF_het", "max_observed_heteroplasmy")]
 #rename the columns as expected in the SQL

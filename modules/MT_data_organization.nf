@@ -21,7 +21,7 @@ process MT_data_organization {
 
 	input :
 	path gnomad_MT_frequ
-	path MT_vcf
+	path Hail_output
 	path MT_annot
 	val assembly
 	val run
@@ -40,6 +40,6 @@ process MT_data_organization {
 	mkdir -p \${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 
-	Rscript ../../../modules/MT_data_organization.R $assembly $gnomad_MT_frequ $MT_vcf $MT_annot $run
+	Rscript ../../../modules/MT_data_organization.R $assembly $gnomad_MT_frequ $Hail_output $MT_annot $run
 	"""
 }

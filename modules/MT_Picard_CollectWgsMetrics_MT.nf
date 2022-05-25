@@ -15,20 +15,27 @@ process Picard_CollectWgsMetrics_MT {
 
         input :
 	file ref_genome_MT_file
-        file bam_MT
+        file ref_genome_MT_file_index
+        file interval_list
+	file bam_MT
 	file bai_MT
 	val assembly
 	val batch
 	val run
 
         output :
-        file '*_collect_wgs_metrics_MT.txt'
+        file '*.tsv'
 
         script :
         """
-	gatk CollectWgsMetrics \
-        -I ${bam_MT} \
-        -O ${bam_MT.simpleName}_collect_wgs_metrics_MT.txt \
-        -R ${ref_genome_MT_file}
-        """
+	gatk CollectHsMetrics \
+        --java-options "-Xmx8G" \
+	-I ${bam_MT} \
+        --PER_BASE_COVERAGE ${bam_MT.simpleName}_collect_wgs_metrics_${interval_list}.tsv \
+        -R ${ref_genome_MT_file} \
+	-O ${bam_MT.simpleName}.metrics \
+	-TI $interval_list \
+	-BI $interval_list \
+	--SAMPLE_SIZE 1 
+	"""
 }

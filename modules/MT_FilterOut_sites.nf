@@ -25,16 +25,24 @@ process MT_FilterOut_sites {
 	val run
 
         output :
-        file '*_filtered_sites.vcf.gz*'
+        path '*_filtered_sites.vcf.gz', emit : vcf
+	path '*_filtered_sites.vcf.gz.tbi', emit : index
+	path '*_MT_Step2_participant_data.tsv', emit : sample_MT_Step2_participant_data
+	path '*_list.txt', emit : Sample_list
 
         script :
         """
-        gatk VariantFiltration \
+        sample_name=\$(echo ${MT_trimmed.simpleName} | sed 's/_.*//' )
+	
+	gatk VariantFiltration \
 	-R Homo_sapiens_assembly38.chrM.fasta \
 	-V ${MT_trimmed.simpleName}.vcf.gz \
 	-O ${MT_trimmed.simpleName}_filtered_sites.vcf.gz \
 	--mask-name "GATK_artifact" \
 	--mask ${blacklist_sites_hg38_MT_file}
+
+	echo "\${sample_name}\t\${sample_name}\t$params.outdir_ind/${assembly}/${batch}/${run}/MT/Sample/${MT_trimmed.simpleName}_filtered_sites.vcf.gz" > \${sample_name}_MT_Step2_participant_data.tsv
+	echo "\${sample_name}" > \${sample_name}_list.txt
         """
 }
 

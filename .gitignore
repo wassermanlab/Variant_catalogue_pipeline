@@ -15,6 +15,7 @@ report.html*
 *.ipynb
 hail*
 /archive
+/vcf_to_try_hail
 
 # Error and output files #
 ##########################

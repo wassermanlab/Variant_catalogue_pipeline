@@ -168,14 +168,17 @@ for (j in 1:(length(slots_var)-1)){
   		#Number of individus homozygotes for the alternative allele (1/1)
   		hom_alt_XY = sum(XY_GT_table_i == "1/1", na.rm=T) 
 
+		#Some SV are too long and not annotated by the annot workflowm, need to define consequence and gene to avoid error
+		if (length(SV_annot_i$Consequence)>1) { 
+			#Consequence
+			consequence=SV_annot_i$Consequence
 
-		#Consequence
-		consequence=SV_annot_i$Consequence
-
-                #gene
-		#What if several genes? Is it several lines in the annotation file?
-                gene=SV_annot_i$SYMBOL
-
+                	#gene
+			gene=SV_annot_i$SYMBOL
+		} else {
+			consequence = "NotAnnotated"
+			gene = "NotAnnotated"
+		}
 
 
   		# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
@@ -250,6 +253,10 @@ for (j in 1:(length(slots_var)-1)){
 		#No transcript associated to SV, so no ensembl or Refseq
 		# If there is several consequences on the same line (separrated by a coma), create one line per consequence
 		temp_table_sv_consequence_i = cbind(gene, variant, consequence)
+		show(i)
+		show(SV_annot_i)
+		show(length(SV_annot_i$Consequence))
+		show(temp_table_sv_consequence_i)
 		table_sv_consequence=unique(rbind.data.frame(table_sv_consequence, temp_table_sv_consequence_i))
 		table_sv_consequence_split=separate_rows(table_sv_consequence, consequence, sep = ",")
 

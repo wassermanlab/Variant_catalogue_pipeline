@@ -11,6 +11,14 @@
 include { Hail_sample_QC } from "./../modules/Hail_sample_QC"
 include { Hail_variant_QC } from "./../modules/Hail_variant_QC"
 
+include { annotation_table_merged as SNV_annotation_table_merged; annotation_table_merged as MT_annotation_table_merged} from "./../modules/annotation_table_merged"
+
+include { split_tsv_by_chr } from "./../modules/split_tsv_by_chr"
+include { gnomad_frequency_table } from "./../modules/gnomad_frequency_table"
+include { SNV_data_organization } from "./../modules/SNV_data_organization"
+
+//include { Hail_variant_MT_QC } from "./../modules/Hail_variant_MT_QC"
+//include { MT_data_organization } from "./../modules/MT_data_organization"
 
 // Hail workflow
 
@@ -21,12 +29,39 @@ workflow Hail {
 	batch           			= params.batch
 	assembly        			= params.assembly
 	assembly_hg				= params.assembly_hg
+        chr                                     = params.chrom
+        vep_cache_merged                        = file (params.vep_cache_merged)
+        vep_cache_merged_version                = params.vep_cache_merged_version
+        CADD_1_6_whole_genome_SNVs              = file (params.CADD_1_6_whole_genome_SNVs)
+        CADD_1_6_whole_genome_SNVs_index        = file (params.CADD_1_6_whole_genome_SNVs_index)
+        CADD_1_6_InDels                         = file (params.CADD_1_6_InDels)
+        CADD_1_6_InDels_index                   = file (params.CADD_1_6_InDels_index)
+        SNV                                     = params.SNV
+	gnomad_SNV_vcf                          = file (params.gnomad_SNV_vcf)
+	gnomad_SNV_index                        = file (params.gnomad_SNV_index)
+
+	gnomad_MT_frequ				= file (params.gnomad_MT_frequ)
+	MT					= params.MT
+	chrM					= params.chrM
 
 	// Workflow start here
 	take : 
 		SNV_vcf
+		sample_sex_file
+		MT_vcf
 	main :
 		Hail_sample_QC(SNV_vcf, assembly, batch, run)
-                Hail_variant_QC(Hail_sample_QC.out.vcf_sample_filtered, assembly, batch, run)
+                Hail_variant_QC(Hail_sample_QC.out.vcf_sample_filtered, sample_sex_file, assembly, batch, run)
+
+		gnomad_frequency_table(gnomad_SNV_vcf, gnomad_SNV_index, chr)
+		split_tsv_by_chr(Hail_variant_QC.out.SNV_frequ_tot_xx_xy_tsv, assembly, batch, run)
+		
+                SNV_annotation_table_merged(Hail_variant_QC.out.SNV_vcf_samples_variants_filtered, Hail_variant_QC.out.SNV_index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chr, SNV)
+		SNV_data_organization(gnomad_frequency_table.out.collect(), split_tsv_by_chr.out.collect(), SNV_annotation_table_merged.out.annot_table_merged_R.collect(), assembly, run, chr, Hail_variant_QC.out.SNV_vcf_samples_variants_filtered)
+		
+
+//		Hail_variant_MT_QC(Hail_sample_QC.out.vcf_sample_filtered, MT_vcf, sample_sex_file, assembly, batch, run)
+//		MT_annotation_table_merged(Hail_variant_MT_QC.out.MT_vcf_samples_variants_filtered, Hail_variant_MT_QC.out.MT_index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chrM, MT)
+//		MT_data_organization(gnomad_MT_frequ, Hail_variant_MT_QC.out.MT_frequ_tot_xx_xy_tsv, annotation_table_merged.out.annot_table_merged_R, assembly, run)				
 }
 

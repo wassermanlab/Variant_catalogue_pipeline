@@ -61,20 +61,12 @@ workflow SNV {
 //include { split_vcf_by_chr } from "./../modules/split_vcf_by_chr"
 //include { Bcftools_stats } from "./../modules/Bcftools_stats"
 //include { Vcftools_TsTv_by_qual } from "./../modules/Vcftools_TsTv_by_qual"
-//include { annotation_table_merged } from "./../modules/annotation_table_merged"
+
 //include { SNV_data_organization } from "./../modules/SNV_data_organization"
 //include { multiqc_pop } from "./../modules/multiqc_pop"
 
-//        vep_cache_merged                        = file (params.vep_cache_merged)
-//        vep_cache_merged_version                = params.vep_cache_merged_version
-//        CADD_1_6_whole_genome_SNVs              = file (params.CADD_1_6_whole_genome_SNVs)
-//        CADD_1_6_whole_genome_SNVs_index        = file (params.CADD_1_6_whole_genome_SNVs_index)
-//        CADD_1_6_InDels                         = file (params.CADD_1_6_InDels)
-//        CADD_1_6_InDels_index                   = file (params.CADD_1_6_InDels_index)
 //        gnomad_SNV_vcf                          = file (params.gnomad_SNV_vcf)
 //        gnomad_SNV_index                        = file (params.gnomad_SNV_index)
-//        SNV                                     = params.SNV
-//        chr                                     = params.chrom
 
 //              count_variants_gatk(deepvariant_call.out.deepvariant_vcf, deepvariant_call.out.deepvariant_vcf_index, assembly, batch, run)
 //                count_variants_gatk_2(count_variants_gatk.out.collect(), assembly, batch, run)
@@ -89,6 +81,5 @@ workflow SNV {
 // Step reoved and hopefully to add to Hail
 //              gnomad_frequency_table(gnomad_SNV_vcf, gnomad_SNV_index, chr)
 //              split_vcf_by_chr(bcf_to_vcf.out.vcf, assembly, batch, run, chr)
-//                annotation_table_merged(bcf_to_vcf.out.vcf, bcf_to_vcf.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chr, SNV)
 //                SNV_data_organization(gnomad_frequency_table.out.collect(), split_vcf_by_chr.out.vcf_onechr, annotation_table_merged.out.annot_table_merged_R.collect(), assembly, run, sample_QC.out.sample_QC_file)
 

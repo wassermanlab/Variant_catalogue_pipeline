@@ -45,5 +45,5 @@ workflow{
         SNV(ALN.out.bam_sorted, ALN.out.bam_sorted_index, QC_indiv.out.mosdepth_output)
         MT(ALN.out.bam_sorted, ALN.out.bam_sorted_index, QC_indiv.out.mosdepth_output)
 	SV(ALN.out.bam_sorted, ALN.out.bam_sorted_index, SNV.out.sample_sex_file)
-//	Hail(SNV.out.SNV_vcf, SNV.out.sample_sex_file, MT.out.MT_vcf)
+	Hail(SNV.out.SNV_vcf, SNV.out.sample_sex_file)
 }

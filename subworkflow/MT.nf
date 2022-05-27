@@ -55,7 +55,11 @@ workflow MT {
         CADD_1_6_whole_genome_SNVs_index        = file (params.CADD_1_6_whole_genome_SNVs_index)
         CADD_1_6_InDels                         = file (params.CADD_1_6_InDels)
         CADD_1_6_InDels_index                   = file (params.CADD_1_6_InDels_index)
-
+	spliceai_snv				= file (params.spliceai_snv)
+	spliceai_snv_index			= file (params.spliceai_snv_index)
+	spliceai_indel				= file (params.spliceai_indel)
+	spliceai_indel_index			= file (params.spliceai_indel_index)
+	severity_table				= file (params.severity_table)
 
 
 	// Load the MT specific files
@@ -90,7 +94,9 @@ workflow MT {
 		Picard_CollectWgsMetrics_MT(ref_MT_fasta, ref_MT_fasta_index, non_control_region_interval_list, align_to_MT.out.align_to_MT_bam, align_to_MT.out.align_to_MT_bai, assembly, batch, run)
 		Picard_CollectWgsMetrics_MT_shifted(ref_MT_shifted_fasta, ref_MT_shifted_fasta_index, control_region_shifted_reference_interval_list, align_to_MT_shifted.out.align_to_MT_bam, align_to_MT_shifted.out.align_to_MT_bai, assembly, batch, run)
 		shift_back(Picard_CollectWgsMetrics_MT_shifted.out, Picard_CollectWgsMetrics_MT.out.collect(), assembly, batch, run)
+
 		MT_Step1_input_tsv(shift_back.out.Sample_MT_Step1_input_tsv.collect(), assembly, batch, run)
+
 		MT_call_variants(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MarkDuplicates.out.bam, MarkDuplicates.out.bai, Mitochondrial_chromosome)
 		MT_call_variants_shifted(ref_MT_shifted_fasta, ref_MT_shifted_fasta_index, ref_MT_shifted_fasta_dict, MarkDuplicates_shifted.out.bam, MarkDuplicates_shifted.out.bai, Mitochondrial_chromosome)
 		MT_Liftover(MT_call_variants_shifted.out.Mutect2_vcf, MT_call_variants_shifted.out.Mutect2_vcf_index, ref_MT_fasta, ref_MT_fasta_dict, bwa_index.out, ShiftBack_chain, assembly, batch, run)
@@ -99,21 +105,15 @@ workflow MT {
 		MT_Filter_Mutect_Calls(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_MergeVcfs.out.vcf, MT_MergeVcfs.out.index, MT_Merge_stat_file.out.collect())
 		MT_LeftAlignAndTrimVariants(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_Filter_Mutect_Calls.out.vcf, MT_Filter_Mutect_Calls.out.index)
 		MT_FilterOut_sites(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_LeftAlignAndTrimVariants.out.vcf, MT_LeftAlignAndTrimVariants.out.index, blacklist_sites_hg38_MT_file, blacklist_sites_hg38_MT_index_file, assembly, batch, run)
+
 		MT_Step2_participant_data(MT_FilterOut_sites.out.sample_MT_Step2_participant_data.collect(), MT_FilterOut_sites.out.Sample_list.collect(), assembly, batch, run)
 		MT_haplocheck(MT_FilterOut_sites.out.vcf, assembly, batch, run)
 		MT_Step3_metadata_sample(mosdepth, MT_haplocheck.out.file, assembly, batch, run)
 		MT_Step3_metadata(MT_Step3_metadata_sample.out.collect(), assembly, batch, run)
 		Hail_variant_MT_QC(MT_Step1_input_tsv.out, MT_Step2_participant_data.out.MT_Step2_participant_data_tsv, MT_Step2_participant_data.out.participants_to_subset_txt, MT_Step3_metadata.out, assembly, batch, run)
 
-                annotation_table_merged(Hail_variant_MT_QC.out.vcf, Hail_variant_MT_QC.out.vcf_index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly_MT, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chrM, MT)
-                MT_data_organization(gnomad_MT_frequ, Hail_variant_MT_QC.out.Hail_reduced_annotations, annotation_table_merged.out.annot_table_merged_R, assembly, run)
-
-
-//		list_vcfs_txt(MT_FilterOut_sites.out.vcf.collect(), assembly, batch, run, MT)
-//		merge_samples(list_vcfs_txt.out, assembly, batch, run, MT)
-
-//	emit :
-//		MT_vcf = merge_samples.out.vcf
+                annotation_table_merged(Hail_variant_MT_QC.out.vcf, Hail_variant_MT_QC.out.vcf_index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly_MT, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chrM, MT)
+                MT_data_organization(gnomad_MT_frequ, Hail_variant_MT_QC.out.Hail_reduced_annotations, annotation_table_merged.out.annot_table_merged_R, assembly, run, severity_table)
 }
 
 
@@ -132,3 +132,13 @@ workflow MT {
 //              quality_metrics = QC1.concat(QC2, annotation_table_merged.out.vep_merged_stat).collect()
 //              quality_metrics = QC1.concat(QC2).collect()
 //              multiqc_pop(quality_metrics, assembly, run, Mitochondrial_chromosome)
+
+
+//              list_vcfs_txt(MT_FilterOut_sites.out.vcf.collect(), assembly, batch, run, MT)
+//              merge_samples(list_vcfs_txt.out, assembly, batch, run, MT)
+
+//      emit :
+//              MT_vcf = merge_samples.out.vcf
+
+
+

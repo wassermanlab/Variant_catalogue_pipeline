@@ -11,7 +11,7 @@
 process Picard_CollectWgsMetrics_MT {
         tag "${bam_MT}"
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/QC/", mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/QC/${bam_MT.simpleName}/", mode: 'copy'
 
         input :
 	file ref_genome_MT_file

@@ -12,7 +12,7 @@
 process plink_sex_inference {
         tag "$vcf"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Plink/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Plink_R/", mode: 'copy'
 
 	input :
 	path vcf

@@ -10,7 +10,7 @@
 process SV_manta {
 	tag "${bam.simpleName}"
     	
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/manta", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/Sample/manta", mode: 'copy'
 	
 	input:
 	file bam

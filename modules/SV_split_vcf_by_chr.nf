@@ -10,8 +10,6 @@
 process SV_split_vcf_by_chr {
         tag "${chr}"
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/${var_type}/", mode: 'copy'
-
 	input :
 	file vcf_file
 	val assembly

@@ -12,7 +12,6 @@ process gnomad_SV_frequency_table {
 
         input :
         file gnomad_SV_bed
-//	file gnomad_SNV_index
 	each chr
 
         output :

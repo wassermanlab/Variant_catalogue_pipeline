@@ -10,8 +10,10 @@
 
 process Hail_variant_MT_QC {
 
-//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/", mode: 'copy', pattern : '*.html'
-//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : '*filtered_samples_variants.vcf.bgz'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/MT/", mode: 'copy', pattern : 'sample_annotations.txt'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/MT/", mode: 'copy', pattern : 'MT_stats_pass.txt'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/MT/", mode: 'copy', pattern : 'MT_stats.txt'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : '*combined_sites_only.vcf.bgz*'
 
 	input :
 	file MT_Step1_input_tsv
@@ -23,9 +25,12 @@ process Hail_variant_MT_QC {
 	val run 
 
 	output :
-	path 'MT_Step3_output_dir/combined_sites_only.vcf.bgz', emit : vcf
-	path 'MT_Step3_output_dir/combined_sites_only.vcf.bgz.tbi', emit : vcf_index
+	path 'MT_post_hail_combined_sites_only.vcf.bgz', emit : vcf
+	path 'MT_post_hail_combined_sites_only.vcf.bgz.tbi', emit : vcf_index
 	path 'MT_Step3_output_dir/reduced_annotations.txt', emit : Hail_reduced_annotations
+	path 'sample_annotations_MT.txt', emit : sample_annotations
+	path 'MT_stats_pass.txt', emit : stats_pass
+	path 'MT_stats.txt', emit : stats
 
 	conda '/home/BCRICWH.LAN/Solenne.Correard/miniconda3/envs/hail'
 

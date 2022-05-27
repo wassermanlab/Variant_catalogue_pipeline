@@ -376,7 +376,7 @@ filtered_SNV_mt_sample_qc_samples = SNV_mt_sample_qc.filter_cols((SNV_mt_sample_
 # In[124]:
 
 
-hl.export_vcf(filtered_SNV_mt_sample_qc_samples, 'filtered_samples.vcf.bgz')
+hl.export_vcf(filtered_SNV_mt_sample_qc_samples, 'SNV_filtered_samples.vcf.bgz',  tabix=True)
 
 
 # In[ ]:

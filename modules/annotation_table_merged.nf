@@ -26,6 +26,10 @@ process annotation_table_merged {
 	file CADD_1_6_whole_genome_SNVs_index
 	file CADD_1_6_InDels
 	file CADD_1_6_InDels_index
+	file spliceai_snv
+	file spliceai_snv_index
+	file spliceai_indel
+        file spliceai_indel_index
 	each chr
 	val var_type 
 
@@ -66,8 +70,9 @@ process annotation_table_merged {
 	--tab \
         --dir_plugins /mnt/common/SILENT/Act3/VEP/Plugins/ \
         --plugin CADD,$CADD_1_6_whole_genome_SNVs,$CADD_1_6_InDels \
-        --stats_file ${vcf.simpleName}_${chr}_VEP_merged_stats
+        --plugin spliceAI, snv=${spliceai_snv}, indel=${spliceai_indel}\
+	--stats_file ${vcf.simpleName}_${chr}_VEP_merged_stats
 
 	sed 's/#Uploaded_variation/Uploaded_variation/g' ${vcf.simpleName}_${chr}_${var_type}_annotation_table_merged.tsv > ${vcf.simpleName}_${chr}_${var_type}_annotation_table_merged_nohash.tsv
-        """
+	"""
 }

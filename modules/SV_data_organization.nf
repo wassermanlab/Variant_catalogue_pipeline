@@ -10,11 +10,11 @@ process SV_data_organization {
         tag "${SV_vcf}"
 
 	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/genomic_ibvl_frequencies/", mode: 'copy', pattern: "genomic_ibvl_frequencies_SV_*"
-        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/svs/", mode: 'copy', pattern: "svs_*"
+	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/svs/", mode: 'copy', pattern: "svs_*"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/genes/", mode: 'copy', pattern: "genes_sv_*"
 	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_sv_SV_[A-Z0-9][A-Z0-9].tsv"
 	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/sv_consequences/", mode: 'copy', pattern: "sv_consequences_*"
-	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/ctx/", mode: 'copy', pattern: "ctx_*"
+	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/svs_ctx/", mode: 'copy', pattern: "svs_ctx_*"
 
 	input :
 	path SV_vcf

@@ -2713,5 +2713,9 @@ main_step3(args_step3)
 # In[ ]:
 
 
-
+os.replace('MT_Step3_output_dir/combined_sites_only.vcf.bgz','MT_post_hail_combined_sites_only.vcf.bgz')
+os.replace('MT_Step3_output_dir/combined_sites_only.vcf.bgz.tbi','MT_post_hail_combined_sites_only.vcf.bgz.tbi')
+os.replace('MT_Step3_output_dir/sample_annotations.txt','sample_annotations_MT.txt')
+os.replace('MT_Step3_output_dir/stats_pass.txt','MT_stats_pass.txt')
+os.replace('MT_Step3_output_dir/stats.txt','MT_stats.txt')
 

@@ -10,7 +10,7 @@
 process SV_smoove {
 	tag "${bam.simpleName}"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/smoove", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/Sample/smoove", mode: 'copy'
 	
 	input:
 	file bam

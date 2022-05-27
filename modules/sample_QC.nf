@@ -14,7 +14,7 @@
 
 process sample_QC {
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/R/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Plink_R/", mode: 'copy'
 
 	input :
 	file plink_sex_inference

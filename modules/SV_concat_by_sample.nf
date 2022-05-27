@@ -10,7 +10,7 @@
 process SV_concat_by_sample {
 	tag "${sample_name}"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/Concat_by_sample", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/Sample/Concat_by_sample", mode: 'copy'
 
 	input:
         tuple(path(vcfs), path(indexes), val(sample_name))

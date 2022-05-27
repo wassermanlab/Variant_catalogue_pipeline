@@ -14,7 +14,7 @@ process MT_data_organization {
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_MT.tsv"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants_transcripts/", mode: 'copy', pattern: "variants_transcripts_MT.tsv"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants_consequences/", mode: 'copy', pattern: "variants_consequences_MT.tsv"
-        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variant_annotations/", mode: 'copy', pattern: "variant_annotations_MT.tsv"
+        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants_annotations/", mode: 'copy', pattern: "variants_annotations_MT.tsv"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/mt_gnomad_frequencies/", mode: 'copy', pattern: "mt_gnomad_frequencies.tsv"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/genes/", mode: 'copy', pattern: "genes_MT.tsv"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/transcripts/", mode: 'copy', pattern: "transcripts_MT.tsv"
@@ -25,6 +25,7 @@ process MT_data_organization {
 	path MT_annot
 	val assembly
 	val run
+	path severity_table
 
 	output :
 	path '*'
@@ -40,6 +41,6 @@ process MT_data_organization {
 	mkdir -p \${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 
-	Rscript ../../../modules/MT_data_organization.R $assembly $gnomad_MT_frequ $Hail_output $MT_annot $run
+	Rscript ../../../modules/MT_data_organization.R $assembly $gnomad_MT_frequ $Hail_output $MT_annot $run $severity_table
 	"""
 }

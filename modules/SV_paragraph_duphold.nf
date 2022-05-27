@@ -13,8 +13,7 @@ process SV_paragraph_duphold {
 // 	According to github, workaround is to modify multigrmpy.py : https://github.com/Illumina/paragraph/issues/59
 	errorStrategy 'ignore' // TODO: change after debugging is done
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/paragraph", mode: 'copy', pattern : '*_genotypes_setid.vcf.gz.tbi'
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/paragraph", mode: 'copy', pattern : '*_genotypes_setid.vcf.gz'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/Sample/paragraph", mode: 'copy', pattern : '*_genotypes_setid.vcf.gz*'
 
 	input:
 	tuple(path(site_vcf), path(site_vcf_index))

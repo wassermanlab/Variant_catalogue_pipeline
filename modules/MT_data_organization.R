@@ -83,6 +83,9 @@ MT_raw_annotaton_file=read.table((args[4]), fill=TRUE, header=TRUE)
 #Change the Uploaded_variation format
 MT_raw_annotaton_file$Uploaded_variation=str_replace(MT_raw_annotaton_file$Uploaded_variation, "/" , "_")
 
+#Severity table
+severity_table=read.table((args[6]), fill=TRUE, header=TRUE)
+
 table_frequ_db=data.frame()
 table_annot_MT=data.frame()
 variants_table=data.frame()
@@ -209,15 +212,17 @@ for (i in 1:nrow(Hail_MT_output_ID)) {
                 hgvsc=MT_raw_annotaton_i$HGVSc
                 #variant_transcript_id
                 variant_transcript=paste0(variant, "_", transcript)
-                #Consequence
-                consequence=MT_raw_annotaton_i$Consequence
+                
+		#Consequence
+                consequence_i=MT_raw_annotaton_i$Consequence	
+		
                 #hgvsp
                 hgvsp=MT_raw_annotaton_i$HGVSp
                 #polyphen_score
                 polyphen=MT_raw_annotaton_i$PolyPhen
                 #SIFT score
                 sift=MT_raw_annotaton_i$SIFT
-
+                
   		#Create tables
   		# MT_IBVL_frequency
   		# Variant ID, AN, AC Hom, AC Het, AF Hom, AF het, hl hist, max hl
@@ -226,7 +231,7 @@ for (i in 1:nrow(Hail_MT_output_ID)) {
 
   		# MT_annotation
   		# variant_ID, pos, ref, alt, intergenic (Y/N), UCSC_URL, mitomap_URL, gnomad_URL, dbsnp_id, dbsnp_url, clinvar_url
-  		temp_table_annot_MT_i = cbind(variant, pos, ref, alt, ucsc_url, mitomap_url, gnomad_url, dbsnp_id, dbsnp_url, clinvar_vcv, clinvar_url)
+  		temp_table_annot_MT_i = cbind(variant, pos, ref, alt, ucsc_url, mitomap_url, gnomad_url, dbsnp_id, dbsnp_url, clinvar_url, clinvar_vcv)
     		table_annot_MT=unique(rbind.data.frame(table_annot_MT, temp_table_annot_MT_i))
 
 		#Variants Table
@@ -243,13 +248,13 @@ for (i in 1:nrow(Hail_MT_output_ID)) {
                 # variant_transcript_id, severity (i.e consequence coded in number)
 		#Only for non intergenic variants
                 #If there is several consequences on the same line (separrated by a coma), create one line per consequence
-                table_variant_consequence_i=cbind(variant_transcript, consequence)
+                table_variant_consequence_i=cbind(consequence_i, variant, transcript)
                 table_variant_consequence=unique(rbind.data.frame(table_variant_consequence, table_variant_consequence_i))
-                table_variant_consequence_split=separate_rows(table_variant_consequence, consequence, sep = ",")
-
+                table_variant_consequence_split=separate_rows(table_variant_consequence, consequence_i, sep = ",")
+		
 	        #Variants_annotation
                 #variants_transcript_id, hgvsp, polyphen, sift (for polyphen and sift, score and interpretation together)
-                table_variant_annotation_i=cbind(variant_transcript, hgvsp, polyphen, sift)
+                table_variant_annotation_i=cbind(hgvsp, sift, polyphen, transcript, variant)
                 table_variant_annotation=unique(rbind.data.frame(table_variant_annotation, table_variant_annotation_i))	
 	}
 }
@@ -265,12 +270,17 @@ write.table(variants_table, file="variants_MT.tsv", quote=FALSE, row.names = FAL
 table_variant_transcript=table_variant_transcript[!grepl("^-$", table_variant_transcript$transcript),]
 write.table(table_variant_transcript, file="variants_transcripts_MT.tsv", quote=FALSE, row.names = FALSE, sep="\t")
 
-table_variant_consequence_split=table_variant_consequence_split[!grepl("^intergenic_variant$", table_variant_consequence_split$consequence),]
-colnames(table_variant_consequence_split)=c("variant_transcript", "severity")
-write.table(table_variant_consequence_split, file="variants_consequences_MT.tsv", quote=FALSE, row.names = FALSE, sep="\t")
+
+table_variant_consequence_split=table_variant_consequence_split[!grepl("^intergenic_variant$", table_variant_consequence_split$consequence_i),]
+#Replace each consequence by it's severity number
+table_variant_severities <- table_variant_consequence_split
+table_variant_severities$severity <- severity_table$severity_number[match(table_variant_severities$consequence_i, severity_table$consequence)]
+#Keep only the wanted info
+table_variant_severities=table_variant_severities[,c("severity", "variant", "transcript")]
+write.table(table_variant_severities, file="variants_consequences_MT.tsv", quote=FALSE, row.names = FALSE, sep="\t")
 
 table_variant_annotation=table_variant_annotation[!grepl("^-$", table_variant_annotation$hgvsp),]
-write.table(table_variant_annotation, file="variant_annotations_MT.tsv", quote=FALSE, row.names = FALSE, sep="\t")
+write.table(table_variant_annotation, file="variants_annotations_MT.tsv", quote=FALSE, row.names = FALSE, sep="\t")
 
 
 # MT_gnomAD_frequency
@@ -296,8 +306,9 @@ write.table(gene_table, file="genes_MT.tsv", quote=FALSE, row.names = FALSE, sep
 #(gene_id??), transcript_id, transcript type  (E for Ensembl, R for Refseq)
 #The transcript need to be associated to it's gene
 #Need to replace Ensembl by E and refseq by R to save space
-transcript_table=as.data.frame(unique(MT_raw_annotaton_file[,c("Feature", "SYMBOL", "SOURCE")]))
-colnames(transcript_table)=c("transcript_id", "gene", "transcript_type")
+#The Transcript Support Level (TSL) is a method to highlight the well-supported and poorly-supported transcript models for users.
+transcript_table=as.data.frame(unique(MT_raw_annotaton_file[,c("Feature", "SYMBOL", "SOURCE", "TSL")]))
+colnames(transcript_table)=c("transcript_id", "gene", "transcript_type", "tsl")
 transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "Ensembl", "E"))
 transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "Refseq", "R"))
 transcript_table=transcript_table[!grepl("^-$", transcript_table$transcript_id),]

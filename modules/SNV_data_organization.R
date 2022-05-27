@@ -61,7 +61,7 @@ gnomad_file=cbind(ID_db_gnomad, gnomad_file)
 
 #File with frequencies calculated in Hail
 #frequ_file=read.table('vcf_to_try_hail/subset_SNV_mt_var_filtered_tot_XX_XY_info.tsv', header=TRUE)
-frequ_file=read.table(args[4], header=TRUE)
+frequ_file=read.table(args[3], header=TRUE)
 chromosome=frequ_file[1,c("chrom")]
 
 ##MT vcf from the database (IBVL)
@@ -77,11 +77,15 @@ chromosome=frequ_file[1,c("chrom")]
 ##SNV annotation table (IBVL)
 ### !!!! Need to remove the hashtag in front of the header line outside of R
 #Needed to extract rsID and clinvar ID
-SNV_raw_annotaton_file=read.table(args[3], fill=TRUE, header=TRUE)
+SNV_raw_annotaton_file=read.table(args[4], fill=TRUE, header=TRUE)
 #SNV_raw_annotaton_file=read.table("work/47/1c2e7dd036d2ea5fe303cfeeeb8e3f/DeepVariant_GLnexus_Run_20211220_annotation_table_nohash.tsv", fill=TRUE, header=TRUE)
 
 #sex_table=read.table("sample_sex.tsv", header=TRUE)
 #sex_table = read.table(args[5], header=TRUE)
+
+#Severity table
+severity_table=read.table((args[7]), fill=TRUE, header=TRUE)
+
 
 #for (i in 1:nrow(SNV_vcf@fix)) {
 ##Loop to split the number of variants
@@ -110,11 +114,14 @@ for (j in 1:(length(slots_var)-1)){
 		#variant = gsub(";.*$", "", variant)
 		#GT_table_i = GT_table[c(i),]
 		SNV_annot_i = SNV_raw_annotaton_file[SNV_raw_annotaton_file$Uploaded_variation==variant,]
-  
+ 
+		show(variant)
+		show(head(SNV_raw_annotaton_file$Uploaded_variation))
+
 		#Define variables specific to variant i
 		chr = frequ_file$chrom[i]
 		pos = frequ_file$pos[i]
-		ref = frequ_file$erf[i]
+		ref = frequ_file$ref[i]
 		alt = frequ_file$alt[i]
 		#chr=SNV_vcf@fix[i,c("CHROM")]
   		#pos=as.numeric(SNV_vcf@fix[i,c("POS")])
@@ -192,7 +199,7 @@ for (j in 1:(length(slots_var)-1)){
   		# ????Intergenic ???? 
   		#Type - VARIANT_CLASS
   		type=SNV_annot_i$VARIANT_CLASS
-  
+
   		#length
   		if (type=="SNV") {
     			length="1"
@@ -210,6 +217,9 @@ for (j in 1:(length(slots_var)-1)){
 		} else if (cadd_score > 15) {
 			cadd_intr = "Damaging"
 		}
+
+		#splice_ai=SNV_annot_i$splice_ai
+		splice_ai="0.999"
 
   		# dbsnp_id : From annotation file (SNV_annot_i), "Existing_variation" column
   		if (grepl("rs", SNV_annot_i$Existing_variation)) {
@@ -263,7 +273,7 @@ for (j in 1:(length(slots_var)-1)){
   		#variant_transcript_id
 		variant_transcript=paste0(variant, "_", transcript)
   		#Consequence
-		consequence=SNV_annot_i$Consequence
+		consequence_i=SNV_annot_i$Consequence
 		#hgvsp
 		hgvsp=SNV_annot_i$HGVSp
 		#polyphen_score
@@ -279,7 +289,7 @@ for (j in 1:(length(slots_var)-1)){
 
   		# SNV_annotation
   		# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
-  		temp_table_annot_SNV_i = cbind(variant, type, length, chr, pos, ref, alt, cadd_score, cadd_intr, dbsnp_id, dbsnp_url, ucsc_url, ensembl_url, clinvar_vcv, clinvar_url, gnomad_url)
+  		temp_table_annot_SNV_i = cbind(variant, type, length, chr, pos, ref, alt, cadd_score, cadd_intr, dbsnp_id, dbsnp_url, ucsc_url, ensembl_url, clinvar_url, gnomad_url, clinvar_vcv, splice_ai)
 		table_annot_SNV=unique(rbind.data.frame(table_annot_SNV, temp_table_annot_SNV_i))
 
   		#Variants_transcript table
@@ -290,13 +300,13 @@ for (j in 1:(length(slots_var)-1)){
   		# Variants_consequences table
 		# variant_transcript_id, severity (i.e consequence coded in number)
                 #If there is several consequences on the same line (separrated by a coma), create one line per consequence
-		table_variant_consequence_i=cbind(variant_transcript, consequence)
+		table_variant_consequence_i=cbind(consequence_i, variant, transcript)
 		table_variant_consequence=unique(rbind.data.frame(table_variant_consequence, table_variant_consequence_i))
-		table_variant_consequence_split=separate_rows(table_variant_consequence, consequence, sep = ",")
+		table_variant_consequence_split=separate_rows(table_variant_consequence, consequence_i, sep = ",")
 
 		#Variants_annotation
 		#variants_transcript_id, hgvsp, polyphen, sift (for polyphen and sift, score and interpretation together)
-		table_variant_annotation_i=cbind(variant_transcript, hgvsp, polyphen, sift)
+		table_variant_annotation_i=cbind(hgvsp, sift, polyphen, transcript, variant)
 		table_variant_annotation=unique(rbind.data.frame(table_variant_annotation, table_variant_annotation_i))
 
 	}       
@@ -338,16 +348,20 @@ file.remove(list_variant_transcript_tables_slots)
 list_variant_consequence_tables_slots <- list.files(pattern = paste0("table_variant_consequence_slot"))
 tables_variant_consequence_slots=lapply(list_variant_consequence_tables_slots, read.table, header=TRUE)
 combined_tables_variant_consequence_slots=do.call(rbind, tables_variant_consequence_slots)
-combined_tables_variant_consequence_slots=combined_tables_variant_consequence_slots[!grepl("^intergenic_variant$", combined_tables_variant_consequence_slots$consequence),]
-colnames(combined_tables_variant_consequence_slots)=c("variant_transcript", "severity")
-write.table(combined_tables_variant_consequence_slots, file=paste0("variants_consequences_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
+combined_tables_variant_consequence_slots=combined_tables_variant_consequence_slots[!grepl("^intergenic_variant$", combined_tables_variant_consequence_slots$consequence_i),]
+#Replace each consequence by it's severity number
+table_variant_severities <- combined_tables_variant_consequence_slots
+table_variant_severities$severity <- severity_table$severity_number[match(table_variant_severities$consequence_i, severity_table$consequence)]
+#Keep only the wanted info
+table_variant_severities=table_variant_severities[,c("severity", "variant", "transcript")]
+write.table(table_variant_severities, file=paste0("variants_consequences_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 file.remove(list_variant_consequence_tables_slots)
 
 #Variants_annotation
 list_variant_annotation_tables_slots <- list.files(pattern = paste0("table_variant_annotation_slot"))
 tables_variant_annotation_slots=lapply(list_variant_annotation_tables_slots, read.table, header=TRUE)
 combined_tables_variant_annotation_slots=do.call(rbind, tables_variant_annotation_slots)
-write.table(combined_tables_variant_annotation_slots, file=paste0("variant_annotations_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
+write.table(combined_tables_variant_annotation_slots, file=paste0("variants_annotations_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 file.remove(list_variant_annotation_tables_slots)
 
 #Variants
@@ -378,8 +392,8 @@ write.table(gene_table, file=paste0("genes_", chromosome, ".tsv"), quote=FALSE, 
 #(gene_id??), transcript_id, transcript type  (E for Ensembl, R for Refseq)
 #The transcript need to be associated to it's gene
 #Need to replace Ensembl by E and refseq by R to save space
-transcript_table=as.data.frame(unique(SNV_raw_annotaton_file[,c("Feature", "SYMBOL", "SOURCE")]))
-colnames(transcript_table)=c("transcript_id", "gene", "transcript_type")
+transcript_table=as.data.frame(unique(SNV_raw_annotaton_file[,c("Feature", "SYMBOL", "SOURCE", "TSL")]))
+colnames(transcript_table)=c("transcript_id", "gene", "transcript_type", "tsl")
 transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "Ensembl", "E"))
 transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "Refseq", "R"))
 write.table(transcript_table, file=paste0("transcripts_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")

@@ -29,6 +29,7 @@ process deepvariant_call {
 	script:
 	"""
 	/opt/deepvariant/bin/run_deepvariant \
+	--num_shards=${task.cpus} \
 	--model_type=WGS \
 	--ref=${reference} \
 	--reads=${bam.simpleName}.bam \

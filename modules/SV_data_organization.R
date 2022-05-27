@@ -147,26 +147,26 @@ for (j in 1:(length(slots_var)-1)){
   		XX_Samples = sex_table[sex_table$Sex=="XX",1]
   		XX_GT_table_i = GT_table_i[XX_Samples]
   		# AN_XX
-  		an_XX = 2*(sum(XX_GT_table_i == "0/0", na.rm=T) + sum(XX_GT_table_i == "0/1", na.rm=T) + sum(XX_GT_table_i == "1/1", na.rm=T)) 
+  		an_xx = 2*(sum(XX_GT_table_i == "0/0", na.rm=T) + sum(XX_GT_table_i == "0/1", na.rm=T) + sum(XX_GT_table_i == "1/1", na.rm=T)) 
   		#AC XX
-  		ac_XX = sum(XX_GT_table_i == "0/1", na.rm=T) + 2*sum(XX_GT_table_i == "1/1", na.rm=T)
+  		ac_xx = sum(XX_GT_table_i == "0/1", na.rm=T) + 2*sum(XX_GT_table_i == "1/1", na.rm=T)
   		#AF X = AC/AN
-  		af_XX = ac_XX/an_XX
+  		af_xx = ac_xx/an_xx
   		#Number of individus homozygotes for the alternative allele (1/1)
-  		hom_alt_XX = sum(XX_GT_table_i == "1/1", na.rm=T) 
+  		hom_alt_xx = sum(XX_GT_table_i == "1/1", na.rm=T) 
   
   		#For XY individuals
   		#Subset the GT_Table for XY individuals
   		XY_Samples = sex_table[sex_table$Sex=="XY",1]
   		XY_GT_table_i = GT_table_i[XY_Samples]
   		# AN_XY
-  		an_XY = 2*(sum(XY_GT_table_i == "0/0", na.rm=T) + sum(XY_GT_table_i == "0/1", na.rm=T) + sum(XY_GT_table_i == "1/1", na.rm=T)) 
+  		an_xy = 2*(sum(XY_GT_table_i == "0/0", na.rm=T) + sum(XY_GT_table_i == "0/1", na.rm=T) + sum(XY_GT_table_i == "1/1", na.rm=T)) 
   		#AC XY
-  		ac_XY = sum(XY_GT_table_i == "0/1", na.rm=T) + 2*sum(XY_GT_table_i == "1/1", na.rm=T)
+  		ac_xy = sum(XY_GT_table_i == "0/1", na.rm=T) + 2*sum(XY_GT_table_i == "1/1", na.rm=T)
   		#AF X = AC/AN
-  		af_XY = ac_XY/an_XY
+  		af_xy = ac_xy/an_xy
   		#Number of individus homozygotes for the alternative allele (1/1)
-  		hom_alt_XY = sum(XY_GT_table_i == "1/1", na.rm=T) 
+  		hom_alt_xy = sum(XY_GT_table_i == "1/1", na.rm=T) 
 
 		#Some SV are too long and not annotated by the annot workflowm, need to define consequence and gene to avoid error
 		if (length(SV_annot_i$Consequence)>1) { 
@@ -213,6 +213,7 @@ for (j in 1:(length(slots_var)-1)){
 		#For SV V1, the gnomAD URL will point to the region view in gnomAD SV
 	      	#gnomAD SV is currently only avaialble in GRCh37
 		#https://gnomad.broadinstitute.org/region/22-18738600-18747000?dataset=gnomad_sv_r2_1
+		gnomad_id = "TBD"
 		if (assembly=="GRCh37") {
 			gnomad_url_region=paste0("https://gnomad.broadinstitute.org/region/", chr, "-", AVG_START, "-", AVG_END, "?dataset=gnomad_sv_r2_1")
 		} else {
@@ -239,12 +240,12 @@ for (j in 1:(length(slots_var)-1)){
   		### Create tables
   		# SV_IBVL_frequency
   		# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY, qual
-  		temp_table_frequ_db_i = cbind(variant, af_total, af_XX, af_XY, ac_total, ac_XX, ac_XY, an_total, an_XX, an_XY, hom_alt_total, hom_alt_XX, hom_alt_XY, quality)
+  		temp_table_frequ_db_i = cbind(variant, af_total, af_xx, af_xy, ac_total, ac_xx, ac_xy, an_total, an_xx, an_xy, hom_alt_total, hom_alt_xx, hom_alt_xy, quality)
 		table_frequ_SV=unique(rbind.data.frame(table_frequ_SV, temp_table_frequ_db_i))
 
   		# SV_annotation (svs)
   		# variant_ID, chr1, chr1_pos1 (start), chr1_po2 (end), type, length, algorithm, ucsc_url, gnomad_id, gnomad_url
-  		temp_table_annot_SV_i = cbind(variant, chr, AVG_START, AVG_END, type_vcf, AVG_LEN, algorithm, ucsc_url, gnomad_url_region)
+  		temp_table_annot_SV_i = cbind(variant, chr, AVG_START, AVG_END, type_vcf, AVG_LEN, algorithm, ucsc_url, gnomad_id, gnomad_url_region)
 		table_annot_SV=unique(rbind.data.frame(table_annot_SV, temp_table_annot_SV_i))
 
 
@@ -284,7 +285,7 @@ file.remove(list_frequ_tables_slots)
 list_annot_tables_slots <- list.files(pattern = paste0("table_annot_SV_slot"))
 tables_annot_slots=lapply(list_annot_tables_slots, read.table, header=TRUE)
 combined_tables_annot_slots=do.call(rbind, tables_annot_slots)
-colnames(combined_tables_annot_slots)=c("variant", "chr1", "chr1_pos1", "chr1_pos2", "type", "length", "algorithm", "ucsc_url", "gnomad_url")
+colnames(combined_tables_annot_slots)=c("variant", "chr1", "chr1_pos1", "chr1_pos2", "type", "length", "algorithm", "ucsc_url", "gnomad_id", "gnomad_url")
 write.table(combined_tables_annot_slots, file=paste0("svs_", var_type, "_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 file.remove(list_annot_tables_slots)
 
@@ -302,7 +303,7 @@ list_ctx_tables_slots <- list.files(pattern = paste0("table_ctx_slot"))
 tables_ctx_slots=lapply(list_ctx_tables_slots, read.table, header=TRUE)
 combined_tables_ctx_slots=do.call(rbind, tables_ctx_slots)
 if (length(nrow(combined_tables_ctx_slots))>0) {
-	write.table(combined_tables_ctx_slots, file=paste0("ctx_", var_type, "_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
+	write.table(combined_tables_ctx_slots, file=paste0("svs_ctx_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 }
 file.remove(list_ctx_tables_slots)
 

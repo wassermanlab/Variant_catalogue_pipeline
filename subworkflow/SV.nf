@@ -55,6 +55,10 @@ workflow SV {
         CADD_1_6_whole_genome_SNVs_index        = file (params.CADD_1_6_whole_genome_SNVs_index)
         CADD_1_6_InDels                         = file (params.CADD_1_6_InDels)
         CADD_1_6_InDels_index                   = file (params.CADD_1_6_InDels_index)
+	spliceai_snv				= file (params.spliceai_snv)
+	spliceai_snv_index			= file (params.spliceai_snv_index)
+	spliceai_indel				= file (params.spliceai_indel)
+	spliceai_indel_index			= file (params.spliceai_indel_index)
 
 	// Workflow start here
 	take : 
@@ -82,10 +86,10 @@ workflow SV {
 		MEI_merge_samples(MEI_vcfs_txt.out, assembly, batch, run, MEI)
 
                 MEI_split_vcf_by_chr(MEI_merge_samples.out.vcf, assembly, batch, run, chr, MEI)
-                MEI_annotation(MEI_merge_samples.out.vcf, MEI_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chr, MEI)
+                MEI_annotation(MEI_merge_samples.out.vcf, MEI_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, MEI)
                 MEI_data_organization(MEI_split_vcf_by_chr.out.vcf_onechr, MEI_annotation.out.annot_table_merged_R.collect(), assembly, run, MEI, sample_sex_file)
                 STR_data_organization(STR_merge_samples.out.vcf, variant_catalog, assembly, run, STR)
                 SV_split_vcf_by_chr(SV_merge_samples.out.vcf, assembly, batch, run, chr, SV)
-                SV_annotation(SV_merge_samples.out.vcf, SV_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, chr, SV)
+                SV_annotation(SV_merge_samples.out.vcf, SV_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SV)
                 SV_data_organization(SV_split_vcf_by_chr.out.vcf_onechr, SV_annotation.out.annot_table_merged_R.collect(), assembly, run, SV, sample_sex_file)
 }

@@ -7,7 +7,7 @@
 // Run a R script that organize the SNV variants information in the tables expected to be displayed in the IBVL interface
 
 process MEI_data_organization {
-        tag "${SV_vcf}"
+        tag "${MEI_vcf.simpleName}"
 
 	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/genomic_ibvl_frequencies/", mode: 'copy', pattern: "genomic_ibvl_frequencies_*"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/svs/", mode: 'copy', pattern: "svs_*"

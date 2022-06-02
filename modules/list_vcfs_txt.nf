@@ -32,7 +32,7 @@ process list_vcfs_txt {
                 """
 	} else if (var_type == "SV") {
                 """
-                find $params.outdir_ind/${assembly}/${batch}/${run}/${var_type}/paragraph/ -name "*.vcf.gz" > ${var_type}_vcfs.txt
+                find $params.outdir_ind/${assembly}/${batch}/${run}/${var_type}/Sample/paragraph/ -name "*.vcf.gz" > ${var_type}_vcfs.txt
 		"""
         } else {
         	"""

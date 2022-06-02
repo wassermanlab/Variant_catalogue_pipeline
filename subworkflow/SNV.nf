@@ -38,7 +38,10 @@ workflow SNV {
 		mosdepth
 
 	main :
+		// Sample specific (Do not need to be run for a previously processed sample)
 		deepvariant_call(reference, reference_index, bam, bai, assembly, batch, run)
+
+		// Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		list_vcfs_txt(deepvariant_call.out.deepvariant_gvcf.collect(), assembly, batch, run, SNV)
 		GLnexus_cli(list_vcfs_txt.out, run)
 		bcf_to_vcf(GLnexus_cli.out, assembly, batch, run)
@@ -50,36 +53,3 @@ workflow SNV {
 		sample_sex_file=sample_QC.out.sample_QC_file
 		SNV_vcf = bcf_to_vcf.out.vcf
 }
-
-
-// Steps removed as they are now integrated in Hail
-//include { gnomad_frequency_table } from "./../modules/gnomad_frequency_table"
-//include { count_variants_vcftools } from "./../modules/count_variants_vcftools"
-//include { count_variants_gatk } from "./../modules/count_variants_gatk"
-//include { count_variants_gatk_2 } from "./../modules/count_variants_gatk_2"
-//include { count_bcftools_stats } from "./../modules/count_bcftools_stats"
-//include { split_vcf_by_chr } from "./../modules/split_vcf_by_chr"
-//include { Bcftools_stats } from "./../modules/Bcftools_stats"
-//include { Vcftools_TsTv_by_qual } from "./../modules/Vcftools_TsTv_by_qual"
-
-//include { SNV_data_organization } from "./../modules/SNV_data_organization"
-//include { multiqc_pop } from "./../modules/multiqc_pop"
-
-//        gnomad_SNV_vcf                          = file (params.gnomad_SNV_vcf)
-//        gnomad_SNV_index                        = file (params.gnomad_SNV_index)
-
-//              count_variants_gatk(deepvariant_call.out.deepvariant_vcf, deepvariant_call.out.deepvariant_vcf_index, assembly, batch, run)
-//                count_variants_gatk_2(count_variants_gatk.out.collect(), assembly, batch, run)
-//                count_variants_vcftools(bcf_to_vcf.out.vcf, bcf_to_vcf.out.index, assembly, batch, run)
-//                count_bcftools_stats(bcf_to_vcf.out.vcf, bcf_to_vcf.out.index, assembly, batch, run)
-//                sample_QC(plink_sex_inference.out, assembly, batch, run, count_variants_vcftools.out, count_variants_gatk_2.out, count_bcftools_stats.out, mosdepth)
-//                QC1 = Bcftools_stats(bcf_to_vcf.out.vcf, bcf_to_vcf.out.index, assembly, run)
-//                QC2 = Vcftools_TsTv_by_qual(bcf_to_vcf.out.vcf, bcf_to_vcf.out.index, assembly, run)
-//                quality_metrics = QC1.concat(QC2, annotation_table_merged.out.vep_merged_stat).collect()
-//                multiqc_pop(quality_metrics, assembly, run, SNV)
-
-// Step reoved and hopefully to add to Hail
-//              gnomad_frequency_table(gnomad_SNV_vcf, gnomad_SNV_index, chr)
-//              split_vcf_by_chr(bcf_to_vcf.out.vcf, assembly, batch, run, chr)
-//                SNV_data_organization(gnomad_frequency_table.out.collect(), split_vcf_by_chr.out.vcf_onechr, annotation_table_merged.out.annot_table_merged_R.collect(), assembly, run, sample_QC.out.sample_QC_file)
-

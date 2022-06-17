@@ -11,7 +11,7 @@
 process Picard_CollectWgsMetrics {
         tag "${bam.simpleName}"
  
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/", mode: 'copyNoFollow'
 
 	input :
 	file bam
@@ -27,10 +27,15 @@ process Picard_CollectWgsMetrics {
 
 	script :
 	"""
-	gatk CollectWgsMetrics \
-	--java-options "-Xmx8G" \
-	-I ${bam} \
-	-O ${bam.simpleName}_collect_wgs_metrics.txt \
-	-R ${ref_genome}
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/${bam.simpleName}_collect_wgs_metrics.txt ]; then
+		picard_collect_wgs_metrics=\$(find $params.outdir_ind/${assembly}/*/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/ -name ${bam.simpleName}_collect_wgs_metrics.txt)
+		ln -s \$picard_collect_wgs_metrics .
+	else
+		gatk CollectWgsMetrics \
+		--java-options "-Xmx8G" \
+		-I ${bam} \
+		-O ${bam.simpleName}_collect_wgs_metrics.txt \
+		-R ${ref_genome}
+	fi
 	"""
 }

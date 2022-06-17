@@ -13,6 +13,9 @@ process MT_Merge_stat_file {
         input :
         file MT_call_variants_stat
 	file MT_call_variants_shifted_stat
+	val assembly
+	val batch
+	val run
 
         output :
         file '*'
@@ -22,10 +25,14 @@ process MT_Merge_stat_file {
         echo ${MT_call_variants_stat.simpleName}
         sample_name=\$(echo ${MT_call_variants_stat.simpleName} | cut -d _ -f 1)
         echo \$sample_name
-        
-        gatk MergeMutectStats \
-        -stats ${MT_call_variants_stat} \
-        -stats \${sample_name}_sorted_chrM_Homo_sapiens_assembly38.chrM.shifted_by_8000_bases_marked_duplicates_Mutect2.vcf.gz.stats \
-        -O \${sample_name}_MT_merged.stats
+
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+		touch \${sample_name}_MT_merged.stats
+        else
+        	gatk MergeMutectStats \
+        	-stats ${MT_call_variants_stat} \
+        	-stats \${sample_name}_sorted_chrM_Homo_sapiens_assembly38.chrM.shifted_by_8000_bases_marked_duplicates_Mutect2.vcf.gz.stats \
+        	-O \${sample_name}_MT_merged.stats
+	fi
 	"""
 }

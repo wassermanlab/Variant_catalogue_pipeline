@@ -22,12 +22,11 @@ if (params.help) {
 
 
 // Include the other workflow that themselves includes the modules
-include { ALN } from "./subworkflow/ALN"
-include { QC_indiv } from "./subworkflow/QC_indiv"
+include { Initialisation } from "./subworkflow/Initialisation"
+include { Mapping } from  "./subworkflow/Mapping"
 include { SNV } from "./subworkflow/SNV"
 include { MT } from "./subworkflow/MT"
 include { SV } from "./subworkflow/SV"
-include { Hail } from "./subworkflow/Hail"
 
 workflow{
 	samples 	= Channel
@@ -40,10 +39,9 @@ workflow{
 	outdir_ind 	= file (params.outdir_ind)
 
 	main :
-        ALN()
-	QC_indiv(ALN.out.bam_sorted, ALN.out.bam_sorted_index)
-        SNV(ALN.out.bam_sorted, ALN.out.bam_sorted_index, QC_indiv.out.mosdepth_output)
-        MT(ALN.out.bam_sorted, ALN.out.bam_sorted_index, QC_indiv.out.mosdepth_output)
-	SV(ALN.out.bam_sorted, ALN.out.bam_sorted_index, SNV.out.sample_sex_file)
-	Hail(SNV.out.SNV_vcf, SNV.out.sample_sex_file)
+//	Initialisation()
+        Mapping()
+	SNV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, Mapping.out.mosdepth_output)
+        MT(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, Mapping.out.mosdepth_output)
+	SV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, SNV.out.sample_sex_file)
 }

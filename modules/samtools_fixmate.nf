@@ -22,21 +22,27 @@ process samtools_fixmate {
 
 	script:
 	"""
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
+	sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MEI/Sample/\${sample_name}_mei.vcf.gz ]; then
+		touch \${sample_name}_fixmate_ordered.bam
+		touch \${sample_name}_fixmate_ordered.bam.bai
+	else
+		ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
+		source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
+		conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 
-	# Resort the bam file by query name for samtools fixmate (coordiante-sorted bam does not work)
-	samtools sort -n -O BAM -@ 20  ${bam} > ${bam.SimpleName}_nsorted.bam
+		# Resort the bam file by query name for samtools fixmate (coordiante-sorted bam does not work)
+		samtools sort -n -O BAM -@ 20  ${bam} > ${bam.SimpleName}_nsorted.bam
 
-	# Samtools fixmate will add MQ tags
-	samtools fixmate -m -O BAM -@ 20  ${bam.SimpleName}_nsorted.bam  ${bam.SimpleName}_fixmate.bam
+		# Samtools fixmate will add MQ tags
+		samtools fixmate -m -O BAM -@ 20  ${bam.SimpleName}_nsorted.bam  ${bam.SimpleName}_fixmate.bam
 
-	# Now sort bam file by coordinates to resume the pipeline 
-	samtools sort  -@ 20  ${bam.SimpleName}_fixmate.bam -o ${bam.SimpleName}_fixmate_ordered.bam
+		# Now sort bam file by coordinates to resume the pipeline 
+		samtools sort  -@ 20  ${bam.SimpleName}_fixmate.bam -o ${bam.SimpleName}_fixmate_ordered.bam
 
-	# index the sorted bam file
-	samtools index  -@ 20  ${bam.SimpleName}_fixmate_ordered.bam
+		# index the sorted bam file
+		samtools index  -@ 20  ${bam.SimpleName}_fixmate_ordered.bam
+	fi
 	"""
 }
 

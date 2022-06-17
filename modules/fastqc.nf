@@ -9,7 +9,7 @@
 process fastqc {
         tag "$sample"
 	
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${sample}_sorted/Fastqc/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${sample}_sorted/Fastqc/", mode: 'copyNoFollow'
 
 	input:
         tuple (val(sample), file(reads)) 
@@ -23,6 +23,13 @@ process fastqc {
 
 	script:
         """
-	fastqc -t ${task.cpus} ${reads.get(0)} ${reads.get(1)}
-        """
+	if [ -a ${params.outdir_ind}/${assembly}/*/${run}/QC/Individuals/${sample}_sorted/Fastqc/${sample}.R1_fastqc.zip ]; then
+		fastqc_R1=\$(find ${params.outdir_ind}/${assembly}/*/${run}/QC/Individuals/${sample}_sorted/Fastqc/ -name ${sample}.R1_fastqc.zip )
+		fastqc_R2=\$(find ${params.outdir_ind}/${assembly}/*/${run}/QC/Individuals/${sample}_sorted/Fastqc/ -name ${sample}.R2_fastqc.zip )
+		ln -s \$fastqc_R1 .
+		ln -s \$fastqc_R2 .
+	else
+		fastqc -t ${task.cpus} ${reads.get(0)} ${reads.get(1)}
+        fi
+	"""
 }

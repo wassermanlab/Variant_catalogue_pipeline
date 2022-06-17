@@ -11,7 +11,7 @@
 process Picard_CollectAlignmentSummaryMetrics {
         tag "${bam}"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/", mode: 'copyNoFollow'
 
 	input :
 	file bam
@@ -25,10 +25,15 @@ process Picard_CollectAlignmentSummaryMetrics {
 
 	script :
 	"""
-        gatk CollectAlignmentSummaryMetrics \
-	--java-options "-Xmx2000M" \
-	-I ${bam} \
-	-O ${bam.simpleName}_Picard_Alignment
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/${bam.simpleName}_Picard_Alignment ]; then
+		Picard_Alignment=\$(find $params.outdir_ind/${assembly}/*/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/ -name ${bam.simpleName}_Picard_Alignment)
+		ln -s \$Picard_Alignment
+	else
+        	gatk CollectAlignmentSummaryMetrics \
+		--java-options "-Xmx2000M" \
+		-I ${bam} \
+		-O ${bam.simpleName}_Picard_Alignment
+	fi
 	"""
 }
 

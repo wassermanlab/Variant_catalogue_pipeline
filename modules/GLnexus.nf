@@ -20,6 +20,7 @@ process GLnexus_cli {
 	"""
 	glnexus_cli \
 	--config DeepVariantWGS \
+	--mem-gbytes 128 \
 	--list ${list_gvcf} > DeepVariant_GLnexus_${run}.bcf
 	"""
 }

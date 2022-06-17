@@ -16,6 +16,7 @@ report.html*
 hail*
 /archive
 /vcf_to_try_hail
+filtered_samples_sex.tsv
 
 # Error and output files #
 ##########################

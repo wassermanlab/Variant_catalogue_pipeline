@@ -11,18 +11,25 @@ process MT_SamtoFastq {
 
         input :
         file Extract_MT_Read
+        val assembly
+        val batch
+        val run
 
         output :
         path '*.fastq', emit : fastq_MT
-//	path '*.fastq.fai', emit : fastq_MT_index
 
         script :
         """
-        gatk SamToFastq \
-        INPUT=${Extract_MT_Read.baseName}.bam \
-        FASTQ=${Extract_MT_Read.baseName}.fastq \
-        INTERLEAVE=true \
-        NON_PF=true
+	sample_name=\$(echo ${Extract_MT_Read.baseName} | cut -d _ -f 1)
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+		touch \${sample_name}.fastq
+	else
+        	gatk SamToFastq \
+        	INPUT=${Extract_MT_Read.baseName}.bam \
+        	FASTQ=${Extract_MT_Read.baseName}.fastq \
+        	INTERLEAVE=true \
+        	NON_PF=true
+	fi
 	"""
 }
 

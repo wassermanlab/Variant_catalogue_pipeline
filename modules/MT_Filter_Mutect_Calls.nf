@@ -17,6 +17,9 @@ process MT_Filter_Mutect_Calls {
 	file MT_MergeVcfs
 	file MT_MergeVcfs_index
 	file MT_MergeVcfs_stat
+	val assembly
+	val batch
+	val run
 
 	output :
 	path '*_filtered.vcf.gz', emit : vcf
@@ -24,13 +27,19 @@ process MT_Filter_Mutect_Calls {
 
 	script :
 	"""
-        gatk FilterMutectCalls \
-	-V ${MT_MergeVcfs.simpleName}.vcf.gz \
-	-R Homo_sapiens_assembly38.chrM.fasta \
-	--stats ${MT_MergeVcfs.simpleName}.stats \
-	--max-alt-allele-count 4 \
-	--mitochondria-mode \
-	-O ${MT_MergeVcfs.simpleName}_filtered.vcf.gz
+	sample_name=\$(echo ${MT_MergeVcfs} | cut -d _ -f 1)
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+		touch ${MT_MergeVcfs.simpleName}_filtered.vcf.gz
+		touch ${MT_MergeVcfs.simpleName}_filtered.vcf.gz.tbi
+	else
+        	gatk FilterMutectCalls \
+		-V ${MT_MergeVcfs.simpleName}.vcf.gz \
+		-R Homo_sapiens_assembly38.chrM.fasta \
+		--stats ${MT_MergeVcfs.simpleName}.stats \
+		--max-alt-allele-count 4 \
+		--mitochondria-mode \
+		-O ${MT_MergeVcfs.simpleName}_filtered.vcf.gz
+	fi
 	"""
 }
 

@@ -79,9 +79,10 @@ workflow SV {
                 // Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		SV_vcfs_txt(SV_paragraph_duphold.out.vcf.collect(), assembly, batch, run, SV)
 		SV_merge_samples(SV_vcfs_txt.out, assembly, batch, run, SV)
-		SV_split_vcf_by_chr(SV_merge_samples.out.vcf, assembly, batch, run, chr, SV)
                 SV_annotation(SV_merge_samples.out.vcf, SV_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SV)
-                SV_data_organization(SV_split_vcf_by_chr.out.vcf_onechr, SV_annotation.out.annot_table_merged_R.collect(), assembly, run, SV, sample_sex_file)
+
+//                SV_split_vcf_by_chr(SV_merge_samples.out.vcf, assembly, batch, run, chr, SV)
+//                SV_data_organization(SV_split_vcf_by_chr.out.vcf_onechr, SV_annotation.out.annot_table_merged_R.collect(), assembly, run, SV, sample_sex_file)
 
 
 		//Short Tandem Repeats (STR)
@@ -91,7 +92,8 @@ workflow SV {
                 // Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		STR_vcfs_txt(expansion_hunter.out.vcf.collect(), assembly, batch, run, STR)
   		STR_merge_samples(STR_vcfs_txt.out, assembly, batch, run, STR)
-                STR_data_organization(STR_merge_samples.out.vcf, variant_catalog, assembly, run, STR)
+ 
+//              STR_data_organization(STR_merge_samples.out.vcf, variant_catalog, assembly, run, STR)
 
 
 
@@ -105,5 +107,6 @@ workflow SV {
 		MEI_merge_samples(MEI_vcfs_txt.out, assembly, batch, run, MEI)
                 MEI_split_vcf_by_chr(MEI_merge_samples.out.vcf, assembly, batch, run, chr, MEI)
                 MEI_annotation(MEI_merge_samples.out.vcf, MEI_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, MEI)
-                MEI_data_organization(MEI_split_vcf_by_chr.out.vcf_onechr, MEI_annotation.out.annot_table_merged_R.collect(), assembly, run, MEI, sample_sex_file)
+
+//                MEI_data_organization(MEI_split_vcf_by_chr.out.vcf_onechr, MEI_annotation.out.annot_table_merged_R.collect(), assembly, run, MEI, sample_sex_file)
 }

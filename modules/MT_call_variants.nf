@@ -17,6 +17,9 @@ process MT_call_variants {
 	file MarkDuplicates_bam_MT
         file MarkDuplicates_bam_MT_bai
 	val Mitochondrial_chromosome
+	val assembly
+	val batch
+	val run
 
 	output :
 	path '*_Mutect2.vcf.gz', emit: Mutect2_vcf
@@ -25,14 +28,21 @@ process MT_call_variants {
 
 	script:
 	"""
-	gatk Mutect2 \
-	-R ${ref_genome_MT_file} \
-	-I ${MarkDuplicates_bam_MT.baseName}.bam \
-	-L chrM \
-	--mitochondria-mode \
-	--annotation StrandBiasBySample \
-	--max-reads-per-alignment-start 75 \
-	--max-mnp-distance 0 \
-	-O ${MarkDuplicates_bam_MT.baseName}_Mutect2.vcf.gz
+	sample_name=\$(echo ${MarkDuplicates_bam_MT} | cut -d _ -f 1)
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+		touch ${MarkDuplicates_bam_MT.baseName}_Mutect2.vcf.gz
+		touch ${MarkDuplicates_bam_MT.baseName}_Mutect2.vcf.gz.tbi
+		touch ${MarkDuplicates_bam_MT.baseName}_Mutect2.vcf.gz.stats
+	else
+		gatk Mutect2 \
+		-R ${ref_genome_MT_file} \
+		-I ${MarkDuplicates_bam_MT.baseName}.bam \
+		-L chrM \
+		--mitochondria-mode \
+		--annotation StrandBiasBySample \
+		--max-reads-per-alignment-start 75 \
+		--max-mnp-distance 0 \
+		-O ${MarkDuplicates_bam_MT.baseName}_Mutect2.vcf.gz
+	fi
 	"""
 }

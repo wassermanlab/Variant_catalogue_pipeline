@@ -7,7 +7,7 @@
 // Run a R script that organize the SNV variants information in the tables expected to be displayed in the IBVL interface
 
 process SNV_data_organization {
-        tag "${chr}"
+        tag "${SNV_annot_merged}"
 
 	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/genomic_ibvl_frequencies/", mode: 'copy', pattern: "genomic_ibvl_frequencies_*"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/genomic_gnomad_frequencies/", mode: 'copy', pattern: "genomic_gnomad_frequencies_*"
@@ -26,8 +26,6 @@ process SNV_data_organization {
 	path SNV_annot_merged
 	val assembly
 	val run
-	each chr
-	path sex_table
 	path severity_table
 
 	output :
@@ -44,7 +42,9 @@ process SNV_data_organization {
 	mkdir -p \${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 
-	Rscript ../../../modules/SNV_data_organization.R $assembly gnomad_frequency_table_${chr}.tsv ${chr}_frequ.tsv SNV_filtered_samples_variants_${chr}_SNV_annotation_table_merged_nohash.tsv $sex_table $run $severity_table
+	chr=\$(echo ${SNV_annot_merged.simpleName} | sed 's/^.*_\\([^_]*\\)\$/\\1/' )
+
+	Rscript ../../../modules/SNV_data_organization.R $assembly gnomad_frequency_table_\${chr}.tsv \${chr}_frequ.tsv ${SNV_annot_merged} $severity_table
 	"""
 }
 

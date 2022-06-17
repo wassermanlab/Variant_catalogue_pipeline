@@ -14,18 +14,27 @@ process Extract_MT_Read {
         file bam
 	file bai
 	val Mitochondrial_chromosome
+	val assembly
+	val batch
+	val run
+
 
         output :
         file '*_chrM.bam'
 
         script :
         """
-	gatk PrintReads \
-        -L ${Mitochondrial_chromosome} \
-        --read-filter MateOnSameContigOrNoMappedMateReadFilter \
-        --read-filter MateUnmappedAndUnmappedReadFilter \
-        -I ${bam.simpleName}.bam \
-        --read-index ${bam.simpleName}.bam.bai \
-        -O ${bam.simpleName}_chrM.bam
-        """
+	sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+		touch \${sample_name}_chrM.bam
+	else
+		gatk PrintReads \
+        	-L ${Mitochondrial_chromosome} \
+        	--read-filter MateOnSameContigOrNoMappedMateReadFilter \
+        	--read-filter MateUnmappedAndUnmappedReadFilter \
+        	-I ${bam.simpleName}.bam \
+        	--read-index ${bam.simpleName}.bam.bai \
+        	-O ${bam.simpleName}_chrM.bam
+        fi
+	"""
 }

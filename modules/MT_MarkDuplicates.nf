@@ -15,6 +15,9 @@ process MarkDuplicates {
         input :
         file bam_MT
 	file bai_MT
+	val assembly
+	val batch
+	val run
 
         output :
         path '*marked_duplicates.bam', emit : bam
@@ -22,16 +25,22 @@ process MarkDuplicates {
 
         script:
         """
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk MarkDuplicates \
-	I=${bam_MT.baseName}.bam \
-	O=${bam_MT.baseName}_marked_duplicates.bam \
-	M=${bam_MT.baseName}_marked_duplicates_metrics.txt
+	sample_name=\$(echo ${bam_MT.baseName} | cut -d _ -f 1)
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+		touch ${bam_MT.baseName}_marked_duplicates.bam
+		touch ${bam_MT.baseName}_marked_duplicates.bam.bai
+	else
+        	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+		gatk MarkDuplicates \
+		I=${bam_MT.baseName}.bam \
+		O=${bam_MT.baseName}_marked_duplicates.bam \
+		M=${bam_MT.baseName}_marked_duplicates_metrics.txt
 
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-        source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-        conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
+		ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
+        	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
+        	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 
-	samtools index ${bam_MT.baseName}_marked_duplicates.bam
-        """
+		samtools index ${bam_MT.baseName}_marked_duplicates.bam
+        fi
+	"""
 }

@@ -6,7 +6,7 @@
 process Picard_QualityScoreDistribution {
         tag "${bam.simpleName}"
  
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/", mode: 'copyNoFollow'
 	
 	input :
 	file bam
@@ -20,10 +20,17 @@ process Picard_QualityScoreDistribution {
 
 	script :
 	"""
-	picard "-Xmx2G" QualityScoreDistribution \
-	I=${bam} \
-	O=${bam.simpleName}_qual_score_dist.txt \
-	CHART= ${bam.simpleName}_qual_score_dist.pdf
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/${bam.simpleName}_qual_score_dist.txt ]; then
+		picard_qual_score_txt=\$(find $params.outdir_ind/${assembly}/*/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/ -name ${bam.simpleName}_qual_score_dist.txt)
+		picard_qual_score_pdf=\$(find $params.outdir_ind/${assembly}/*/${run}/QC/Individuals/${bam.simpleName}/Picard_Metrics/ -name ${bam.simpleName}_qual_score_dist.pdf)
+		ln -s \$picard_qual_score_txt .
+                ln -s \$picard_qual_score_pdf .
+	else
+		picard "-Xmx2G" QualityScoreDistribution \
+		I=${bam} \
+		O=${bam.simpleName}_qual_score_dist.txt \
+		CHART= ${bam.simpleName}_qual_score_dist.pdf
+	fi
 	"""
 }
 

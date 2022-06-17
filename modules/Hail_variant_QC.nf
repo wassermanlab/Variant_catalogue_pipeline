@@ -11,7 +11,8 @@
 process Hail_variant_QC {
 
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/", mode: 'copy', pattern : '*.html'
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : '*filtered_samples_variants.vcf.bgz'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : '*filtered_samples_variants.vcf.bgz*'
+        publishDir "$params.outdir_pop/${assembly}/${run}/${var_type}/Vcf_pre_annotation/", mode: 'copy', pattern : 'SNV_filtered_frequ_*'
 
 	input :
 	file vcf_sample_filtered
@@ -23,9 +24,14 @@ process Hail_variant_QC {
 	output :
 	path '*.html', emit : graph
 
-	path 'SNV_filtered_samples_variants.vcf.bgz', emit : SNV_vcf_samples_variants_filtered
-        path 'SNV_filtered_samples_variants.vcf.bgz.tbi', emit : SNV_index	
-	path 'SNV_mt_var_filtered_tot_XX_XY_info.tsv', emit : SNV_frequ_tot_xx_xy_tsv
+	path 'SNV_filtered_samples_variants*', emit : SNV_filtered_variants_ind_geno
+
+	path 'SNV_filtered_frequ_total_xx.vcf.bgz', emit : SNV_filtered_variants_frequ_tot_xx
+        path 'SNV_filtered_frequ_total_xx.vcf.bgz.tbi', emit : SNV_filtered_variants_frequ_tot_xx_index
+
+	path 'SNV_filtered_tot_XX_XY.tsv.bgz', emit : SNV_frequ_tot_xx_xy_tsv
+
+
 
 	conda '/home/BCRICWH.LAN/Solenne.Correard/miniconda3/envs/hail'
 

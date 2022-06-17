@@ -1,0 +1,9 @@
+Number of samples removed because of depth metrics: 0
+Number of samples removed because of genotype quality metrics: 0
+Number of samples removed because of call rate metrics: 0
+Number of samples removed because of ratio heterozygous over homozygous: 0
+Number of samples removed because of number of snps: 0
+Number of samples removed because of number of singletons: 0
+Number of samples removed because of ratio insertions over deletions: 0
+Number of samples removed because of ratio transversions / transitions: 0
+Percentage of the samples filtered out: 0.0

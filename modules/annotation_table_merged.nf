@@ -11,7 +11,7 @@
 process annotation_table_merged {
 	tag "${chr}"
 
-        publishDir "$params.outdir_pop/${assembly}/${run}/${var_type}/VEP_annotation/", mode: 'copy', pattern : '*_annotation_table_merged.tsv'
+        publishDir "$params.outdir_pop/${assembly}/${run}/${var_type}/VEP_annotation/", mode: 'copy', pattern : '*_annotation_table_merged.*'
 	publishDir "$params.outdir_pop/${assembly}/${run}/QC/${var_type}/${vcf.simpleName}/", mode: 'copy', pattern : '*_VEP_stats*'
 
         input :
@@ -34,9 +34,13 @@ process annotation_table_merged {
 	val var_type 
 
         output :
-        path '*_annotation_table_merged.tsv', emit :  annotation_table_merged
+
         path '*_VEP_merged_stats*', emit : vep_merged_stat
-	path '*_annotation_table_merged_nohash.tsv', emit : annot_table_merged_R
+//If output is a vcf
+	path '*.vcf', emit :  annotation_vcf
+//If output is a tsv
+//        path '*.tsv', emit :  annotation_table_merged
+//	path '*_nohash*', emit : annot_table_merged_R
 
         script :
         """
@@ -46,7 +50,7 @@ process annotation_table_merged {
 
 	vep \
         -i ${vcf} \
-        -o ${vcf.simpleName}_${chr}_${var_type}_annotation_table_merged.tsv \
+        -o ${vcf.simpleName}_${var_type}_annotation_table_merged_${chr}.vcf \
 	--chr ${chr}  \
 	--offline \
 	--merged \
@@ -67,12 +71,13 @@ process annotation_table_merged {
         --check_existing \
         --var_synonyms \
 	--tsl \
-	--tab \
+	--vcf \
         --dir_plugins /mnt/common/SILENT/Act3/VEP/Plugins/ \
-        --plugin CADD,$CADD_1_6_whole_genome_SNVs,$CADD_1_6_InDels \
-        --plugin spliceAI, snv=${spliceai_snv}, indel=${spliceai_indel}\
+	--plugin CADD,$CADD_1_6_whole_genome_SNVs,$CADD_1_6_InDels \
+        --plugin SpliceAI,snv=${spliceai_snv},indel=${spliceai_indel} \
 	--stats_file ${vcf.simpleName}_${chr}_VEP_merged_stats
 
-	sed 's/#Uploaded_variation/Uploaded_variation/g' ${vcf.simpleName}_${chr}_${var_type}_annotation_table_merged.tsv > ${vcf.simpleName}_${chr}_${var_type}_annotation_table_merged_nohash.tsv
+#	change --vcf to --tab and uncomment the lower line if the data_oragnization step is added
+#	sed 's/#Uploaded_variation/Uploaded_variation/g' ${vcf.simpleName}_${var_type}_annotation_table_merged_${chr}.tsv > ${vcf.simpleName}_${var_type}_annotation_table_merged_nohash_${chr}.tsv
 	"""
 }

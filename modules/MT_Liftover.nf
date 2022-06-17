@@ -9,7 +9,7 @@
 process MT_Liftover {
         tag "${MT_call_variants_shifted.simpleName}"
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/QC/${MT_call_variants_shifted.simpleName}/Liftover/",  pattern: "*_rejected_variants.vcf",  mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/QC/${MT_call_variants_shifted.simpleName}/Liftover/",  pattern: "*_rejected_variants.vcf",  mode: 'copyNoFollow'
 
 	input :
         file MT_call_variants_shifted
@@ -29,11 +29,18 @@ process MT_Liftover {
 
         script :
         """
-	gatk LiftoverVcf \
-	I=${MT_call_variants_shifted} \
-	O=${MT_call_variants_shifted.simpleName}_lifted_over.vcf \
-	CHAIN=${ShiftBack_chain_MT_file} \
-	REJECT=${MT_call_variants_shifted.simpleName}_rejected_variants.vcf \
-	R=${ref_genome_MT_file}
+	sample_name=\$(echo ${MT_call_variants_shifted} | cut -d _ -f 1)
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+		touch ${MT_call_variants_shifted.simpleName}_lifted_over.vcf
+		rejected_vcf=\$(find $params.outdir_ind/${assembly}/*/${run}/MT/QC/\${sample_name}*/Liftover/ -name \${sample_name}*_rejected_variants.vcf)
+		ln -s \$rejected_vcf .
+	else
+		gatk LiftoverVcf \
+		I=${MT_call_variants_shifted} \
+		O=${MT_call_variants_shifted.simpleName}_lifted_over.vcf \
+		CHAIN=${ShiftBack_chain_MT_file} \
+		REJECT=${MT_call_variants_shifted.simpleName}_rejected_variants.vcf \
+		R=${ref_genome_MT_file}
+	fi
 	"""
 }

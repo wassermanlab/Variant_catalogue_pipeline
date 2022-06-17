@@ -7,11 +7,12 @@
 // Alignment. fastq alignment with bwa mem 
 //	      Sort and index with samtools
 
+// Process should be skipped if bam file already generated
 
 process align_sort_output_bam {
 	tag "$sampleId"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/BAM/", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/BAM/", mode: 'copyNoFollow'
 
 	input :
 	path reference
@@ -27,12 +28,18 @@ process align_sort_output_bam {
 
 	script:
 	"""
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
-
-	bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${reference} ${read_pairs_ch} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam	
-	samtools index ${sampleId}_sorted.bam
+	if [ -a ${params.outdir_ind}/${assembly}/*/${run}/BAM/${sampleId}_sorted.bam ]; then
+		bam_file=\$(find ${params.outdir_ind}/${assembly}/*/${run}/BAM/ -name ${sampleId}_sorted.bam)
+                bai_file=\$(find ${params.outdir_ind}/${assembly}/*/${run}/BAM/ -name ${sampleId}_sorted.bam.bai)
+		ln -s \$bam_file .
+		ln -s \$bai_file .
+	else
+		ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
+		source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
+		conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
+		bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${reference} ${read_pairs_ch} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam
+		samtools index ${sampleId}_sorted.bam
+	fi
 	"""
 }
 

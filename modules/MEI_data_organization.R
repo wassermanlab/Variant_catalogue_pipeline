@@ -129,13 +129,13 @@ for (j in 1:(length(slots_var)-1)){
 
   		# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY
   		# AN_tot : number of 0/0, 0/1 and 1/1 genotypes (avoid counting the ./.)
-  		an_total = 2*(sum(GT_table_i == "0/0", na.rm=T) + sum(GT_table_i == "0/1", na.rm=T) + sum(GT_table_i == "1/1", na.rm=T)) 
+  		an_tot = 2*(sum(GT_table_i == "0/0", na.rm=T) + sum(GT_table_i == "0/1", na.rm=T) + sum(GT_table_i == "1/1", na.rm=T)) 
   		#AC tot
-  		ac_total = sum(GT_table_i == "0/1", na.rm=T) + 2*sum(GT_table_i == "1/1", na.rm=T)
+  		ac_tot = sum(GT_table_i == "0/1", na.rm=T) + 2*sum(GT_table_i == "1/1", na.rm=T)
   		#AF tot = AC/AN
-  		af_total = ac_total/an_total
+  		af_tot = ac_tot/an_tot
   		#Number of individus homozygotes for the alternative allele (1/1)
-  		hom_alt_total = sum(GT_table_i == "1/1", na.rm=T) 
+  		hom_tot = sum(GT_table_i == "1/1", na.rm=T) 
 
   		#For XX individuals
   		#For now, make fake false with individuals and sex : 
@@ -150,7 +150,7 @@ for (j in 1:(length(slots_var)-1)){
   		#AF X = AC/AN
   		af_xx = ac_xx/an_xx
   		#Number of individus homozygotes for the alternative allele (1/1)
-  		hom_alt_xx = sum(XX_GT_table_i == "1/1", na.rm=T) 
+  		hom_xx = sum(XX_GT_table_i == "1/1", na.rm=T) 
   
   		#For XY individuals
   		#Subset the GT_Table for XY individuals
@@ -163,7 +163,7 @@ for (j in 1:(length(slots_var)-1)){
   		#AF X = AC/AN
   		af_xy = ac_xy/an_xy
   		#Number of individus homozygotes for the alternative allele (1/1)
-  		hom_alt_xy = sum(XY_GT_table_i == "1/1", na.rm=T) 
+  		hom_xy = sum(XY_GT_table_i == "1/1", na.rm=T) 
 
 
 		#Consequence
@@ -218,7 +218,7 @@ for (j in 1:(length(slots_var)-1)){
   		### Create tables
   		# SV_IBVL_frequency
   		# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY, qual
-  		temp_table_frequ_db_i = cbind(variant, af_total, af_xx, af_xy, ac_total, ac_xx, ac_xy, an_total, an_xx, an_xy, hom_alt_total, hom_alt_xx, hom_alt_xy, quality)
+  		temp_table_frequ_db_i = cbind(variant, af_tot, af_xx, af_xy, ac_tot, ac_xx, ac_xy, an_tot, an_xx, an_xy, hom_tot, hom_xx, hom_xy, quality)
 		table_frequ_SV=unique(rbind.data.frame(table_frequ_SV, temp_table_frequ_db_i))
 
   		# SV_annotation (svs)
@@ -255,7 +255,7 @@ file.remove(list_frequ_tables_slots)
 list_annot_tables_slots <- list.files(pattern = paste0("table_annot_SV_slot"))
 tables_annot_slots=lapply(list_annot_tables_slots, read.table, header=TRUE)
 combined_tables_annot_slots=do.call(rbind, tables_annot_slots)
-colnames(combined_tables_annot_slots)=c("variant", "chr1", "chr1_pos1", "chr1_pos2", "type", "length", "algorithm", "ucsc_url", "gnomad_id", "gnomad_url")
+colnames(combined_tables_annot_slots)=c("variant", "chr1", "chr1_pos1", "chr1_pos2", "sv_type", "sv_length", "algorithm", "ucsc_url", "gnomad_id", "gnomad_url")
 write.table(combined_tables_annot_slots, file=paste0("svs_", var_type, "_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 #file.remove(list_annot_tables_slots)
 

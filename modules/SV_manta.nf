@@ -10,7 +10,7 @@
 process SV_manta {
 	tag "${bam.simpleName}"
     	
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/Sample/manta", mode: 'copy'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SV/Sample/manta", mode: 'copyNoFollow'
 	
 	input:
 	file bam
@@ -28,21 +28,28 @@ process SV_manta {
    
 	script:
 	"""
-        echo ${bam.simpleName}
-        sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
-        echo \$sample_name > sample.txt
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/SV/Sample/manta/${bam.simpleName}_diploidSV.vcf.gz ]; then
+		manta_vcf=\$(find $params.outdir_ind/${assembly}/*/${run}/SV/Sample/manta/ -name ${bam.simpleName}_diploidSV.vcf.gz)
+		manta_index=\$(find $params.outdir_ind/${assembly}/*/${run}/SV/Sample/manta/ -name ${bam.simpleName}_diploidSV.vcf.gz.tbi)
+		ln -s \$manta_vcf .
+		ln -s \$manta_index .
+	else
+        	echo ${bam.simpleName}
+        	sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
+        	echo \$sample_name > sample.txt
 
-	configManta.py \
-	--bam ${bam} \
-	--referenceFasta ${reference} \
-	--runDir . \
-	--callRegions ${cr_bed}
+		configManta.py \
+		--bam ${bam} \
+		--referenceFasta ${reference} \
+		--runDir . \
+		--callRegions ${cr_bed}
 
-	python2 ./runWorkflow.py \
-	-j ${task.cpus} \
-	-m local
+		python2 ./runWorkflow.py \
+		-j ${task.cpus} \
+		-m local
 	
-	bcftools reheader -s sample.txt results/variants/diploidSV.vcf.gz > ${bam.simpleName}_diploidSV.vcf.gz
-	bcftools index -f --tbi ${bam.simpleName}_diploidSV.vcf.gz
+		bcftools reheader -s sample.txt results/variants/diploidSV.vcf.gz > ${bam.simpleName}_diploidSV.vcf.gz
+		bcftools index -f --tbi ${bam.simpleName}_diploidSV.vcf.gz
+	fi
 	"""
 }

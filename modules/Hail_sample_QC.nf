@@ -21,6 +21,7 @@ process Hail_sample_QC {
 	output :
 	path '*.html', emit : graph
 	path '*filtered_samples.vcf.bgz', emit : vcf_sample_filtered
+	path '*filtered_samples_sex.tsv', emit : filtered_sample_sex
 
 	conda '/home/BCRICWH.LAN/Solenne.Correard/miniconda3/envs/hail'
 

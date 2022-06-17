@@ -84,7 +84,7 @@ SNV_raw_annotaton_file=read.table(args[4], fill=TRUE, header=TRUE)
 #sex_table = read.table(args[5], header=TRUE)
 
 #Severity table
-severity_table=read.table((args[7]), fill=TRUE, header=TRUE)
+severity_table=read.table((args[5]), fill=TRUE, header=TRUE)
 
 
 #for (i in 1:nrow(SNV_vcf@fix)) {
@@ -115,200 +115,159 @@ for (j in 1:(length(slots_var)-1)){
 		#GT_table_i = GT_table[c(i),]
 		SNV_annot_i = SNV_raw_annotaton_file[SNV_raw_annotaton_file$Uploaded_variation==variant,]
  
-		show(variant)
-		show(head(SNV_raw_annotaton_file$Uploaded_variation))
 
-		#Define variables specific to variant i
-		chr = frequ_file$chrom[i]
-		pos = frequ_file$pos[i]
+                # ????Intergenic ???? 
+                #Type - VARIANT_CLASS
+                type=SNV_annot_i$VARIANT_CLASS
+
+
 		ref = frequ_file$ref[i]
 		alt = frequ_file$alt[i]
-		#chr=SNV_vcf@fix[i,c("CHROM")]
-  		#pos=as.numeric(SNV_vcf@fix[i,c("POS")])
-  		#ref=SNV_vcf@fix[i,c("REF")]
-  		#alt=SNV_vcf@fix[i,c("ALT")]
 
-  		#Variant quality
-  		#quality = SNV_vcf@fix[i,c("QUAL")]
-  
-		#Frequency from Hail file
-		quality = frequ_variant$qual
-		af_total = frequ_variant$af_tot
-		ac_total = frequ_variant$ac_tot
-		an_total = frequ_variant$an_tot
-		hom_alt_total = frequ_variant$hom_alt_tot
-		af_xx = frequ_variant$af_xx
-		ac_xx = frequ_variant$ac_xx
-		an_xx = frequ_variant$an_xx
-		hom_alt_xx  = frequ_variant$hom_alt_xx
-		af_xy = frequ_variant$af_xy
-		ac_xy =frequ_variant$af_xy
-		an_xy = frequ_variant$an_xy
-		hom_alt_xy = frequ_variant$hom_alt_xy
+		#length
+                if (type=="SNV") {
+                        length="1"
+                } else if (type=="insertion") {
+                        length = length(alt)-1
+                } else if (type=="deletion") {
+                        length = length(ref)-1
+                }
+
+		#If the varaint is longer than 49bp, then, it will be classified as a SV and should not be called by the SNV pipeline
+		if (length > 49){
+			next
+		} else {
+
+			#Define variables specific to variant i
+			chr = frequ_file$chrom[i]
+			pos = frequ_file$pos[i]
+ 
+			#Frequency from Hail file
+			quality = frequ_variant$qual
+			af_tot = frequ_variant$af_tot
+			ac_tot = frequ_variant$ac_tot
+			an_tot = frequ_variant$an_tot
+			hom_tot = frequ_variant$hom_alt_tot
+			af_xx = frequ_variant$af_xx
+			ac_xx = frequ_variant$ac_xx
+			an_xx = frequ_variant$an_xx
+			hom_xx  = frequ_variant$hom_alt_xx
+			af_xy = frequ_variant$af_xy
+			ac_xy =frequ_variant$af_xy
+			an_xy = frequ_variant$an_xy
+			hom_xy = frequ_variant$hom_alt_xy
 	
-  		# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY
-  		# AN_tot : number of 0/0, 0/1 and 1/1 genotypes (avoid counting the ./.)
-  		#an_total = 2*(sum(GT_table_i == "0/0", na.rm=T) + sum(GT_table_i == "0/1", na.rm=T) + sum(GT_table_i == "1/1", na.rm=T)) 
-  		#AC tot
-  		#ac_total = sum(GT_table_i == "0/1", na.rm=T) + 2*sum(GT_table_i == "1/1", na.rm=T)
-  		#AF tot = AC/AN
-  		#af_total = ac_total/an_total
-  		#Number of individus homozygotes for the alternative allele (1/1)
-  		#hom_alt_total = sum(GT_table_i == "1/1", na.rm=T) 
+  			# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
+  			# type :SNV, ins or del
+  			#Length
+  			# CADD_score / interpr
+  			# dbsnp_id : From annotation file, "Existing_variation" column
+  			# dbsnp_URL : https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=<rs_number> // rs1556423501
+  			# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
+  			# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
+  			# clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920
+  			# gnomad_URL : https://gnomad.broadinstitute.org/variant/M-<pos>-<ref>-<alt>?dataset=gnomad_r3 // M-8602-T-C
+    
+  			# CADD_score / interpr
+  			# If you would like to apply a cutoff on deleteriousness, e.g. to identify potentially pathogenic variants, we would suggest to put a cutoff somewhere between 10 and 20. Maybe at 15, as this also happens to be the median value for all possible canonical splice site changes and non-synonymous variants in CADD v1.0. However, there is not a natural choice here -- it is always arbitrary. We therefore recommend integrating C-scores with other evidence and to rank your candidates for follow up rather than hard filtering.
+			cadd_score=SNV_annot_i$CADD_PHRED
+  			if (cadd_score <=15) {
+				cadd_intr = "Tolerable"
+			} else if (cadd_score > 15) {
+				cadd_intr = "Damaging"
+			}
 
-  		#For XX individuals
-  		#For now, make fake false with individuals and sex : 
-  		#sex_table =  read.table("sample_sex.tsv", header=TRUE)
-  		#Subset the GT_Table for XX individuals
-  		#XX_Samples = sex_table[sex_table$Sex=="XX",1]
-  		#XX_GT_table_i = GT_table_i[XX_Samples]
-  		# AN_XX
-  		#an_XX = 2*(sum(XX_GT_table_i == "0/0", na.rm=T) + sum(XX_GT_table_i == "0/1", na.rm=T) + sum(XX_GT_table_i == "1/1", na.rm=T)) 
-  		#AC XX
-  		#ac_XX = sum(XX_GT_table_i == "0/1", na.rm=T) + 2*sum(XX_GT_table_i == "1/1", na.rm=T)
-  		#AF X = AC/AN
-  		#af_XX = ac_XX/an_XX
-  		#Number of individus homozygotes for the alternative allele (1/1)
-  		#hom_alt_XX = sum(XX_GT_table_i == "1/1", na.rm=T) 
+			#splice_ai=SNV_annot_i$splice_ai
+			splice_ai="0.999"
+
+  			# dbsnp_id : From annotation file (SNV_annot_i), "Existing_variation" column
+  			if (grepl("rs", SNV_annot_i$Existing_variation)) {
+    				dbsnp_id = gsub(",.*$", "", SNV_annot_i$Existing_variation)
+    				# dbsnp_URL : https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=<rs_number> // rs1556423501
+    				dbsnp_url=paste0("https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=", dbsnp_id)
+  			} else {
+    				dbsnp_id="NA"
+    				dbsnp_url="NA"
+  			}
   
-  		#For XY individuals
-  		#Subset the GT_Table for XY individuals
-  		#XY_Samples = sex_table[sex_table$Sex=="XY",1]
-  		#XY_GT_table_i = GT_table_i[XY_Samples]
-  		# AN_XY
-  		#an_XY = 2*(sum(XY_GT_table_i == "0/0", na.rm=T) + sum(XY_GT_table_i == "0/1", na.rm=T) + sum(XY_GT_table_i == "1/1", na.rm=T)) 
-  		#AC XY
-  		#ac_XY = sum(XY_GT_table_i == "0/1", na.rm=T) + 2*sum(XY_GT_table_i == "1/1", na.rm=T)
-  		#AF X = AC/AN
-  		#af_XY = ac_XY/an_XY
-  		#Number of individus homozygotes for the alternative allele (1/1)
-  		#hom_alt_XY = sum(XY_GT_table_i == "1/1", na.rm=T) 
-
-
-  		# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
-  		# type :SNV, ins or del
-  		#Length
-  		# CADD_score / interpr
-  		# dbsnp_id : From annotation file, "Existing_variation" column
-  		# dbsnp_URL : https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=<rs_number> // rs1556423501
-  		# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
-  		# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
-  		# clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920
-  		# gnomad_URL : https://gnomad.broadinstitute.org/variant/M-<pos>-<ref>-<alt>?dataset=gnomad_r3 // M-8602-T-C
+  			# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
+  			ucsc_url=paste0("https://genome.ucsc.edu/cgi-bin/hgTracks?db=",assembly, "&highlight=", assembly, ".chr", chr, "%3A", pos, "-", pos, "&position=chr", chr, "%3A", pos-25, "-", pos+25)
   
-  		# ????Intergenic ???? 
-  		#Type - VARIANT_CLASS
-  		type=SNV_annot_i$VARIANT_CLASS
+  			# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
+  			if (assembly=="GRCh38") {
+    				ensembl_url=paste0("https://uswest.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", pos-25, "-", pos+25)
+  			} else if (assembly=="GRCh37") {
+    				ensembl_url=paste0("https://grch37.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", pos-25, "-", pos+25)
+  			}  
+    
+  			#clinvar_VCV : From annotation file, "VCV" info
+  			#If clinvar number is specified (If column contains ClinVar)
+  			if (grepl("ClinVar::VCV", SNV_annot_i$VAR_SYNONYMS)) {
+    				clinvar_vcv = str_extract(SNV_annot_i$VAR_SYNONYMS, "(?<=VCV)[0-9]*") 
+    				#clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920
+    				clinvar_url=paste0("https://www.ncbi.nlm.nih.gov/clinvar/variation/", clinvar_vcv, "/")
+  			} else {
+    				clinvar_vcv = "NA"
+    				clinvar_url = "NA"
+  			}
+    
+  			# gnomad_URL : https://gnomad.broadinstitute.org/variant/M-<pos>-<ref>-<alt>?dataset=gnomad_r3 // M-8602-T-C
+  			#Only displayed if variant is in gnomad table
+  			if (variant %in% gnomad_file$ID_db_gnomad) {
+    				if (assembly=="GRCh38") {
+      					#https://gnomad.broadinstitute.org/variant/1-55051215-G-GA?dataset=gnomad_r3
+      					gnomad_url=paste0("https://gnomad.broadinstitute.org/variant/", chr, "-", pos, "-", ref, "-", alt, "?dataset=gnomad_r3")
+    				} else if (assembly=="GRCh37") {
+      					#https://gnomad.broadinstitute.org/variant/1-55516888-G-GA?dataset=gnomad_r2_1
+      					gnomad_url=paste0("https://gnomad.broadinstitute.org/variant/", chr, "-", pos, "-", ref, "-", alt, "?dataset=gnomad_r2_1")
+   				}
+  			} else {
+    				gnomad_url="NA"
+  			}
+  	
+  			#transcript_id
+  			transcript=SNV_annot_i$Feature
+			#hgvsc
+  			hgvsc=SNV_annot_i$HGVSc
+  			#variant_transcript_id
+			variant_transcript=paste0(variant, "_", transcript)
+  			#Consequence
+			consequence_i=SNV_annot_i$Consequence
+			#hgvsp
+			hgvsp=SNV_annot_i$HGVSp
+			#polyphen_score
+			polyphen=SNV_annot_i$PolyPhen
+			#SIFT score
+			sift=SNV_annot_i$SIFT
 
-  		#length
-  		if (type=="SNV") {
-    			length="1"
-  		} else if (type=="insertion") {
-  			length = length(alt)-1
-  		} else if (type=="deletion") {
-    			length = length(ref)-1
-  		}
-  
-  		# CADD_score / interpr
-  		# If you would like to apply a cutoff on deleteriousness, e.g. to identify potentially pathogenic variants, we would suggest to put a cutoff somewhere between 10 and 20. Maybe at 15, as this also happens to be the median value for all possible canonical splice site changes and non-synonymous variants in CADD v1.0. However, there is not a natural choice here -- it is always arbitrary. We therefore recommend integrating C-scores with other evidence and to rank your candidates for follow up rather than hard filtering.
-		cadd_score=SNV_annot_i$CADD_PHRED
-  		if (cadd_score <=15) {
-			cadd_intr = "Tolerable"
-		} else if (cadd_score > 15) {
-			cadd_intr = "Damaging"
+  			### Create tables
+  			# SNV_IBVL_frequency
+  			# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY, qual
+  			temp_table_frequ_db_i = cbind(variant, af_tot, af_xx, af_xy, ac_tot, ac_xx, ac_xy, an_tot, an_xx, an_xy, hom_tot, hom_xx, hom_xy, quality)
+			table_frequ_SNV=unique(rbind.data.frame(table_frequ_SNV, temp_table_frequ_db_i))
+	
+	  		# SNV_annotation
+	  		# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
+	  		temp_table_annot_SNV_i = cbind(variant, type, length, chr, pos, ref, alt, cadd_score, cadd_intr, dbsnp_id, dbsnp_url, ucsc_url, ensembl_url, clinvar_url, gnomad_url, clinvar_vcv, splice_ai)
+			table_annot_SNV=unique(rbind.data.frame(table_annot_SNV, temp_table_annot_SNV_i))
+	
+  			#Variants_transcript table
+  			#transcript_id, variant, hgvsc
+  			temp_table_variant_transcript_i=cbind(transcript, variant, hgvsc)
+			table_variant_transcript=unique(rbind.data.frame(table_variant_transcript, temp_table_variant_transcript_i))
+
+  			# Variants_consequences table
+			# variant_transcript_id, severity (i.e consequence coded in number)
+			#If there is several consequences on the same line (separrated by a coma), create one line per consequence
+			table_variant_consequence_i=cbind(consequence_i, variant, transcript)
+			table_variant_consequence=unique(rbind.data.frame(table_variant_consequence, table_variant_consequence_i))
+			table_variant_consequence_split=separate_rows(table_variant_consequence, consequence_i, sep = ",")
+	
+			#Variants_annotation
+			#variants_transcript_id, hgvsp, polyphen, sift (for polyphen and sift, score and interpretation together)
+			table_variant_annotation_i=cbind(hgvsp, sift, polyphen, transcript, variant)
+			table_variant_annotation=unique(rbind.data.frame(table_variant_annotation, table_variant_annotation_i))
 		}
-
-		#splice_ai=SNV_annot_i$splice_ai
-		splice_ai="0.999"
-
-  		# dbsnp_id : From annotation file (SNV_annot_i), "Existing_variation" column
-  		if (grepl("rs", SNV_annot_i$Existing_variation)) {
-    			dbsnp_id = gsub(",.*$", "", SNV_annot_i$Existing_variation)
-    			# dbsnp_URL : https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=<rs_number> // rs1556423501
-    			dbsnp_url=paste0("https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=", dbsnp_id)
-  		} else {
-    			dbsnp_id="NA"
-    			dbsnp_url="NA"
-  		}
-  
-  		# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
-  		ucsc_url=paste0("https://genome.ucsc.edu/cgi-bin/hgTracks?db=",assembly, "&highlight=", assembly, ".chr", chr, "%3A", pos, "-", pos, "&position=chr", chr, "%3A", pos-25, "-", pos+25)
-  
-  		# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
-  		if (assembly=="GRCh38") {
-    			ensembl_url=paste0("https://uswest.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", pos-25, "-", pos+25)
-  		} else if (assembly=="GRCh37") {
-    			ensembl_url=paste0("https://grch37.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", pos-25, "-", pos+25)
-  		}  
-    
-  		#clinvar_VCV : From annotation file, "VCV" info
-  		#If clinvar number is specified (If column contains ClinVar)
-  		if (grepl("ClinVar::VCV", SNV_annot_i$VAR_SYNONYMS)) {
-    			clinvar_vcv = str_extract(SNV_annot_i$VAR_SYNONYMS, "(?<=VCV)[0-9]*") 
-    			#clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920
-    			clinvar_url=paste0("https://www.ncbi.nlm.nih.gov/clinvar/variation/", clinvar_vcv, "/")
-  		} else {
-    			clinvar_vcv = "NA"
-    			clinvar_url = "NA"
-  		}
-    
-  		# gnomad_URL : https://gnomad.broadinstitute.org/variant/M-<pos>-<ref>-<alt>?dataset=gnomad_r3 // M-8602-T-C
-  		#Only displayed if variant is in gnomad table
-  		if (variant %in% gnomad_file$ID_db_gnomad) {
-    			if (assembly=="GRCh38") {
-      				#https://gnomad.broadinstitute.org/variant/1-55051215-G-GA?dataset=gnomad_r3
-      				gnomad_url=paste0("https://gnomad.broadinstitute.org/variant/", chr, "-", pos, "-", ref, "-", alt, "?dataset=gnomad_r3")
-    			} else if (assembly=="GRCh37") {
-      				#https://gnomad.broadinstitute.org/variant/1-55516888-G-GA?dataset=gnomad_r2_1
-      				gnomad_url=paste0("https://gnomad.broadinstitute.org/variant/", chr, "-", pos, "-", ref, "-", alt, "?dataset=gnomad_r2_1")
-   			}
-  		} else {
-    			gnomad_url="NA"
-  		}
-  
-  		#transcript_id
-  		transcript=SNV_annot_i$Feature
-		#hgvsc
-  		hgvsc=SNV_annot_i$HGVSc
-  		#variant_transcript_id
-		variant_transcript=paste0(variant, "_", transcript)
-  		#Consequence
-		consequence_i=SNV_annot_i$Consequence
-		#hgvsp
-		hgvsp=SNV_annot_i$HGVSp
-		#polyphen_score
-		polyphen=SNV_annot_i$PolyPhen
-		#SIFT score
-		sift=SNV_annot_i$SIFT
-
-  		### Create tables
-  		# SNV_IBVL_frequency
-  		# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY, qual
-  		temp_table_frequ_db_i = cbind(variant, af_total, af_xx, af_xy, ac_total, ac_xx, ac_xy, an_total, an_xx, an_xy, hom_alt_total, hom_alt_xx, hom_alt_xy, quality)
-		table_frequ_SNV=unique(rbind.data.frame(table_frequ_SNV, temp_table_frequ_db_i))
-
-  		# SNV_annotation
-  		# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
-  		temp_table_annot_SNV_i = cbind(variant, type, length, chr, pos, ref, alt, cadd_score, cadd_intr, dbsnp_id, dbsnp_url, ucsc_url, ensembl_url, clinvar_url, gnomad_url, clinvar_vcv, splice_ai)
-		table_annot_SNV=unique(rbind.data.frame(table_annot_SNV, temp_table_annot_SNV_i))
-
-  		#Variants_transcript table
-  		#transcript_id, variant, hgvsc
-  		temp_table_variant_transcript_i=cbind(transcript, variant, hgvsc)
-		table_variant_transcript=unique(rbind.data.frame(table_variant_transcript, temp_table_variant_transcript_i))
-
-  		# Variants_consequences table
-		# variant_transcript_id, severity (i.e consequence coded in number)
-                #If there is several consequences on the same line (separrated by a coma), create one line per consequence
-		table_variant_consequence_i=cbind(consequence_i, variant, transcript)
-		table_variant_consequence=unique(rbind.data.frame(table_variant_consequence, table_variant_consequence_i))
-		table_variant_consequence_split=separate_rows(table_variant_consequence, consequence_i, sep = ",")
-
-		#Variants_annotation
-		#variants_transcript_id, hgvsp, polyphen, sift (for polyphen and sift, score and interpretation together)
-		table_variant_annotation_i=cbind(hgvsp, sift, polyphen, transcript, variant)
-		table_variant_annotation=unique(rbind.data.frame(table_variant_annotation, table_variant_annotation_i))
-
 	}       
        
 	### Write table slots
@@ -377,7 +336,7 @@ gnomad_intersect = gnomad_file[gnomad_file$ID_db_gnomad  %in%  frequ_file[,c("rs
 #Keep only the wanted info
 gnomad_intersect_mini=gnomad_intersect[,c("ID_db_gnomad", "AF", "AC", "AN", "nhomalt")]
 #rename the columns as expected in the SQL
-colnames(gnomad_intersect_mini)=c("variant", "af_total", "ac_total", "an_total", "hom_alt_total")
+colnames(gnomad_intersect_mini)=c("variant", "af_tot", "ac_tot", "an_tot", "hom_tot")
 write.table(gnomad_intersect_mini, file=paste0("genomic_gnomad_frequencies_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 
 # Gene table

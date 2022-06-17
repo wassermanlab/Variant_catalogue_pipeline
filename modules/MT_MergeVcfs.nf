@@ -28,18 +28,23 @@ process MT_MergeVcfs {
         echo ${MT_call_variants.simpleName}
 	sample_name=\$(echo ${MT_call_variants.simpleName} | cut -d _ -f 1)
 	echo \$sample_name
-        
-	singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-        gatk MergeVcfs \
-	I=${MT_call_variants} \
-	I=\${sample_name}_sorted_chrM_Homo_sapiens_assembly38_lifted_over.vcf \
-	O=\${sample_name}_MT_merged_uncollapsed.vcf.gz
 
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+		touch \${sample_name}_MT_merged.vcf.gz
+		touch \${sample_name}_MT_merged.vcf.gz.tbi
+	else
+		singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
+        	gatk MergeVcfs \
+		I=${MT_call_variants} \
+		I=\${sample_name}_sorted_chrM_Homo_sapiens_assembly38_lifted_over.vcf \
+		O=\${sample_name}_MT_merged_uncollapsed.vcf.gz
 
-	bcftools norm --rm-dup both \${sample_name}_MT_merged_uncollapsed.vcf.gz -O z -o \${sample_name}_MT_merged.vcf.gz 
-	bcftools index -t \${sample_name}_MT_merged.vcf.gz 
+		ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
+		source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
+		conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
+
+		bcftools norm --rm-dup both \${sample_name}_MT_merged_uncollapsed.vcf.gz -O z -o \${sample_name}_MT_merged.vcf.gz 
+		bcftools index -t \${sample_name}_MT_merged.vcf.gz 
+	fi
 	"""
 }

@@ -41,6 +41,6 @@ process SV_data_organization {
 	vcf_name=\$(echo ${SV_vcf.simpleName} | sed 's/_[^_]*\$//' )
 	chr=\$(echo ${SV_vcf.simpleName} | sed 's/^.*_\\([^_]*\\)\$/\\1/' )
 
-	Rscript ../../../modules/SV_data_organization.R $assembly ${SV_vcf} \${vcf_name}_\${chr}_${var_type}_annotation_table_merged_nohash.tsv $sex_table $run ${var_type}
+	Rscript ../../../modules/SV_data_organization.R $assembly ${SV_vcf} \${vcf_name}_${var_type}_annotation_table_merged_nohash_\${chr}.tsv $sex_table $run ${var_type}
 	"""
 }

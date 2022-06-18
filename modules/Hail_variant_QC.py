@@ -317,7 +317,7 @@ SNV_mt_var_filtered_tot = SNV_mt_var_filtered.annotate_rows(
 # Calculate the variants frequency per sex
 # 
 
-SNV_mt_var_filtered_sex = SNV_mt_var_filteredi_tot.annotate_cols(**sex_table[SNV_mt_var_filtered_tot.s])
+SNV_mt_var_filtered_sex = SNV_mt_var_filtered_tot.annotate_cols(**sex_table[SNV_mt_var_filtered_tot.s])
 SNV_mt_var_filtered_XX = SNV_mt_var_filtered_sex.filter_cols(SNV_mt_var_filtered_sex.sex == 'XX')
 SNV_mt_var_filtered_XX = hl.variant_qc(SNV_mt_var_filtered_XX)
 SNV_mt_var_filtered_XX = SNV_mt_var_filtered_XX.annotate_rows(

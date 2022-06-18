@@ -12,7 +12,7 @@ process Hail_variant_QC {
 
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/", mode: 'copy', pattern : '*.html'
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : '*filtered_samples_variants.vcf.bgz*'
-        publishDir "$params.outdir_pop/${assembly}/${run}/${var_type}/Vcf_pre_annotation/", mode: 'copy', pattern : 'SNV_filtered_frequ_*'
+        publishDir "$params.outdir_pop/${assembly}/${run}/SNV/Vcf_pre_annotation/", mode: 'copy', pattern : 'SNV_filtered_frequ_*'
 
 	input :
 	file vcf_sample_filtered

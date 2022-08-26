@@ -1,10 +1,7 @@
 # Nextflow usual output #
 #########################
 
-timeline.html*
-trace.txt*
 flowchart.png*
-report.html*
 .nextflow.log*
 /work
 .nextflow*
@@ -16,7 +13,9 @@ report.html*
 hail*
 /archive
 /vcf_to_try_hail
-filtered_samples_sex.tsv
+*.tsv
+*.txt*
+*.html*
 
 # Error and output files #
 ##########################

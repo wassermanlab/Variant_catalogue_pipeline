@@ -19,7 +19,8 @@ include { expansion_hunter } from "./../modules/expansion_hunter"
 include { melt } from "./../modules/melt"
 
 include { list_vcfs_txt as SV_vcfs_txt; list_vcfs_txt as STR_vcfs_txt; list_vcfs_txt as MEI_vcfs_txt } from "./../modules/list_vcfs_txt"
-include { merge_samples as SV_merge_samples; merge_samples as STR_merge_samples; merge_samples as MEI_merge_samples } from "./../modules/merge_samples"
+include { merge_samples as SV_merge_samples; merge_samples as STR_merge_samples} from "./../modules/merge_samples"
+include { merge_samples_miss0 as MEI_merge_samples } from "./../modules/merge_samples_miss0"
 
 include { merge_STR } from "./../modules/merge_STR"
 include { SV_split_vcf_by_chr as SV_split_vcf_by_chr; SV_split_vcf_by_chr as MEI_split_vcf_by_chr } from "./../modules/SV_split_vcf_by_chr"
@@ -28,6 +29,8 @@ include { SV_data_organization } from "./../modules/SV_data_organization"
 include { MEI_data_organization } from "./../modules/MEI_data_organization"
 include { STR_data_organization } from "./../modules/STR_data_organization"
 
+include { Hail_MEI_QC } from "./../modules/Hail_MEI_QC"
+include { Hail_SV_QC } from "./../modules/Hail_SV_QC"
 
 // SV workflow
 
@@ -79,7 +82,8 @@ workflow SV {
                 // Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		SV_vcfs_txt(SV_paragraph_duphold.out.vcf.collect(), assembly, batch, run, SV)
 		SV_merge_samples(SV_vcfs_txt.out, assembly, batch, run, SV)
-                SV_annotation(SV_merge_samples.out.vcf, SV_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SV)
+                Hail_SV_QC (SV_merge_samples.out.vcf, sample_sex_file, assembly, batch, run)
+		SV_annotation(Hail_SV_QC.out.vcf_SV_filtered_frequ_only, Hail_SV_QC.out.index_SV_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SV)
 
 //                SV_split_vcf_by_chr(SV_merge_samples.out.vcf, assembly, batch, run, chr, SV)
 //                SV_data_organization(SV_split_vcf_by_chr.out.vcf_onechr, SV_annotation.out.annot_table_merged_R.collect(), assembly, run, SV, sample_sex_file)
@@ -105,8 +109,9 @@ workflow SV {
 		// Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		MEI_vcfs_txt(melt.out.vcf.collect(), assembly, batch, run, MEI)
 		MEI_merge_samples(MEI_vcfs_txt.out, assembly, batch, run, MEI)
-                MEI_split_vcf_by_chr(MEI_merge_samples.out.vcf, assembly, batch, run, chr, MEI)
-                MEI_annotation(MEI_merge_samples.out.vcf, MEI_merge_samples.out.index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, MEI)
+                Hail_MEI_QC (MEI_merge_samples.out.vcf, sample_sex_file, assembly, batch, run)
+//                MEI_split_vcf_by_chr(MEI_merge_samples.out.vcf, assembly, batch, run, chr, MEI)
+                MEI_annotation(Hail_MEI_QC.out.vcf_MEI_filtered_frequ_only, Hail_MEI_QC.out.index_MEI_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, MEI)
 
 //                MEI_data_organization(MEI_split_vcf_by_chr.out.vcf_onechr, MEI_annotation.out.annot_table_merged_R.collect(), assembly, run, MEI, sample_sex_file)
 }

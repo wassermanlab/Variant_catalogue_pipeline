@@ -38,6 +38,13 @@ sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 mt = hl.read_matrix_table('SV_vcf.mt')
 
+#Add the sample sex info
+#Only samples which passed QC are present in this file
+mt = mt.annotate_cols(**sex_table[mt.s])
+
+#Keep only samples that passed QC, and with non ambiguous sex
+mt  = mt.filter_cols((mt.sex != 'XX') | (mt.sex != 'XY'))
+
 
 # **Graph functions**
 # 
@@ -965,8 +972,8 @@ report_stats()
 # In[67]:
 
 
-SV_mt_filtered_export = SV_mt_len_filters_AN_filtered.annotate_cols(**sex_table[SV_mt_len_filters_AN_filtered.s])
-
+#SV_mt_filtered_export = SV_mt_len_filters_AN_filtered.annotate_cols(**sex_table[SV_mt_len_filters_AN_filtered.s])
+SV_mt_filtered_export=SV_mt_len_filters_AN_filtered
 
 # In[68]:
 

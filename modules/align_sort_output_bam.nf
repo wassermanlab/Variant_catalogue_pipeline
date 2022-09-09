@@ -10,6 +10,7 @@
 // Process should be skipped if bam file already generated
 
 process align_sort_output_bam {
+	label 'conda_annotate'
 	tag "$sampleId"
 
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/BAM/", mode: 'copyNoFollow'
@@ -34,9 +35,6 @@ process align_sort_output_bam {
 		ln -s \$bam_file .
 		ln -s \$bai_file .
 	else
-		ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-		source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-		conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 		bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${reference} ${read_pairs_ch} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam
 		samtools index ${sampleId}_sorted.bam
 	fi

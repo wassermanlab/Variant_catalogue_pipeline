@@ -8,7 +8,6 @@
 //	split the multiallelic variants as one per line
 
 process split_tsv_by_chr {
-//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/GLnexus/", mode: 'copy'
 
 	input :
 	file SNV_frequ_tsv

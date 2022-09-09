@@ -16,16 +16,16 @@ include { list_vcfs_txt } from "./../modules/list_vcfs_txt"
 include { GLnexus_cli } from "./../modules/GLnexus"
 include { bcf_to_vcf } from "./../modules/bcf_to_vcf"
 
-include { plink_sex_inference } from "./../modules/plink_sex_inference"
-include { sample_QC } from "./../modules/sample_QC"
-
 include { Hail_sample_QC } from "./../modules/Hail_sample_QC"
 include { Hail_variant_QC } from "./../modules/Hail_variant_QC"
 
 include { annotation_table_merged as SNV_annotation_table_merged; annotation_table_merged as MT_annotation_table_merged} from "./../modules/annotation_table_merged"
 
-include { split_tsv_by_chr } from "./../modules/split_tsv_by_chr"
-include { SNV_data_organization } from "./../modules/SNV_data_organization"
+//include { plink_sex_inference } from "./../modules/plink_sex_inference"
+//include { sample_QC } from "./../modules/sample_QC"
+
+//include { split_tsv_by_chr } from "./../modules/split_tsv_by_chr"
+//include { SNV_data_organization } from "./../modules/SNV_data_organization"
 
 // SNV workflow
 
@@ -43,6 +43,7 @@ workflow SNV {
         chr                                     = params.chrom
         vep_cache_merged                        = file (params.vep_cache_merged)
         vep_cache_merged_version                = params.vep_cache_merged_version
+	dir_plugin				= file (params.dir_plugin)
         CADD_1_6_whole_genome_SNVs              = file (params.CADD_1_6_whole_genome_SNVs)
         CADD_1_6_whole_genome_SNVs_index        = file (params.CADD_1_6_whole_genome_SNVs_index)
         CADD_1_6_InDels                         = file (params.CADD_1_6_InDels)
@@ -51,8 +52,8 @@ workflow SNV {
         spliceai_snv_index                      = file (params.spliceai_snv_index)
         spliceai_indel                          = file (params.spliceai_indel)
         spliceai_indel_index                    = file (params.spliceai_indel_index)
-        severity_table                          = file (params.severity_table)
-	gnomad_SNV_frequ			= file (params.gnomad_SNV_frequ)
+//        severity_table                          = file (params.severity_table)
+//	gnomad_SNV_frequ			= file (params.gnomad_SNV_frequ)
 
 	// Workflow start here
 	take : 
@@ -74,7 +75,7 @@ workflow SNV {
 
                 Hail_sample_QC(bcf_to_vcf.out.vcf, assembly, batch, run)
                 Hail_variant_QC(Hail_sample_QC.out.vcf_sample_filtered, Hail_sample_QC.out.filtered_sample_sex, assembly, batch, run)
-                SNV_annotation_table_merged(Hail_variant_QC.out.SNV_filtered_variants_frequ_tot_xx, Hail_variant_QC.out.SNV_filtered_variants_frequ_tot_xx_index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SNV)
+                SNV_annotation_table_merged(Hail_variant_QC.out.vcf_SNV_filtered_frequ_only, Hail_variant_QC.out.index_SNV_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SNV, reference, dir_plugin)
 
 //                split_tsv_by_chr(Hail_variant_QC.out.SNV_frequ_tot_xx_xy_tsv, assembly, batch, run)
 //		SNV_data_organization(gnomad_SNV_frequ, split_tsv_by_chr.out.collect(), SNV_annotation_table_merged.out.annot_table_merged_R, assembly, run, severity_table)

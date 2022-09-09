@@ -28,9 +28,7 @@ process Hail_MEI_QC {
 
 	path 'MEI_filtered_with_geno.vcf.bgz*', emit : MEI_filtered_with_geno
         path 'MEI_filtered_frequ_only.vcf.bgz', emit : vcf_MEI_filtered_frequ_only
-        path 'MEI_filtered_frequ_only.vcf.tbi', emit : index_MEI_filtered_frequ_only
-
-	conda '/home/BCRICWH.LAN/Solenne.Correard/miniconda3/envs/hail'
+        path 'MEI_filtered_frequ_only.vcf.bgz.tbi', emit : index_MEI_filtered_frequ_only
 
 	script:
 	"""

@@ -8,6 +8,7 @@
 // Used multiple times (reference genome and MT specific reference genomes (non shifted and shifted))
 
 process bwa_index {
+	label 'conda_annotate'
         tag "$genome"
 
 	input:
@@ -18,10 +19,6 @@ process bwa_index {
 
         script:
         """
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
-
         bwa index ${genome}
         """
 }

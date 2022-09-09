@@ -9,8 +9,9 @@
 
 
 
-process MarkDuplicates {
-	 tag "${bam_MT.baseName}"
+process MarkDuplicates_index {
+	label 'conda_annotate'
+        tag "${bam_MT.baseName}"
 
         input :
         file bam_MT
@@ -18,20 +19,18 @@ process MarkDuplicates {
 	val assembly
 	val batch
 	val run
+	file bam_Markduplcates
 
         output :
-        path '*marked_duplicates.bam', emit : bam
+        path '*marked_duplicates.bam.bai', emit : bai
 
         script:
         """
 	sample_name=\$(echo ${bam_MT.baseName} | cut -d _ -f 1)
 	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
-		touch ${bam_MT.baseName}_marked_duplicates.bam
+		touch ${bam_MT.baseName}_marked_duplicates.bam.bai
 	else
-		gatk MarkDuplicates \
-		I=${bam_MT.baseName}.bam \
-		O=${bam_MT.baseName}_marked_duplicates.bam \
-		M=${bam_MT.baseName}_marked_duplicates_metrics.txt
+		samtools index ${bam_MT.baseName}_marked_duplicates.bam
         fi
 	"""
 }

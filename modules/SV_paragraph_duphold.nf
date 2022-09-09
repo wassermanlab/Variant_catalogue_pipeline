@@ -7,6 +7,7 @@
 // STEP TO DESCRIBE
 
 process SV_paragraph_duphold {
+	label 'conda_annotate'
         tag "${bam.simpleName}"
 
 //	Issue with the script from paragraph   [E::idx_find_and_load] Could not retrieve index file for 'paragraph_output/variants.vcf.gz'
@@ -47,10 +48,6 @@ process SV_paragraph_duphold {
         -o paragraph_output \
         -t ${task.cpus} \
         -M \$M
-
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
 	
 	bcftools index -t paragraph_output/genotypes.vcf.gz
 

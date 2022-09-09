@@ -1,8 +1,9 @@
+args <- commandArgs(trailingOnly = TRUE)
+
+.libPaths=(args[3])
 #library(dplyr)
 library(stringr)
 #library(tidyr)
-
-args <- commandArgs(trailingOnly = TRUE)
 
 shift_back = function(x) {
 	if (x < 8570) {

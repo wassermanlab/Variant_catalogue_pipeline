@@ -9,8 +9,6 @@
 
 process MT_Step2_participant_data {
 
-//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/${var_type}", mode: 'copy'
-        
 	input :
         file Sample_MT_Step2_participant_data
 	file Sample_list

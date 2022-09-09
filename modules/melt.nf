@@ -7,15 +7,12 @@
 // Rename varaints, compress the vcf and index the compressed vcf
 
 process melt {
+	label 'conda_annotate'
 	tag "${bam.simpleName}"
 
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MEI/Sample/", mode: 'copyNoFollow'
-	
-//	module = "BCCHR/Java/1.8.0_231"
-//	conda  "/home/BCRICWH.LAN/Mohammed.Mohammed/miniconda3/envs/sv"   
-	
+		
 	input:
-//	tuple(val(sample_name), path(bam), path(index))
 	file bam
 	file bai
 	file reference
@@ -40,17 +37,6 @@ process melt {
 		ln -s \$melt_vcf .
 		ln -s \$melt_index .
 	else
-        	# Unload bcchr, and load cvmfs
-        	# unload_bcchr
-        	source /cm/shared/BCCHR-apps/env_vars/unset_BCM.sh
-        	# load cvmfs
-        	source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
-
-        	module load StdEnv/2020
-        	module load vcftools
-        	module load bcftools
-		module load bowtie2
-
 		mkdir -p \${sample_name}
 	
 		java -Xmx8G -jar ${params.Melt_dir}/MELT.jar Single \

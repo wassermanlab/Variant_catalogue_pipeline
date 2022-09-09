@@ -8,8 +8,6 @@
 
 
 process MT_Step1_input_tsv {
-
-//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/${var_type}", mode: 'copy'
         
 	input :
         file Sample_MT_Step1_input_tsv
@@ -23,7 +21,7 @@ process MT_Step1_input_tsv {
         script:
 	"""
 	sample_name=\$(echo ${Sample_MT_Step1_input_tsv.simpleName} | cut -d _ -f 1)
-	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
 		touch MT_Step1_input_tsv.tsv
 	else
 		cat $Sample_MT_Step1_input_tsv > MT_Step1_input_tsv.tsv

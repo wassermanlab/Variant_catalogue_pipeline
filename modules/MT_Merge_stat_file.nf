@@ -26,7 +26,7 @@ process MT_Merge_stat_file {
         sample_name=\$(echo ${MT_call_variants_stat.simpleName} | cut -d _ -f 1)
         echo \$sample_name
 
-	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
 		touch \${sample_name}_MT_merged.stats
         else
         	gatk MergeMutectStats \

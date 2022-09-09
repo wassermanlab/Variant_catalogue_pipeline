@@ -36,21 +36,6 @@ import os
 hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True).write('SNV_vcf.mt', overwrite=True)
 
 
-#vcf_path = '/mnt/scratch/SILENT/Act3/Processed/Individual/GRCh37/Batch_DryRun/Run_20220426/vcf_pre_hail/'
-
-#hl.import_vcf(os.path.join(vcf_path,'DeepVariant_GLnexus_Run_20220426.vcf.gz'),
-#              array_elements_required=False, force_bgz=True).write('SNV_vcf.mt', overwrite=True)
-
-
-# For MT, need to find a different technique as it is not a diploiod genome
-# 
-# 
-# Error summary: VCFParseError: ploidy > 2 not supported
-
-# hl.import_vcf(os.path.join(vcf_path,'MT_Run_20220426.vcf.gz'), 
-#               array_elements_required=False, force_bgz=True,
-#               reference_genome='GRCh38').write('hail/MT_vcf.mt', overwrite=True)
-
 # In[ ]:
 
 

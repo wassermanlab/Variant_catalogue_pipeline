@@ -24,7 +24,7 @@ process SV_concat_by_sample {
 	script:
 	output_file = "${sample_name}.concat-svs.vcf"
 	"""
-	if [ -a $params.outdir_ind/${assembly}/*/${run}/SV/Sample/Concat_by_sample/${sample_name}.concat-svs.vcf]; then
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/SV/Sample/Concat_by_sample/${sample_name}.concat-svs.vcf ]; then
 		concat_vcf=\$(find $params.outdir_ind/${assembly}/*/${run}/SV/Sample/Concat_by_sample/  -name ${sample_name}.concat-svs.vcf) 
 		ln -s \$concat_vcf .
 	else

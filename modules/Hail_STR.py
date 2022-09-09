@@ -26,9 +26,18 @@ from typing import Optional, Dict, List, Union
 
 
 # #Created through the nextflow pipeline
-hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('MEI_vcf.mt', overwrite=True)
+hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('STR_vcf.mt', overwrite=True)
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
+
+# In[2]:
+
+
+#vcf_path = '/mnt/scratch/SILENT/Act3/Processed/Individual/GRCh37/Batch_DryRun_alpha/Version_0.0.1/MEI/'
+#hl.import_vcf(os.path.join(vcf_path,'MEI_Version_0.0.1.vcf.gz'),
+#              array_elements_required=False, force_bgz=True).write('MEI_vcf.mt', overwrite=True)
+#sex_table = (hl.import_table('/mnt/scratch/SILENT/Act3/Processed/Workflow/Version_0.0.1/IBVL_pipeline/work/1e/6f3f64c0158271c52b26ca865a75d9/filtered_samples_sex.tsv', impute=True)
+#         .key_by('s'))
 
 
 # **Import file**
@@ -38,7 +47,7 @@ sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 # In[3]:
 
 
-mt = hl.read_matrix_table('MEI_vcf.mt')
+mt = hl.read_matrix_table('STR_vcf.mt')
 
 
 # In[4]:
@@ -92,6 +101,10 @@ def plot_histo (table_plot, mt_plot, variable) :
     p.yaxis.axis_label = 'Count'
     return save(p)
 
+
+# In[9]:
+
+
 def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_variable) :
     output_file(filename=os.path.join(("MEI_QC_"+x_variable+"_"+y_variable+".html")), title="MEI QC HTML file")
     p = hl.plot.scatter(x=mt_x_axis,
@@ -117,115 +130,40 @@ def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_var
 # 
 # SV : Exploration of the info column
 # 
-# - ASSESS (table)
-# - internal (table)
-# - SVTYPE (table)
-# - SVLEN (histo)
-# - LP (histo)
-# - RP (histo)
-# - SR (histo)
-# - LP/RP (plot)
-# 
-# All info available in the vcf : 
-# 
-# ASSESS Number=1 Type=Integer Description= Provides information on evidence availible to decide insertion site.0 = No overlapping reads at site;1 = Imprecise breakpoint due to greater than expected distance between evidence;2 = discordant pair evidence only -- No split read information;3 = left side TSD evidence only;4 = right side TSD evidence only;5 = TSD decided with split reads  highest possible quality 
-# 
-# TSD Number=1 Type=String Description= Precise Target Site Duplication for bases  if unknown  value will be NULL 
-# 
-# INTERNAL Number=2 Type=String Description= If insertion internal or close to a gene  listed here followed by a discriptor of the location in the gene (either INTRON  EXON_   5_UTR  3_UTR  PROMOTER  or TERMINATOR). If multiple genes intersected  will be seperated by '\|' 
-# 
-# SVTYPE Number=1 Type=String Description= Type of structural variant 
-# 
-# SVLEN Number=1 Type=Integer Description= Difference in length between REF and ALT alleles; If unknown  will be -1 
-# 
-# MEINFO Number=4 Type=String Description= Mobile element info of the form NAME START END POLARITY; If START or END is unknown  will be -1; If
-# 
-# POLARITY is unknown  will be 'null' 
-# 
-# DIFF Number=. Type=String Description= Coverage and Differences in relation to the ALU reference. Form is %2XCoverage:Differences  with differences delimited by ' ' 
-# 
-# LP Number=1 Type=Integer Description= Total number of discordant pairs supporting the left side of the breakpont 
-# 
-# RP Number=1 Type=Integer Description= Total number of discordant pairs supporting the right side of the breakpont 
-# 
-# RA Number=1 Type=Float Description= Ratio between LP and RP  reported as log2(LP / RP) 
-# 
-# PRIOR Number=1 Type=String Description= True if this site was not discovered in this dataset  but was included on a provided priors list 
-# 
-# SR Number=1 Type=Integer Description= Total number of SRs at the estimated breakpoint for this site. Recomended to filter sites with <= 2 SRs 
+# - REF (histo)
+# - RL (histo)
 
-# In[10]:
+# All info available in the vcf : # 
+#The repeat unit is GGCCCC (RU INFO field)
+#The repeat spans three repeat units in the reference (REF INFO field)
+#RL Repeat length?
 
-
-assess_table = mt.group_rows_by(mt.info.ASSESS).aggregate(n=hl.agg.count())
-
-
-# In[11]:
-
-
-len_hist = mt.aggregate_entries(hl.expr.aggregators.hist(mt.info.SVLEN,
-            mt.aggregate_rows(hl.agg.min(mt.info.SVLEN)),
-            mt.aggregate_rows(hl.agg.max(mt.info.SVLEN)), 100))
-p = hl.plot.histogram(len_hist, legend='length (bp)', title='Length Histogram')
-show(p)
+#Within genotype info
+#The length of the short allele was estimated from spanning reads (SPANNING)
+#he length of the expanded allele was estimated from in-repeat reads (INREPEAT)
 
 
 # In[12]:
 
 
-LP_hist = mt.aggregate_entries(hl.expr.aggregators.hist(mt.info.LP,
-            mt.aggregate_rows(hl.agg.min(mt.info.LP)),
-            mt.aggregate_rows(hl.agg.max(mt.info.LP)), 100))
-p = hl.plot.histogram(LP_hist, legend='LP',
-                      title='Total number of discordant pairs supporting the left side of the breakpoint')
+REF_hist = mt.aggregate_entries(hl.expr.aggregators.hist(mt.info.REF,
+            mt.aggregate_rows(hl.agg.min(mt.info.REF)),
+            mt.aggregate_rows(hl.agg.max(mt.info.REF)), 100))
+p = hl.plot.histogram(REF_hist, legend='REF',
+                      title='Number of repeat units in the reference')
 show(p)
 
 
 # In[13]:
 
 
-RP_hist = mt.aggregate_entries(hl.expr.aggregators.hist(mt.info.RP,
-            mt.aggregate_rows(hl.agg.min(mt.info.RP)),
-            mt.aggregate_rows(hl.agg.max(mt.info.RP)), 100))
-p = hl.plot.histogram(RP_hist, legend='RP',
-                      title='Total number of discordant pairs supporting the right side of the breakpoint')
+RL_hist = mt.aggregate_entries(hl.expr.aggregators.hist(mt.info.RL,
+            mt.aggregate_rows(hl.agg.min(mt.info.RL)),
+            mt.aggregate_rows(hl.agg.max(mt.info.RL)), 100))
+p = hl.plot.histogram(RL_hist, legend='RL',
+                      title='Repeat Length')
 show(p)
 
-
-# In[14]:
-
-
-RA_hist = mt.aggregate_entries(hl.expr.aggregators.hist(mt.info.RA,
-            mt.aggregate_rows(hl.agg.min(mt.info.RA)),
-            mt.aggregate_rows(hl.agg.max(mt.info.RA)), 100))
-p = hl.plot.histogram(RA_hist, legend='RA',
-                      title='Ratio between LP and RP reported as log2(LP / RP)')
-show(p)
-
-
-# In[15]:
-
-
-p = hl.plot.scatter(x=mt.info.RP,
-                   y=mt.info.LP,
-                  xlabel="RP : Total number of discordant pairs supporting the right side of the breakpoint",
-                  ylabel="LP : Total number of discordant pairs supporting the left side of the breakpoint",
-                title="RP/LP")
-show(p)
-
-
-# In[16]:
-
-
-SR_hist = mt.aggregate_entries(hl.expr.aggregators.hist(mt.info.SR,
-            mt.aggregate_rows(hl.agg.min(mt.info.SR)),
-            mt.aggregate_rows(hl.agg.max(mt.info.SR)), 100))
-
-p = hl.plot.histogram(SR_hist, legend='SR',
-                      title='Total number of SRs at the estimated breakpoint for this site.')
-annot = Span(dimension="height",location=2,line_dash='dashed', line_width=3,line_color="red")
-p.add_layout(annot)
-show(p)
 
 
 # **MEI Hail QC**
@@ -235,6 +173,7 @@ show(p)
 
 mt = hl.variant_qc(mt)
 
+#mt.describe()
 
 # In[18]:
 
@@ -251,7 +190,6 @@ mt = mt.annotate_rows(filters =hl.if_else(hl.is_defined(mt.filters),
 
 
 # List of variant_qc variable of interest:
-# - DP (mt.variant_qc.dp_stats.mean)
 # - AN (mt.variant_qc.AN)
 # - call_rate (mt.variant_qc.call_rate)
 # - n_called (mt.variant_qc.n_called)
@@ -272,46 +210,34 @@ mt = mt.annotate_rows(filters =hl.if_else(hl.is_defined(mt.filters),
 # Empty fields :
 # - n_filtered (mt.variant_qc.n_filtered)
 
-# In[19]:
-
-
-mt.variant_qc.dp_stats.mean.export('DP_MEI.tsv')
-
 
 # In[20]:
 
 
-mt.variant_qc.AN.export('AN_MEI.tsv')
-mt.variant_qc.call_rate.export('call_rate_MEI.tsv')
-mt.variant_qc.n_called.export('n_called_MEI.tsv')
-mt.variant_qc.n_not_called.export('n_not_called_MEI.tsv')
-mt.variant_qc.n_het.export('n_het_MEI.tsv')
-mt.variant_qc.p_value_hwe.export('p_value_hwe_MEI.tsv')
-mt.variant_qc.het_freq_hwe.export('het_freq_hwe_MEI.tsv')
-
-
-# In[21]:
-
-
-DP_table=pd.read_table('DP_MEI.tsv')
+mt.variant_qc.AN.export('AN_STR.tsv')
+mt.variant_qc.call_rate.export('call_rate_STR.tsv')
+mt.variant_qc.n_called.export('n_called_STR.tsv')
+mt.variant_qc.n_not_called.export('n_not_called_STR.tsv')
+mt.variant_qc.n_het.export('n_het_STR.tsv')
+mt.variant_qc.p_value_hwe.export('p_value_hwe_STR.tsv')
+mt.variant_qc.het_freq_hwe.export('het_freq_hwe_STR.tsv')
 
 
 # In[22]:
 
 
-AN_table=pd.read_table('AN_MEI.tsv')
-call_rate_table=pd.read_table('call_rate_MEI.tsv')
-n_called_table=pd.read_table('n_called_MEI.tsv')
-n_not_called_table=pd.read_table('n_not_called_MEI.tsv')
-n_het_table=pd.read_table('n_het_MEI.tsv')
-p_value_hwe_table=pd.read_table('p_value_hwe_MEI.tsv')
-het_freq_hwe_table=pd.read_table('het_freq_hwe_MEI.tsv')
+AN_table=pd.read_table('AN_STR.tsv')
+call_rate_table=pd.read_table('call_rate_STR.tsv')
+n_called_table=pd.read_table('n_called_STR.tsv')
+n_not_called_table=pd.read_table('n_not_called_STR.tsv')
+n_het_table=pd.read_table('n_het_STR.tsv')
+p_value_hwe_table=pd.read_table('p_value_hwe_STR.tsv')
+het_freq_hwe_table=pd.read_table('het_freq_hwe_STR.tsv')
 
 
 # In[23]:
 
 
-DP_table.rename(columns = {DP_table.columns[2]:'DP'}, inplace = True)
 AN_table.rename(columns = {AN_table.columns[2]:"AN"}, inplace = True)
 call_rate_table.rename(columns = {call_rate_table.columns[2]:'call_rate'}, inplace = True)
 n_called_table.rename(columns = {n_called_table.columns[2]:"n_called"}, inplace = True)
@@ -319,14 +245,6 @@ n_not_called_table.rename(columns = {n_not_called_table.columns[2]:"n_not_called
 n_het_table.rename(columns = {n_het_table.columns[2]:"n_het"}, inplace = True)
 p_value_hwe_table.rename(columns = {p_value_hwe_table.columns[2]:"p_value_hwe"}, inplace = True)
 het_freq_hwe_table.rename(columns = {het_freq_hwe_table.columns[2]:"het_freq_hwe"}, inplace = True)
-
-
-# In[24]:
-
-
-plot_histo(DP_table,
-           mt.variant_qc.dp_stats.mean,
-           'Mean Depth per variant')
 
 
 # In[25]:
@@ -392,37 +310,6 @@ plot_sp (het_freq_hwe_table,
 # 
 # ==> Remove all the MEI with a non empty filters column
 # 
-# **Step 3 : ASSESS**
-# 
-# MELT ASSESS score >3
-# 
-# 
-# **Step 4 : SR**
-# 
-# split reads >2
-# 
-# 
-# **Sources :**
-# 
-# 
-# In MELT filters (mt.filters column), remove:
-# - lc : Rewmove low complexity (lc)
-# - s25 : '> 25% missing (s25)
-# - rSD : LP/RP > 2.0 standard deviation (rSD)
-# - hDP : more discordant pairs are also split than expected (hDP)
-# ==> Remove all the MEI with a non empty filters column
-# from https://static-content.springer.com/esm/art%3A10.1038%2Fs41467-020-16481-5/MediaObjects/41467_2020_16481_MOESM1_ESM.pdf table 1
-# 
-# 
-# Variants that did not pass the following criteria were filtered to get a high-quality MEI call set:
-# (i) not in low complexity regions; 
-# (ii) be genotyped in >25.0% of individuals; 
-# (iii) split reads >2;
-# (iv) MELT ASSESS score >3 (at least one-side TSD evidence)
-# (v) VCF FILTER column be PASS. 
-#  from https://academic.oup.com/nar/article/50/5/2493/6536893
-# 
-# 
 # 
 # 
 # Possible future improvments :
@@ -435,15 +322,11 @@ plot_sp (het_freq_hwe_table,
 
 
 intervals = [hl.parse_locus_interval(x) for x in ['X', 'Y', '1-22']]
-MEI_mt_locus_filtered = hl.filter_intervals(mt, intervals, keep=True)
+STR_mt_locus_filtered = hl.filter_intervals(mt, intervals, keep=True)
 
 
 # **Step 2 : mt.filters column**
 # 
-# **Step 3 : ASSESS**
-# 
-# **Step 4 : SR**
-
 # **Step 5 : Hail filters**
 #     
 # - AN (Allele Number) : The SV with a very low AN were not genotyped correctly in the cohort and will not give a strong frequency estimation, should be removed.
@@ -466,23 +349,21 @@ MEI_mt_locus_filtered = hl.filter_intervals(mt, intervals, keep=True)
 # In[32]:
 
 
-MEI_mt_locus_filtered = hl.variant_qc(MEI_mt_locus_filtered)
+STR_mt_locus_filtered = hl.variant_qc(STR_mt_locus_filtered)
 
 
 # In[33]:
 
 
-min_AN=MEI_mt_locus_filtered.count()[1]*2*0.75
+min_AN=STR_mt_locus_filtered.count()[1]*2*0.75
 
 
 # In[34]:
 
 
-MEI_mt_filtered = MEI_mt_locus_filtered.filter_rows(
-    (MEI_mt_locus_filtered.filters == hl.set(["none"])) &
-    (MEI_mt_locus_filtered.info.ASSESS >= 3) &
-    (MEI_mt_locus_filtered.info.SR >= 2) &
-    ((MEI_mt_locus_filtered.variant_qc.AN) >  min_AN)
+STR_mt_filtered = STR_mt_locus_filtered.filter_rows(
+    (STR_mt_locus_filtered.filters == hl.set(["none"])) &
+    ((STR_mt_locus_filtered.variant_qc.AN) >  min_AN)
 )
 
 
@@ -491,27 +372,21 @@ MEI_mt_filtered = MEI_mt_locus_filtered.filter_rows(
 # In[35]:
 
 
-n_MEI_tot=mt.count()[0]
+n_STR_tot=mt.count()[0]
 
-n_non_chr = n_MEI_tot - MEI_mt_locus_filtered.count()[0]
-perc_non_chr = n_non_chr/n_MEI_tot * 100
+n_non_chr = n_STR_tot - STR_mt_locus_filtered.count()[0]
+perc_non_chr = n_non_chr/n_STR_tot * 100
 
-n_filters_filtered = n_MEI_tot - mt.filter_rows(mt.filters == hl.set(["none"])).count()[0]
-perc_filters_filtered = n_filters_filtered / n_MEI_tot *100
+n_filters_filtered = n_STR_tot - mt.filter_rows(mt.filters == hl.set(["none"])).count()[0]
+perc_filters_filtered = n_filters_filtered / n_STR_tot *100
 
-n_assess_filtered = n_MEI_tot - mt.filter_rows((mt.info.ASSESS >= 3)).count()[0]
-perc_assess_filtered = n_assess_filtered / n_MEI_tot *100
+n_AN_filtered = n_STR_tot - mt.filter_rows((mt.variant_qc.AN) >  min_AN).count()[0]
+perc_AN_filtered = n_AN_filtered / n_STR_tot *100
 
-n_SR_filtered = n_MEI_tot - mt.filter_rows((mt.info.SR >= 2)).count()[0]
-perc_SR_filtered = n_SR_filtered / n_MEI_tot *100
+n_STR_removed = n_STR_tot - STR_mt_filtered.count()[0]
+perc_STR_removed = n_STR_removed/n_STR_tot * 100
 
-n_AN_filtered = n_MEI_tot - mt.filter_rows((mt.variant_qc.AN) >  min_AN).count()[0]
-perc_AN_filtered = n_AN_filtered / n_MEI_tot *100
-
-n_MEI_removed = n_MEI_tot - MEI_mt_filtered.count()[0]
-perc_MEI_removed = n_MEI_removed/n_MEI_tot * 100
-
-n_MEI_tot_filtered = MEI_mt_filtered.count()[0]
+n_STR_tot_filtered = STR_mt_filtered.count()[0]
 
 
 # MEI filters : info from the filters column before filtration
@@ -523,47 +398,8 @@ filters_ht = mt.rows()
 filters_ht = filters_ht.select ('filters')
 filters_df = filters_ht.to_pandas()
 filters_table = filters_df['filters'].value_counts()
-filters_table.to_csv(r'MEI_filters_report.txt', sep=':')
+filters_table.to_csv(r'STR_filters_report.txt', sep=':')
 
-
-# MEI Type (before and after filtration)
-
-# In[37]:
-
-
-type_ht = mt.select_rows(mt.info.SVTYPE).rows()
-type_df = type_ht.to_pandas()
-n_ALU = len(type_df[type_df['SVTYPE'] == 'ALU'])
-n_LINE1 = len(type_df[type_df['SVTYPE'] == 'LINE1'])
-n_SVA = len(type_df[type_df['SVTYPE'] == 'SVA'])
-
-
-# In[38]:
-
-
-type_filtered_ht = MEI_mt_filtered.select_rows(MEI_mt_filtered.info.SVTYPE).rows()
-type_filtered_df = type_filtered_ht.to_pandas()
-n_ALU_filtered = len(type_filtered_df[type_filtered_df['SVTYPE'] == 'ALU'])
-n_LINE1_filtered = len(type_filtered_df[type_filtered_df['SVTYPE'] == 'LINE1'])
-n_SVA_filtered = len(type_filtered_df[type_filtered_df['SVTYPE'] == 'SVA'])
-
-
-# MEI location (post-filters uniquely)
-# 
-# For internal table, need to ignore the gene name to know number by location type
-# 
-# (!) Not working for EXON
-
-# In[39]:
-
-
-n_internal_intron = MEI_mt_filtered.aggregate_rows(hl.agg.count_where(MEI_mt_filtered.info.INTERNAL.contains('INTRONIC')))
-n_internal_exon = MEI_mt_filtered.aggregate_rows(hl.agg.count_where(MEI_mt_filtered.info.INTERNAL.contains('EXON')))
-n_internal_5_UTR = MEI_mt_filtered.aggregate_rows(hl.agg.count_where(MEI_mt_filtered.info.INTERNAL.contains('5_UTR')))
-n_internal_3_UTR = MEI_mt_filtered.aggregate_rows(hl.agg.count_where(MEI_mt_filtered.info.INTERNAL.contains('3_UTR')))
-n_internal_promotor = MEI_mt_filtered.aggregate_rows(hl.agg.count_where(MEI_mt_filtered.info.INTERNAL.contains('PROMOTER')))
-n_internal_terminator = MEI_mt_filtered.aggregate_rows(hl.agg.count_where(MEI_mt_filtered.info.INTERNAL.contains('TERMINATOR')))
-n_internal_null = MEI_mt_filtered.aggregate_rows(hl.agg.count_where(MEI_mt_filtered.info.INTERNAL.contains('null')))
 
 
 # **MEI QC Report**
@@ -577,49 +413,28 @@ def report_stats():
     """
     Generate output report with basic stats.
     """
-    out_stats = hl.hadoop_open(f"MEI_QC_report.txt", "w")
-    # Report numbers of filtered MEI
+    out_stats = hl.hadoop_open(f"STR_QC_report.txt", "w")
+    # Report numbers of filtered STR
     out_stats.write(
         f"Before fiiltration \n"
-        f"Number of MEI: {n_MEI_tot}\n"
-        f"     Number of ALU: {n_ALU}\n"
-        f"     Number of LINE1: {n_LINE1}\n"
-        f"     Number of SVA: {n_SVA}\n\n\n"
-        
+        f"Number of STR: {n_STR_tot}\n"
         f"Variant filtering\n\n"
         f"Filer 1 : Location\n"        
-        f"     Number of MEI removed because of location (out of chr1-22, X, Y) : {n_non_chr}\n"
-        f"     Percentage of MEI removed because of location (out of chr1-22, X, Y) : {perc_non_chr} %\n"
+        f"     Number of STR removed because of location (out of chr1-22, X, Y) : {n_non_chr}\n"
+        f"     Percentage of STR removed because of location (out of chr1-22, X, Y) : {perc_non_chr} %\n"
         f"Filer 2 : Filters column\n"        
-        f"     Number of MEI removed because of filters (non PASS) : {n_filters_filtered}\n"
-        f"     Percentage of MEI removed because of filters (non PASS) : {perc_filters_filtered} %\n"
-        f"Filer 3 : ASSESS value (ASSESS >= 3)\n"        
-        f"     Number of MEI removed because of low ASSESS : {n_assess_filtered}\n"
-        f"     Percentage of MEI removed because of low ASSESS : {perc_assess_filtered} %\n"
-        f"Filer 4 : SR value (SR >= 2)\n"        
-        f"     Number of MEI removed because of low SR : {n_SR_filtered}\n"
-        f"     Percentage of MEI removed because of low SR : {perc_SR_filtered} %\n"
+        f"     Number of STR removed because of filters (non PASS) : {n_filters_filtered}\n"
+        f"     Percentage of STR removed because of filters (non PASS) : {perc_filters_filtered} %\n"
         f"Filer 5 : Hail QC, AN (Allele number)\n"
         f"     AN threshold for filtering : {min_AN}\n"        
-        f"     Number of MEI removed because of AN threshold : {n_AN_filtered}\n"
-        f"     Percentage of MEI removed because of AN threshold : {perc_AN_filtered} %\n"
+        f"     Number of STR removed because of AN threshold : {n_AN_filtered}\n"
+        f"     Percentage of STR removed because of AN threshold : {perc_AN_filtered} %\n"
         f"Conclusion\n"
-        f"     Total number of MEI removed : {n_MEI_removed}\n"
-        f"     Percentage of the MEI filtered out: {perc_MEI_removed} %\n\n\n"
+        f"     Total number of STR removed : {n_STR_removed}\n"
+        f"     Percentage of the STR filtered out: {perc_STR_removed} %\n\n\n"
 
         f"After variant filtering\n\n"
-        f"Number of MEI remaining (all types, all callers): {n_MEI_tot_filtered}\n"
-        f"     Number of ALU: {n_ALU_filtered}\n"
-        f"     Number of LINE1: {n_LINE1_filtered}\n"
-        f"     Number of SVA: {n_SVA_filtered}\n\n\n"
-        f"Localisation of the MEI\n"
-        f'     Intronic = {n_internal_intron}\n'
-        f'     Exonic = NOT WORKING\n'
-        f'     5 UTR = {n_internal_5_UTR}\n'
-        f'     3 UTR = {n_internal_3_UTR}\n'
-        f'     Promotor = {n_internal_promotor}\n'
-        f'     Terminator = {n_internal_terminator}\n'
-        f'     Null = {n_internal_null}'        
+        f"Number of STR remaining: {n_STR_tot_filtered}\n"
     )
     out_stats.close()
 
@@ -797,27 +612,27 @@ def annotate_freq(
 # In[60]:
 
 
-MEI_mt_filtered_export = annotate_freq(
-                MEI_mt_filtered,
-                sex_expr=MEI_mt_filtered.sex,
+STR_mt_filtered_export = annotate_freq(
+                STR_mt_filtered,
+                sex_expr=STR_mt_filtered.sex,
             )
 
 
 # In[61]:
 
 
-MEI_mt_filtered_export = MEI_mt_filtered_export.annotate_rows(
-    info = MEI_mt_filtered_export.info.annotate(AC_tot_XX_XY=MEI_mt_filtered_export.freq.AC,
-                                             AF_tot_XX_XY=MEI_mt_filtered_export.freq.AF,
-                                             AN_tot_XX_XY=MEI_mt_filtered_export.freq.AN,
-                                             hom_tot_XX_XY=MEI_mt_filtered_export.freq.homozygote_count)
+STR_mt_filtered_export = STR_mt_filtered_export.annotate_rows(
+    info = STR_mt_filtered_export.info.annotate(AC_tot_XX_XY=STR_mt_filtered_export.freq.AC,
+                                             AF_tot_XX_XY=STR_mt_filtered_export.freq.AF,
+                                             AN_tot_XX_XY=STR_mt_filtered_export.freq.AN,
+                                             hom_tot_XX_XY=STR_mt_filtered_export.freq.homozygote_count)
                      )
 
 
 # In[62]:
 
 
-MEI_mt_filtered_export_no_geno = MEI_mt_filtered_export.rows()
+STR_mt_filtered_export_no_geno = STR_mt_filtered_export.rows()
 
 
 # **Export files of interest**
@@ -836,13 +651,13 @@ MEI_mt_filtered_export_no_geno = MEI_mt_filtered_export.rows()
 # In[49]:
 
 
-hl.export_vcf(MEI_mt_filtered_export, 'MEI_filtered_with_geno.vcf.bgz', tabix=True)
+hl.export_vcf(STR_mt_filtered_export, 'STR_filtered_with_geno.vcf.bgz', tabix=True)
 
 
 # In[50]:
 
 
-hl.export_vcf(MEI_mt_filtered_export_no_geno, 'MEI_filtered_frequ_only.vcf.bgz', tabix=True)
+hl.export_vcf(STR_mt_filtered_export_no_geno, 'STR_filtered_frequ_only.vcf.bgz', tabix=True)
 
 
 # In[ ]:

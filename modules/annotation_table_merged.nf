@@ -13,7 +13,7 @@ process annotation_table_merged {
 	tag "${chr}"
 
         publishDir "$params.outdir_pop/${assembly}/${run}/${var_type}/VEP_annotation/", mode: 'copy', pattern : '*_annotation_table_merged*'
-	publishDir "$params.outdir_pop/${assembly}/${run}/QC/${var_type}/${vcf.simpleName}/", mode: 'copy', pattern : '*_VEP_stats*'
+	publishDir "$params.outdir_pop/${assembly}/${run}/QC/${var_type}/", mode: 'copy', pattern : '*_VEP_merged_stats*'
 
         input :
         file vcf

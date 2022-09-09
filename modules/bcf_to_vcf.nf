@@ -10,6 +10,7 @@
 // Index the compressed vcf
 
 process bcf_to_vcf {
+	label 'conda_annotate'
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/SNV/", mode: 'copy'
 
 	input :
@@ -19,23 +20,12 @@ process bcf_to_vcf {
 	val run
 
 	output :
-	path '*.vcf.gz', emit : vcf
-	path '*.vcf.gz.tbi', emit : index
-	
+	path '*.vcf.gz', emit : vcf	
 
 	script :
 	"""
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-	source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
-
 ##	bcftools view ${bcf_file} | bgzip -c > ${bcf_file.simpleName}.vcf.gz
 	bcftools norm -m -any -o ${bcf_file.simpleName}_norm.vcf ${bcf_file}
 	bcftools annotate --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -O z -o ${bcf_file.simpleName}.vcf.gz ${bcf_file.simpleName}_norm.vcf
-	
-        singularity exec -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ /mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif \
-	gatk --java-options "-Xmx4G" \
-	IndexFeatureFile \
-        -I ${bcf_file.simpleName}.vcf.gz	
 	"""
 }

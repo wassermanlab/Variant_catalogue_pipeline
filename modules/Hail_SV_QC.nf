@@ -30,8 +30,6 @@ process Hail_SV_QC {
         path 'SV_filtered_frequ_only.vcf.bgz', emit : vcf_SV_filtered_frequ_only
         path 'SV_filtered_frequ_only.vcf.bgz.tbi', emit : index_SV_filtered_frequ_only
 
-	conda '/home/BCRICWH.LAN/Solenne.Correard/miniconda3/envs/hail'
-
 	script:
 	"""
         #!/usr/bin/env python ../../../modules/Hail_SV_QC.py $vcf_sample_filtered $sample_sex_file

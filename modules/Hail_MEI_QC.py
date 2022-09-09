@@ -26,18 +26,9 @@ from typing import Optional, Dict, List, Union
 
 
 # #Created through the nextflow pipeline
- hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('MEI_vcf.mt', overwrite=True)
- sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
+hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('MEI_vcf.mt', overwrite=True)
+sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
-
-# In[2]:
-
-
-#vcf_path = '/mnt/scratch/SILENT/Act3/Processed/Individual/GRCh37/Batch_DryRun_alpha/Version_0.0.1/MEI/'
-#hl.import_vcf(os.path.join(vcf_path,'MEI_Version_0.0.1.vcf.gz'),
-#              array_elements_required=False, force_bgz=True).write('MEI_vcf.mt', overwrite=True)
-#sex_table = (hl.import_table('/mnt/scratch/SILENT/Act3/Processed/Workflow/Version_0.0.1/IBVL_pipeline/work/1e/6f3f64c0158271c52b26ca865a75d9/filtered_samples_sex.tsv', impute=True)
-#         .key_by('s'))
 
 
 # **Import file**
@@ -86,6 +77,7 @@ def stat(table):
 
 
 def plot_histo (table_plot, mt_plot, variable) :
+    output_file(filename=os.path.join(("MEI_QC_"+variable+".html")), title="MEI QC HTML file")
     p = hl.plot.histogram(mt_plot,
                       range = (stat(table_plot) [4], stat(table_plot) [5]),
                       bins = 60,
@@ -96,22 +88,10 @@ def plot_histo (table_plot, mt_plot, variable) :
     annot2 = Span(dimension="height",location=stat(table_plot) [3],line_dash='dashed', line_width=3,line_color="red")
     p.add_layout(annot2)
     p.yaxis.axis_label = 'Count'
-    return show(p)
-
-
-# In[8]:
-
-
-#    output_file(filename=os.path.join("plot_hail", "Variant_QC",("variant_QC_"+variable+".html")), title="Variant QC HTML file")
-
-    #output_file(filename=os.path.join("plot_hail", "Variant_QC",("variant_QC_"+x_variable+"_"+y_variable+".html")), title="Variant QC HTML file")
-
-
-
-# In[9]:
-
+    return save(p)
 
 def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_variable) :
+    output_file(filename=os.path.join(("MEI_QC_"+x_variable+"_"+y_variable+".html")), title="MEI QC HTML file")
     p = hl.plot.scatter(x=mt_x_axis,
                    y=mt_y_axis,
                   xlabel=x_variable,
@@ -128,7 +108,7 @@ def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_var
     p.add_layout(annot4)
     p.x_range=Range1d(stat(table_x_axis) [4], stat(table_x_axis) [5])
     p.y_range=Range1d(stat(table_y_axis) [4], stat(table_y_axis) [5])
-    return show(p)
+    return save(p)
 
 
 # **SV QC**
@@ -317,7 +297,7 @@ DP_table=pd.read_table('DP_MEI.tsv')
 # In[22]:
 
 
-AN_table=pd.read_table('AN_SV.tsv')
+AN_table=pd.read_table('AN_MEI.tsv')
 call_rate_table=pd.read_table('call_rate_MEI.tsv')
 n_called_table=pd.read_table('n_called_MEI.tsv')
 n_not_called_table=pd.read_table('n_not_called_MEI.tsv')
@@ -835,7 +815,7 @@ MEI_mt_filtered_export = MEI_mt_filtered_export.annotate_rows(
 # In[62]:
 
 
-MEI_mt_filtered_export = MEI_mt_filtered_export.rows()
+MEI_mt_filtered_export_no_geno = MEI_mt_filtered_export.rows()
 
 
 # **Export files of interest**

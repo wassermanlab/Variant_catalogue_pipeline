@@ -25,7 +25,7 @@ process Extract_MT_Read {
         script :
         """
 	sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
-	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
 		touch \${sample_name}_chrM.bam
 	else
 		gatk PrintReads \

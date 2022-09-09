@@ -11,5 +11,7 @@
 #SBATCH --output=%x-%j.out
 #SBATCH --error=%x-%j.error
 
+source /mnt/common/SILENT/Act3/conda/miniconda3/etc/profile.d/conda.sh
+
 module load singularity
-nextflow run Nextflow_SNV_MT_211220.nf -profile GRCh37 -resume -with-trace -with-report -with-timeline  -with-dag flowchart.png
+nextflow run Variant_Catalogue_v1.nf -profile GRCh37 -resume -with-trace -with-report -with-timeline  -with-dag flowchart.png

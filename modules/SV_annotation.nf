@@ -11,6 +11,7 @@
 //It is important to note that VEP only annotates variants with a size of up to 10MB by default. You can change this with the –max_sv_size option of the command line tool, but this will increase your memory requirements. 
 
 process SV_annotation {
+	label 'conda_annotate'
 	tag "${chr}"
 
         publishDir "$params.outdir_pop/${assembly}/${run}/SV/VEP_annotation/", mode: 'copy', pattern : '*_annotation_table_merged.tsv'
@@ -29,6 +30,8 @@ process SV_annotation {
 	file CADD_1_6_InDels
 	file CADD_1_6_InDels_index
 	each chr
+	file reference
+	file plugin_dir
 
         output :
         path '*_annotation_table_merged.tsv', emit :  annotation_table_merged
@@ -37,10 +40,6 @@ process SV_annotation {
 
         script :
         """
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-        source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
-
 	vep \
         -i ${vcf} \
         -o ${vcf.simpleName}_${chr}_annotation_table_merged.tsv \
@@ -52,7 +51,7 @@ process SV_annotation {
         --dir_cache ${vep_cache_merged} \
 	--cache_version ${vep_cache_merged_version} \
 	--use_transcript_ref \
-	--fasta /mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa \
+	--fasta ${reference} \
         --distance 0 \
 	--symbol \
 	--biotype \
@@ -64,7 +63,7 @@ process SV_annotation {
         --check_existing \
         --var_synonyms \
         --tab \
-        --dir_plugins /mnt/common/SILENT/Act3/VEP/Plugins/ \
+        --dir_plugins ${dir_plugins} \
         --plugin CADD,$CADD_1_6_whole_genome_SNVs,$CADD_1_6_InDels \
         --stats_file ${vcf.simpleName}_${chr}_VEP_merged_stats
 

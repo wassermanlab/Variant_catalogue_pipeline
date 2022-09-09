@@ -15,14 +15,15 @@ batch	                        : ${params.batch}
 """
 
 if (params.help) {
-    log.info 'This is the dry-run for the IBVL Pipeline (Silent Genomes Project)'
+    log.info 'Pipeline designed to generate a genetic variant catalogue'
+    log.info 'Pipeline developped to generate the IBVL (Silent Genomes Project)'
     log.info 'Let\'s reduce health care disparities'
     exit 1
 }
 
 
 // Include the other workflow that themselves includes the modules
-include { Initialisation } from "./subworkflow/Initialisation"
+//include { Initialisation } from "./subworkflow/Initialisation"
 include { Mapping } from  "./subworkflow/Mapping"
 include { SNV } from "./subworkflow/SNV"
 include { MT } from "./subworkflow/MT"

@@ -1,15 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[47]:
-
-
-pon_predictions_table='/mnt/common/SILENT/Act3/MT_references/pon_mt_trna_predictions_08_27_2020.txt'
-artifact_prone_sites_bed = '/mnt/common/SILENT/Act3/MT_references/artifact_prone_sites.bed'
-GRCh38_MT_local_fasta='/mnt/common/SILENT/Act3/MT_references/Homo_sapiens_assembly38.chrM.fasta'
-GRCh38_MT_local_fai='/mnt/common/SILENT/Act3/MT_references/Homo_sapiens_assembly38.chrM.fasta.fai'
-mitotip_predictions_table='/mnt/common/SILENT/Act3/MT_references/mitotip_scores_08_27_2020.txt'
-
 #Created through the nextflow pipeline
 import sys
 
@@ -17,6 +8,13 @@ MT_Step1_input_tsv=sys.argv[1]
 MT_Step2_participant_data=sys.argv[2]
 MT_participants_to_subset =sys.argv[3]
 MT_Step3_participant_data=sys.argv[4]
+
+
+pon_predictions_table=sys.argv[5]
+artifact_prone_sites_bed =sys.argv[6]
+GRCh38_MT_local_fasta=sys.argv[7]
+GRCh38_MT_local_fai=sys.argv[8]
+mitotip_predictions_table=sys.argv[9]
 
 #Created through the nextflow pipeline
 #MT_Step1_input_tsv='MT_Step1_input_tsv.tsv'
@@ -2468,7 +2466,7 @@ def main_step2(args):  # noqa: D103
     combined_mt = combined_mt.annotate_entries(
         FT=hl.str(";").join(hl.array(combined_mt.FT))
     )
-    hl.export_vcf(combined_mt, out_vcf, metadata=META_DICT)
+    hl.export_vcf(combined_mt, out_vcf, metadata=META_DICT, tabix=True)
 
 
 # In[44]:
@@ -2712,6 +2710,11 @@ main_step3(args_step3)
 
 # In[ ]:
 
+os.replace('MT_Step2_output/MT_Step2_output.vcf.bgz','MT.vcf.bgz')
+os.replace('MT_Step2_output/MT_Step2_output.vcf.bgz.tbi','MT.vcf.bgz.tbi')
+os.replace('MT_Step3_output_dir/sample_vcf.vcf.bgz','MT_filtered_with_geno.vcf.bgz')
+os.replace('MT_Step3_output_dir/sample_vcf.vcf.bgz.tbi','MT_filtered_with_geno.vcf.bgz.tbi')
+os.replace('MT_Step3_output_dir/reduced_annotations.txt','MT_filtered_frequ_only.txt')
 
 os.replace('MT_Step3_output_dir/combined_sites_only.vcf.bgz','MT_post_hail_combined_sites_only.vcf.bgz')
 os.replace('MT_Step3_output_dir/combined_sites_only.vcf.bgz.tbi','MT_post_hail_combined_sites_only.vcf.bgz.tbi')

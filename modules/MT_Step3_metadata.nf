@@ -8,8 +8,6 @@
 
 
 process MT_Step3_metadata {
-
-//        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/${var_type}", mode: 'copy'
         
 	input :
         file MT_Step3_metadata_sample

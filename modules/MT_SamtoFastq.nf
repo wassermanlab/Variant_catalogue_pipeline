@@ -21,7 +21,7 @@ process MT_SamtoFastq {
         script :
         """
 	sample_name=\$(echo ${Extract_MT_Read.baseName} | cut -d _ -f 1)
-	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample_vcf/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
+	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
 		touch \${sample_name}.fastq
 	else
         	gatk SamToFastq \

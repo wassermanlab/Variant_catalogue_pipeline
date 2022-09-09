@@ -7,6 +7,7 @@
 
 
 process samtools_fixmate {
+	label 'conda_annotate'
 	tag "${bam.SimpleName}"
 
 	input :
@@ -27,10 +28,6 @@ process samtools_fixmate {
 		touch \${sample_name}_fixmate_ordered.bam
 		touch \${sample_name}_fixmate_ordered.bam.bai
 	else
-		ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-		source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-		conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
-
 		# Resort the bam file by query name for samtools fixmate (coordiante-sorted bam does not work)
 		samtools sort -n -O BAM -@ 20  ${bam} > ${bam.SimpleName}_nsorted.bam
 

@@ -9,6 +9,7 @@
 // The last line remove the # in front of "Uploaded_varaintion", which is necessary for downstream analysis
 
 process annotation_table_merged {
+	label 'conda_annotate'
 	tag "${chr}"
 
         publishDir "$params.outdir_pop/${assembly}/${run}/${var_type}/VEP_annotation/", mode: 'copy', pattern : '*_annotation_table_merged*'
@@ -32,6 +33,8 @@ process annotation_table_merged {
         file spliceai_indel_index
 	each chr
 	val var_type 
+	file reference
+	file dir_plugin
 
         output :
 
@@ -44,10 +47,6 @@ process annotation_table_merged {
 
         script :
         """
-	ANNOTATEVARIANTS_INSTALL=/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/
-        source \$ANNOTATEVARIANTS_INSTALL/opt/miniconda3/etc/profile.d/conda.sh
-	conda activate \$ANNOTATEVARIANTS_INSTALL/opt/AnnotateVariantsEnvironment
-
 	vep \
         -i ${vcf} \
         -o ${vcf.simpleName}_${var_type}_annotation_table_merged_${chr}.vcf \
@@ -59,7 +58,7 @@ process annotation_table_merged {
         --dir_cache ${vep_cache_merged} \
 	--cache_version ${vep_cache_merged_version} \
 	--use_transcript_ref \
-	--fasta /mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa \
+	--fasta $reference \
         --distance 0 \
 	--symbol \
 	--biotype \
@@ -72,7 +71,7 @@ process annotation_table_merged {
         --var_synonyms \
 	--tsl \
 	--vcf \
-        --dir_plugins /mnt/common/SILENT/Act3/VEP/Plugins/ \
+        --dir_plugins ${dir_plugin} \
 	--plugin CADD,$CADD_1_6_whole_genome_SNVs,$CADD_1_6_InDels \
         --plugin SpliceAI,snv=${spliceai_snv},indel=${spliceai_indel} \
 	--stats_file ${vcf.simpleName}_${chr}_VEP_merged_stats

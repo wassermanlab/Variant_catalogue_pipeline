@@ -7,25 +7,24 @@
 // Merge all the samples (without joint calling) and create a vcf files with all the calls for each participant
 // Index the vcf file
 
-process merge_STR {
+process GATK_index {
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/STR/", mode: 'copy'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/${var_type}/", mode: 'copy'
 
         input :
-//        file manifest
-	file reference
+        file list_vcf
 	val assembly
 	val batch
 	val run
+	val var_type
 
         output:
-        path '*.json', emit : output_json
+	path '*.vcf.gz.tbi', emit : index
 
         script :
         """
-	/mnt/common/Precision/ExpansionHunterDenovo/ExpansionHunterDenovo-v0.9.0-linux_x86_64/bin/ExpansionHunterDenovo merge\
-	--reference ${reference} \
-	--manifest /mnt/scratch/SILENT/Act3/Processed/Workflow/Solenne/IBVL_pipeline/manifest.txt \
-	--output-prefix ${run}
+        gatk --java-options "-Xmx4G" \
+	IndexFeatureFile \
+        -I ${var_type}_${run}.vcf.gz
         """
 }

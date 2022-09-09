@@ -128,7 +128,7 @@ workflow MT {
 		MT_Step2_participant_data(MT_FilterOut_sites.out.sample_MT_Step2_participant_data.collect(), MT_FilterOut_sites.out.Sample_list.collect(), assembly, batch, run)
 		MT_Step3_metadata(MT_Step3_metadata_sample.out.collect(), assembly, batch, run)
 		Hail_variant_MT_QC(MT_Step1_input_tsv.out, MT_Step2_participant_data.out.MT_Step2_participant_data_tsv, MT_Step2_participant_data.out.participants_to_subset_txt, MT_Step3_metadata.out, assembly, batch, run, pon_predictions_table, artifact_prone_sites_bed, GRCh38_MT_local_fasta, GRCh38_MT_local_fai, mitotip_predictions_table)
-                annotation_table_merged(Hail_variant_MT_QC.out.vcf, Hail_variant_MT_QC.out.vcf_index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly_MT, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chrM, MT, reference, dir_plugin)
+                annotation_table_merged(Hail_variant_MT_QC.out.Hail_MT_frequ_only, Hail_variant_MT_QC.out.vcf_index, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly_MT, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chrM, MT, reference, dir_plugin)
 
 //                MT_data_organization(gnomad_MT_frequ, Hail_variant_MT_QC.out.Hail_reduced_annotations, annotation_table_merged.out.annot_table_merged_R, assembly, run, severity_table)
 }

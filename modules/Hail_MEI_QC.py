@@ -330,33 +330,33 @@ plot_histo(DP_table,
 # In[25]:
 
 
-plot_histo(AN_table,
-           mt.variant_qc.AN,
-           'Allele number per variant')
+#plot_histo(AN_table,
+#           mt.variant_qc.AN,
+#           'Allele number per variant')
 
 
 # In[26]:
 
 
-plot_histo(call_rate_table,
-           mt.variant_qc.call_rate,
-           'Call rate per variant')
+#plot_histo(call_rate_table,
+#           mt.variant_qc.call_rate,
+#           'Call rate per variant')
 
 
 # In[27]:
 
 
-plot_histo(n_called_table,
-           mt.variant_qc.n_called,
-           'Number of samples with a called genotype per variant')
+#plot_histo(n_called_table,
+#           mt.variant_qc.n_called,
+#           'Number of samples with a called genotype per variant')
 
 
 # In[28]:
 
 
-plot_histo(n_not_called_table,
-           mt.variant_qc.n_not_called,
-           'Number of samples with a missing genotype per variant')
+#plot_histo(n_not_called_table,
+#           mt.variant_qc.n_not_called,
+#           'Number of samples with a missing genotype per variant')
 
 
 # In[29]:

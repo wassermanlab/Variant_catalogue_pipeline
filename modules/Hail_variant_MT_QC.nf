@@ -15,7 +15,7 @@ process Hail_variant_MT_QC {
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/MT/", mode: 'copy', pattern : 'MT_stats.txt'
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MT/", mode: 'copy', pattern : 'MT.vcf.bgz*'
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : '*MT_filtered_with_geno*'
-        publishDir "$params.outdir_pop/${assembly}/${run}/MT/Vcf_pre_annotation/", mode: 'copy', pattern : 'MT_filtered_frequ_only*'
+        publishDir "$params.outdir_pop/${assembly}/${run}/MT/Vcf_pre_annotation/", mode: 'copy', pattern : 'MT_filtered_frequ_only.vcf'
 
 
 	input :
@@ -35,7 +35,7 @@ process Hail_variant_MT_QC {
 	output :
 	path 'MT_post_hail_combined_sites_only.vcf.bgz', emit : vcf
 	path 'MT_post_hail_combined_sites_only.vcf.bgz.tbi', emit : vcf_index
-//	path 'MT_Step3_output_dir/reduced_annotations.txt', emit : Hail_reduced_annotations
+	path 'MT_filtered_frequ_only.vcf', emit : Hail_MT_frequ_only
 	path 'sample_annotations_MT.txt', emit : sample_annotations
 	path 'MT_stats_pass.txt', emit : stats_pass
 	path 'MT_stats.txt', emit : stats

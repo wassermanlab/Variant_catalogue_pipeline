@@ -1692,13 +1692,14 @@ def export_simplified_variants(input_ht: hl.Table, output_dir: str) -> None:
     """
     reduced_ht = (
         input_ht.key_by(
-            chromosome=input_ht.locus.contig,
-            position=input_ht.locus.position,
-            ref=input_ht.alleles[0],
-            alt=input_ht.alleles[1],
+            CHROM=input_ht.locus.contig,
+            POS=input_ht.locus.position,
+            ID=input_ht.locus.position,
+            REF=input_ht.alleles[0],
+            ALT=input_ht.alleles[1],
         )
         .select("filters", "AC_hom", "AC_het", "AF_hom", "AF_het", "AN", "max_hl", "hl_hist")
-        .rename({"max_hl": "max_observed_heteroplasmy", "hl_hist":"heteroplasmy_histogram"})
+        .rename({"CHROM":"#CHROM", "max_hl": "max_observed_heteroplasmy", "hl_hist":"heteroplasmy_histogram"})
     )
     reduced_ht = reduced_ht.annotate(
         filters=hl.if_else(
@@ -1709,8 +1710,7 @@ def export_simplified_variants(input_ht: hl.Table, output_dir: str) -> None:
     )
 
     reduced_ht.export(f"{output_dir}/reduced_annotations.txt")
-
-
+    
 # In[34]:
 
 
@@ -2714,7 +2714,7 @@ os.replace('MT_Step2_output/MT_Step2_output.vcf.bgz','MT.vcf.bgz')
 os.replace('MT_Step2_output/MT_Step2_output.vcf.bgz.tbi','MT.vcf.bgz.tbi')
 os.replace('MT_Step3_output_dir/sample_vcf.vcf.bgz','MT_filtered_with_geno.vcf.bgz')
 os.replace('MT_Step3_output_dir/sample_vcf.vcf.bgz.tbi','MT_filtered_with_geno.vcf.bgz.tbi')
-os.replace('MT_Step3_output_dir/reduced_annotations.txt','MT_filtered_frequ_only.txt')
+os.replace('MT_Step3_output_dir/reduced_annotations.txt','MT_filtered_frequ_only.vcf')
 
 os.replace('MT_Step3_output_dir/combined_sites_only.vcf.bgz','MT_post_hail_combined_sites_only.vcf.bgz')
 os.replace('MT_Step3_output_dir/combined_sites_only.vcf.bgz.tbi','MT_post_hail_combined_sites_only.vcf.bgz.tbi')

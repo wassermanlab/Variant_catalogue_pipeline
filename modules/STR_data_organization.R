@@ -7,6 +7,8 @@
 #library("ggplot2")
 # install.packages('vcfR', repos='https://cloud.r-project.org/')
 # install.packages('jsonlite', repos='https://cloud.r-project.org/')
+#install.packages("data.table", repos="https://cloud.r-project.org/")
+#library("data.table")
 library(jsonlite)
 library(vcfR)
 library(dplyr)
@@ -72,14 +74,19 @@ for (i in 1: nrow(STR_vcf)){
 	#Allele size distrribution
 	#For the graph, in the format : (allele size 1: n1, allele size 2 : n2, etc)
         CN_table_i = CN_table[c(i),]
+        ref_geno=paste0(n_STR_ref, "/", n_STR_ref)
+
 	#Create data frame with the length
 	CN_table_i = as.data.frame(CN_table_i)
 
 	#Genotype table : For each individual, allele 1 and allele 2
 	table_genotype = cbind(CN_table_i, CN_table_i)
 	colnames(table_genotype) = c("allele1", "allele2")
-	table_genotype$allele1 = gsub("/.*$", "", table_genotype$allele1)
-	table_genotype$allele2 = gsub("*./", "", table_genotype$allele2)
+	table_genotype$allele1 <- table_genotype$allele1 %>% replace_na(ref_geno)
+	table_genotype$allele2 <- table_genotype$allele2 %>% replace_na(ref_geno)
+
+	table_genotype$allele1 = gsub("/.*", "", table_genotype$allele1)
+	table_genotype$allele2 = gsub(".*/", "", table_genotype$allele2)
 	
 	#Allele frequency distribution
 	data_frame_A1=as.data.frame(table_genotype$allele1)
@@ -116,7 +123,12 @@ for (i in 1: nrow(STR_vcf)){
 	variants_table=unique(rbind.data.frame(variants_table, variants_table_i))       
 
 	#sv_consequences
-	sv_consequences_i=cbind(gene, variant, "NA")
+	show("gene")
+	show(gene)
+	show(length(gene))
+	if (length(gene) > 0) {
+		sv_consequences_i=cbind(gene, variant, "NA")
+	}
 	table_sv_consequence=unique(rbind.data.frame(table_sv_consequence, sv_consequences_i[1,]))
 
 	#gene table

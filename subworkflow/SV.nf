@@ -25,7 +25,7 @@ include { annotation_table_merged as SV_annotation; annotation_table_merged as M
 
 include { SV_data_organization } from "./../modules/SV_data_organization"
 include { MEI_data_organization } from "./../modules/MEI_data_organization"
-//include { STR_data_organization } from "./../modules/STR_data_organization"
+include { STR_data_organization } from "./../modules/STR_data_organization"
 
 include { Hail_MEI_QC } from "./../modules/Hail_MEI_QC"
 include { Hail_STR } from "./../modules/Hail_STR"
@@ -98,7 +98,7 @@ workflow SV {
 		STR_vcfs_txt(expansion_hunter.out.vcf.collect(), assembly, batch, run, STR)
   		STR_merge_samples(STR_vcfs_txt.out, assembly, batch, run, STR)
 		Hail_STR (STR_merge_samples.out.vcf, sample_sex_file, assembly, batch, run) 
-//              STR_data_organization(STR_merge_samples.out.vcf, variant_catalog, assembly, run, STR)
+                STR_data_organization(STR_merge_samples.out.vcf, variant_catalog, assembly, run, STR)
 
 
 

@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=4G
 #SBATCH --time=200:30:00
-#SBATCH -p silent_q
+#SBATCH -p defq
 
 ## Output and Stderr
 #SBATCH --output=%x-%j.out

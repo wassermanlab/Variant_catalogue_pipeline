@@ -1,9 +1,10 @@
+args <- commandArgs(trailingOnly = TRUE)
+
 .libPaths(args[3])
 library(dplyr)
 library(stringr)
 library(tidyr)
 
-args <- commandArgs(trailingOnly = TRUE)
 
 mosdepth = read.table(args[1], header=T)
 mt_mean_coverage = mosdepth$mean[mosdepth$chrom=='MT']

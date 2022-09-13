@@ -15,7 +15,7 @@ process MT_haplocheck {
 	val assembly
 	val batch
 	val run
-	path haplocheck_path
+	val haplocheck_path
 
 	output :
 	path '*_haplocheck', emit : file
@@ -26,7 +26,7 @@ process MT_haplocheck {
 	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
 		touch ${MT_FilterOut_sites_vcf.simpleName}_haplocheck
 	else
-		$haplocheck_path ./haplocheck --out ${MT_FilterOut_sites_vcf.simpleName}_haplocheck ${MT_FilterOut_sites_vcf}
+		$haplocheck_path --out ${MT_FilterOut_sites_vcf.simpleName}_haplocheck ${MT_FilterOut_sites_vcf}
 	fi
 	"""
 }

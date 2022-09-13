@@ -5,6 +5,7 @@
 
 #library(ggplot2)
 #library("ggplot2")
+#install.packages('tidyr', repos='https://cloud.r-project.org/')
 # install.packages('vcfR', repos='https://cloud.r-project.org/')
 library(vcfR)
 library(dplyr)
@@ -41,7 +42,7 @@ args <- commandArgs(trailingOnly = TRUE)
 #Define assembly from the args
 #assembly="GRCh37"
 assembly=(args[1])
-var_type=(args[6])
+var_type=(args[5])
 
 ####Organize different tables
 ##Read gnomAD SNV vcf
@@ -55,12 +56,12 @@ var_type=(args[6])
 ##MT vcf from the database (IBVL)
 #Read the vcf file with MT calls
 #SNV_vcf=read.vcfR("/mnt/scratch/SILENT/Act3/Processed/Individual/GRCh37/Batch_DryRun/Run_20211220/DeepVariant/DeepVariant_GLnexus_Run_20211220.vcf.gz")
-SV_vcf=read.vcfR(args[2])
+frequ_file=read.vcfR(args[2])
 #Ectract the GT
-GT_table=extract.gt(SV_vcf,element = "GT")
-colnames(GT_table)= sub("_.*","",colnames(GT_table))
-GT_table_ID=cbind(SV_vcf@fix[,c("ID")], GT_table)
-chromosome=SV_vcf@fix[1,c("CHROM")]
+#GT_table=extract.gt(SV_vcf,element = "GT")
+#colnames(GT_table)= sub("_.*","",colnames(GT_table))
+#GT_table_ID=cbind(SV_vcf@fix[,c("ID")], GT_table)
+#chromosome=frequ_file@fix[1,c("CHROM")]
 
 ##SNV annotation table (IBVL)
 ### !!!! Need to remove the hashtag in front of the header line outside of R
@@ -68,12 +69,14 @@ chromosome=SV_vcf@fix[1,c("CHROM")]
 SV_raw_annotaton_file=read.table(args[3], fill=TRUE, header=TRUE)
 #SNV_raw_annotaton_file=read.table("work/47/1c2e7dd036d2ea5fe303cfeeeb8e3f/DeepVariant_GLnexus_Run_20211220_annotation_table_nohash.tsv", fill=TRUE, header=TRUE)
 
+chromosome = unlist(strsplit(SV_raw_annotaton_file$Uploaded_variation[1], "_"))[1]
+
 #sex_table=read.table("sample_sex.tsv", header=TRUE)
-sex_table = read.table(args[4], header=TRUE)
+#sex_table = read.table(args[4], header=TRUE)
 
 #for (i in 1:nrow(SNV_vcf@fix)) {
 ##Loop to split the number of variants
-slots_var=c(seq(0, nrow(SV_vcf@fix), by=5000), nrow(SV_vcf@fix))
+slots_var=c(seq(0, nrow(SV_raw_annotaton_file), by=5000), nrow(SV_raw_annotaton_file))
   
 for (j in 1:(length(slots_var)-1)){
     	#show(nrow(SNV_vcf@fix))
@@ -89,47 +92,88 @@ for (j in 1:(length(slots_var)-1)){
 	table_sv_consequence=data.frame()
 
 	for (i in min_i: max_i){
-		#show(i)
-
 		#If the SV length is less than 50bp, it should be called and included within the SNV / small indel pipeline
+		#The SV should have been removed in the hail step
+
+                SV_annot_i = SV_raw_annotaton_file[i,]
+
+                variant = SV_annot_i$Uploaded_variation
+
+
+                if (length(nrow(frequ_file@fix[frequ_file@fix[,c("ID")]==variant,])) == 1) {
+                        frequ_file_i=frequ_file@fix[frequ_file@fix[,c("ID")]==variant,][1,]
+                } else {
+                        frequ_file_i=frequ_file@fix[frequ_file@fix[,c("ID")]==variant,]
+                }
 
 		#length
-                #Info available in the INFO part of the vcf
-                length = extract.info(SV_vcf, element = "SVLEN")[i]
+                info_i = unlist(strsplit(frequ_file_i[c("INFO")], "=|;|,"))
+		
+		#Info available in the INFO part of the vcf
+                col_length = which(grepl("SVLEN", info_i, fixed=TRUE))+1
+		length = info_i[col_length]
+		#extract.info(SV_vcf, element = "SVLEN")[i]
                 #Length available 
 		#The average length can be a decimal number, so ounded to the nearest integer
-		AVG_LEN  = round(as.numeric(extract.info(SV_vcf, element = "AVG_LEN")[i]), digit = 0)
+		col_AVG_LEN = which(grepl("AVG_LEN", info_i, fixed=TRUE))+1
+		AVG_LEN  = round(as.numeric(info_i[col_AVG_LEN]), digit = 0)
 
-		if (length < 50 & AVG_LEN < 50) {
+		if (abs(AVG_LEN) < 50) {
 			next
 		} else {
-			variant=SV_vcf@fix[i,c("ID")]
+			#variant=SV_vcf@fix[i,c("ID")]
 			#To remove the multiallelic info ffrom the ID	
 			#variant = gsub(";.*$", "", variant)
-			GT_table_i = GT_table[c(i),]
-			SV_annot_i = SV_raw_annotaton_file[SV_raw_annotaton_file$Uploaded_variation==variant,]
+			#GT_table_i = GT_table[c(i),]
+			#SV_annot_i = SV_raw_annotaton_file[SV_raw_annotaton_file$Uploaded_variation==variant,]
   
 			#Define variables specific to variant i
-			chr=SV_vcf@fix[i,c("CHROM")]
-  			pos=as.numeric(SV_vcf@fix[i,c("POS")])
-  			ref=SV_vcf@fix[i,c("REF")]
-  			alt=SV_vcf@fix[i,c("ALT")]
+	                chr = frequ_file_i[c("CHROM")]
+                	pos = as.numeric(frequ_file_i[c("POS")])
+                	ref = frequ_file_i[c("REF")]
+                	alt = frequ_file_i[c("ALT")]
 
   			#Variant quality
-  			quality = SV_vcf@fix[i,c("QUAL")]
- 
-                	#Type - VARIANT_CLASS (from annotation)
+			quality = frequ_file_i[c("QUAL")]
+
+			col_af = which(grepl("AF_tot_XX_XY", info_i, fixed=TRUE))
+			col_an = which(grepl("AN_tot_XX_XY", info_i, fixed=TRUE))
+			col_ac =which(grepl("AC_tot_XX_XY", info_i, fixed=TRUE))
+			col_hom = which(grepl("hom_tot_XX_XY", info_i, fixed=TRUE))
+
+			af_tot = info_i[col_af+1]
+                        ac_tot = info_i[col_ac+1]
+                        an_tot = info_i[col_an+1]
+                        hom_tot = info_i[col_hom+1]
+
+                        af_xx = info_i[col_af+2]
+                        ac_xx = info_i[col_ac+2]
+                        an_xx = info_i[col_an+2]
+                        hom_xx = info_i[col_hom+2]
+
+                        af_xy = info_i[col_af+3]
+                        ac_xy = info_i[col_ac+3]
+                        an_xy = info_i[col_an+3]
+                        hom_xy = info_i[col_hom+3]
+                	
+			#Type - VARIANT_CLASS (from annotation)
                 	type=SV_annot_i$VARIANT_CLASS
                 	#Type from vcf
-                	type_vcf=extract.info(SV_vcf, element = "SVTYPE")[i]
-
+			col_type = which(grepl("SVTYPE", info_i, fixed=TRUE))
+                	type_vcf = info_i[col_type+1]
+				
                 	#Other info available
-			AVG_START = round(as.numeric(extract.info(SV_vcf, element = "AVG_START")[i]), digit = 0)
-			AVG_END = round(as.numeric(extract.info(SV_vcf, element = "AVG_END")[i]), digit = 0)
+			col_AVG_START = which(grepl("AVG_START", info_i, fixed=TRUE))
+			col_AVG_END = which(grepl("AVG_END", info_i, fixed=TRUE))
+			AVG_START = round(as.numeric(info_i[col_AVG_START+1]), digit = 0)
+			AVG_END = round(as.numeric(info_i[col_AVG_END+1]), digit = 0)
+
 			#This method indicate Jasmine, which is not the case
-			SVMETHOD = extract.info(SV_vcf, element = "SVMETHOD")[i]
+			col_SVMETHOD = which(grepl("SVMETHOD", info_i, fixed=TRUE))
+			SVMETHOD = info_i[col_SVMETHOD+1]
 			#This is to extract the actual method
-			IDLIST = extract.info(SV_vcf, element = "IDLIST")[i]
+			col_IDLIST = which(grepl("IDLIST", info_i, fixed=TRUE))
+			IDLIST = info_i[col_IDLIST+1]
 			if (grepl("Manta", IDLIST, fixed=TRUE) ){
 				algorithm = "Manta"
 			} else {
@@ -140,44 +184,44 @@ for (j in 1:(length(slots_var)-1)){
 	
   			# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY
   			# AN_tot : number of 0/0, 0/1 and 1/1 genotypes (avoid counting the ./.)
-  			an_tot = 2*(sum(GT_table_i == "0/0", na.rm=T) + sum(GT_table_i == "0/1", na.rm=T) + sum(GT_table_i == "1/1", na.rm=T)) 
+  			#an_tot = 2*(sum(GT_table_i == "0/0", na.rm=T) + sum(GT_table_i == "0/1", na.rm=T) + sum(GT_table_i == "1/1", na.rm=T)) 
   			#AC tot
-  			ac_tot = sum(GT_table_i == "0/1", na.rm=T) + 2*sum(GT_table_i == "1/1", na.rm=T)
+  			#ac_tot = sum(GT_table_i == "0/1", na.rm=T) + 2*sum(GT_table_i == "1/1", na.rm=T)
   			#AF tot = AC/AN
-  			af_tot = ac_tot/an_tot
+  			#af_tot = ac_tot/an_tot
   			#Number of individus homozygotes for the alternative allele (1/1)
-  			hom_tot = sum(GT_table_i == "1/1", na.rm=T) 
+  			#hom_tot = sum(GT_table_i == "1/1", na.rm=T) 
 
   			#For XX individuals
   			#For now, make fake false with individuals and sex : 
   			#sex_table =  read.table("sample_sex.tsv", header=TRUE)
   			#Subset the GT_Table for XX individuals
-  			XX_Samples = sex_table[sex_table$Sex=="XX",1]
-  			XX_GT_table_i = GT_table_i[XX_Samples]
+  			#XX_Samples = sex_table[sex_table$Sex=="XX",1]
+  			#XX_GT_table_i = GT_table_i[XX_Samples]
   			# AN_XX
-  			an_xx = 2*(sum(XX_GT_table_i == "0/0", na.rm=T) + sum(XX_GT_table_i == "0/1", na.rm=T) + sum(XX_GT_table_i == "1/1", na.rm=T)) 
+  			#an_xx = 2*(sum(XX_GT_table_i == "0/0", na.rm=T) + sum(XX_GT_table_i == "0/1", na.rm=T) + sum(XX_GT_table_i == "1/1", na.rm=T)) 
   			#AC XX
-  			ac_xx = sum(XX_GT_table_i == "0/1", na.rm=T) + 2*sum(XX_GT_table_i == "1/1", na.rm=T)
+  			#ac_xx = sum(XX_GT_table_i == "0/1", na.rm=T) + 2*sum(XX_GT_table_i == "1/1", na.rm=T)
   			#AF X = AC/AN
-  			af_xx = ac_xx/an_xx
+  			#af_xx = ac_xx/an_xx
   			#Number of individus homozygotes for the alternative allele (1/1)
-  			hom_xx = sum(XX_GT_table_i == "1/1", na.rm=T) 
+  			#hom_xx = sum(XX_GT_table_i == "1/1", na.rm=T) 
   
  	 		#For XY individuals
   			#Subset the GT_Table for XY individuals
-  			XY_Samples = sex_table[sex_table$Sex=="XY",1]
-  			XY_GT_table_i = GT_table_i[XY_Samples]
+  			#XY_Samples = sex_table[sex_table$Sex=="XY",1]
+  			#XY_GT_table_i = GT_table_i[XY_Samples]
   			# AN_XY
-  			an_xy = 2*(sum(XY_GT_table_i == "0/0", na.rm=T) + sum(XY_GT_table_i == "0/1", na.rm=T) + sum(XY_GT_table_i == "1/1", na.rm=T)) 
+  			#an_xy = 2*(sum(XY_GT_table_i == "0/0", na.rm=T) + sum(XY_GT_table_i == "0/1", na.rm=T) + sum(XY_GT_table_i == "1/1", na.rm=T)) 
   			#AC XY
-  			ac_xy = sum(XY_GT_table_i == "0/1", na.rm=T) + 2*sum(XY_GT_table_i == "1/1", na.rm=T)
+  			#ac_xy = sum(XY_GT_table_i == "0/1", na.rm=T) + 2*sum(XY_GT_table_i == "1/1", na.rm=T)
   			#AF X = AC/AN
-  			af_xy = ac_xy/an_xy
+  			#af_xy = ac_xy/an_xy
   			#Number of individus homozygotes for the alternative allele (1/1)
-  			hom_xy = sum(XY_GT_table_i == "1/1", na.rm=T) 
+  			#hom_xy = sum(XY_GT_table_i == "1/1", na.rm=T) 
 
 			#Some SV are too long and not annotated by the annot workflowm, need to define consequence and gene to avoid error
-			if (length(SV_annot_i$Consequence)>1) { 
+			if (length(SV_annot_i$Consequence)>0) { 
 				#Consequence
 				consequence=SV_annot_i$Consequence
 
@@ -188,7 +232,6 @@ for (j in 1:(length(slots_var)-1)){
 				gene = "NotAnnotated"
 			}
 
-	
   			# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
   			# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
   			# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237

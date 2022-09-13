@@ -69,11 +69,14 @@ gnomad_file=cbind(ID_db_gnomad, gnomad_file)
 #AF_table_ID=cbind(ID_db_IBVL, AF_table)
 
 #Can take Hail table with alrady calculated info rather than vcf with individual genotype info
-Hail_MT_output=read.table(args[3], header=TRUE)
+#remove # at the beginning of the first line
+frequ_file_temp = sub("#", "", readLines(args[3]))
+show(frequ_file_temp)
+frequ_file=read.table(text=frequ_file_temp, header=TRUE)
 #Create the variant ID (chr-Pos_ref_alt)
-ID_table_Hail=as.data.frame(Hail_MT_output[,c("chromosome", "position", "ref", "alt")])
-ID_db_Hail=paste(ID_table_Hail$chromosome, ID_table_Hail$position, ID_table_Hail$ref, ID_table_Hail$alt, sep="_")
-Hail_MT_output_ID=cbind(ID_db_Hail, Hail_MT_output)
+#ID_table_Hail=as.data.frame(Hail_MT_output[,c("chromosome", "position", "ref", "alt")])
+#ID_db_Hail=paste(ID_table_Hail$chromosome, ID_table_Hail$position, ID_table_Hail$ref, ID_table_Hail$alt, sep="_")
+#Hail_MT_output_ID=cbind(ID_db_Hail, Hail_MT_output)
 
 
 ##MT annotation table (IBVL)
@@ -93,7 +96,7 @@ table_variant_transcript=data.frame()
 table_variant_consequence=data.frame()
 table_variant_annotation=data.frame()
 
-for (i in 1:nrow(Hail_MT_output_ID)) {
+for (i in 1:nrow(frequ_file)) {
 	#show(i)
   	#variant=AF_table_ID[c(i),1]
   	#AF_table_i = AF_table[c(i),]
@@ -104,32 +107,45 @@ for (i in 1:nrow(Hail_MT_output_ID)) {
   	#ref=ID_table_IBVL_i$REF
   	#alt=ID_table_IBVL_i$ALT
   	
-	Hail_MT_output_ID_i  = Hail_MT_output_ID[c(i),]
-	variant = Hail_MT_output_ID_i$ID_db_Hail
-	chrom = Hail_MT_output_ID_i$chromosome
-	pos = Hail_MT_output_ID_i$position
-	ref = Hail_MT_output_ID_i$ref
-	alt = Hail_MT_output_ID_i$alt
-	
+	frequ_file_i=frequ_file[i,]
+	show("frequ_file_i")
+	show(frequ_file_i)
+
+	variant = frequ_file_i$ID
+
+	show("variant")
+	show(variant)
+
+	chrom = frequ_file_i$CHROM
+	pos = frequ_file_i$POS
+	ref = frequ_file_i$REF
+	alt = frequ_file_i$ALT
+
+	variant = paste(chrom, pos, ref, alt, sep = "_")
+
   	#Several annotation per variant, need to subset the annotation table to extract the annotation corresponding to variant i
   	#For indel, need to remove the letter common between the ref and alt and add 1 to the pos to match the vep output
   	#In gnomAD, indels are identified as M-105-CGGAGCA-C
-  	if (nchar(as.character(ref))==1 & nchar(as.character(alt))==1) {
-    		MT_raw_annotaton_i= MT_raw_annotaton_file[(MT_raw_annotaton_file$Uploaded_variation == variant),]
-  	} else if (nchar(as.character(ref))>1 & nchar(as.character(alt))==1){
+  	if (nchar(as.character(ref))>1 & nchar(as.character(alt))==1){
     		modified_variant_POS=pos+1
     		modified_variant_REF=substring(ref, 2)
     		modified_variant_ALT="-"
-    		modified_ID_variant_i=paste("chrM", modified_variant_POS, modified_variant_REF, modified_variant_ALT, sep="_")
-    		MT_raw_annotaton_i= MT_raw_annotaton_file[(MT_raw_annotaton_file$Uploaded_variation == modified_ID_variant_i),]
-  	} else if (nchar(as.character(ref))==1 & nchar(as.character(alt))>1) {
+    		variant=paste("chrM", modified_variant_POS, modified_variant_REF, modified_variant_ALT, sep="_")
+    	} else if (nchar(as.character(ref))==1 & nchar(as.character(alt))>1) {
     		modified_variant_POS=pos+1
     		modified_variant_REF="-"
     		modified_variant_ALT=substring(alt, 2)
-    		modified_ID_variant_i=paste("chrM", modified_variant_POS, modified_variant_REF, modified_variant_ALT, sep="_")
-    		MT_raw_annotaton_i= MT_raw_annotaton_file[(MT_raw_annotaton_file$Uploaded_variation == modified_ID_variant_i),]
-  	} 
+    		variant=paste("chrM", modified_variant_POS, modified_variant_REF, modified_variant_ALT, sep="_")
+    	} 
 	
+
+	MT_raw_annotaton_i= MT_raw_annotaton_file[(MT_raw_annotaton_file$Uploaded_variation == pos),]
+
+	show("MT_raw_annotaton_i")
+        show(MT_raw_annotaton_i)
+
+
+
 	#gnomad filters : Given these large numbers of false positive calls for variants with V AF < 0.10, for the initial release we chose to exclude samples with mtCN < 50 and to report only variants with V AF 0.10 as we have greater confidence that such variants represent genuine heteroplasmies and not NUMT-derived false positives
   	# AN : number of cells with value
   	#an = length(AF_table_i[AF_table_i>=0])*2
@@ -142,14 +158,14 @@ for (i in 1:nrow(Hail_MT_output_ID)) {
   	#AF het
   	#af_het = ac_het/an
   	
-	an = Hail_MT_output_ID_i$AN
-	ac_hom = Hail_MT_output_ID_i$AC_hom
-	af_hom = Hail_MT_output_ID_i$AF_hom
-	ac_het = Hail_MT_output_ID_i$AC_het
-	af_het = Hail_MT_output_ID_i$AF_het
-	max_hl = Hail_MT_output_ID_i$max_observed_heteroplasmy
+	an = frequ_file_i$AN
+	ac_hom = frequ_file_i$AC_hom
+	af_hom = frequ_file_i$AF_hom
+	ac_het = frequ_file_i$AC_het
+	af_het = frequ_file_i$AF_het
+	max_hl = frequ_file_i$max_observed_heteroplasmy
 
-	hl_hist_temp = gsub("[\\[\\]]", "", regmatches(Hail_MT_output_ID_i$heteroplasmy_histogram, gregexpr("\\[.*?\\]", Hail_MT_output_ID_i$heteroplasmy_histogram))[[1]])[2]
+	hl_hist_temp = gsub("[\\[\\]]", "", regmatches(frequ_file_i$heteroplasmy_histogram, gregexpr("\\[.*?\\]", frequ_file_i$heteroplasmy_histogram))[[1]])[2]
 	hl_hist  = substring(hl_hist_temp, 2, nchar(hl_hist_temp)-1)
 
 	if (ac_hom==0 & ac_het ==0) {

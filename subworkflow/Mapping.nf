@@ -41,13 +41,13 @@ workflow Mapping {
 		bwa_index(reference)
 		align_sort_output_bam(reference, bwa_index.out, read_pairs_ch, assembly, batch, run)
 
-                q1              = fastqc(read_pairs_ch, outdir_ind, assembly, batch, run)
+//                q1              = fastqc(read_pairs_ch, outdir_ind, assembly, batch, run)
                 q2              = Mosdepth(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, assembly, batch, run)
-                q3              = Picard_CollectWgsMetrics(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, reference, reference_index, assembly, batch, run)
-                q4              = Picard_CollectAlignmentSummaryMetrics(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, assembly, batch, run)
-                q5              = Picard_QualityScoreDistribution(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, assembly, batch, run)
-                quality_metrics = q1.concat(q2.all_files,q3,q4,q5).collect()
-                multiqc_indiv(quality_metrics, assembly, batch, run)
+//                q3              = Picard_CollectWgsMetrics(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, reference, reference_index, assembly, batch, run)
+//                q4              = Picard_CollectAlignmentSummaryMetrics(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, assembly, batch, run)
+ //               q5              = Picard_QualityScoreDistribution(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, assembly, batch, run)
+//                quality_metrics = q1.concat(q2.all_files,q3,q4,q5).collect()
+//                multiqc_indiv(quality_metrics, assembly, batch, run)
 
 	emit :
 		reference_index 	= bwa_index.out.collect()

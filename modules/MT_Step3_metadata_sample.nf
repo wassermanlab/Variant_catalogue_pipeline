@@ -6,7 +6,7 @@ process MT_Step3_metadata_sample {
 	val assembly
 	val batch
 	val run
-	path path_R_libraries
+	val path_R_libraries
 	
 	output :
 	path '*', emit : MT_Step3_metadata_sample

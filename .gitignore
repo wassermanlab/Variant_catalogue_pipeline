@@ -33,5 +33,8 @@ hail*
 ######################### 
 miniconda3/*
 
+# nextflow deployment #
+#######################
+Nextflow/*
 
 

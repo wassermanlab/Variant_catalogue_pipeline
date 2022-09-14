@@ -3,7 +3,8 @@
 ########################################################################
 ### FILE        install.sh
 ###
-### DESCRIPTION This is the install.sh script for the project.
+### DESCRIPTION This is the install.sh script for the CAFE pipeline project.
+###		It will use singularity images, and conda environments, for tooling
 ###             We use conda in order to install the application.
 ###
 ### Phillip Richmond
@@ -40,6 +41,30 @@ echo "Databases will be installed in: $DB_DIR";
 
 
 
+############
+# nextflow #
+############
+
+##########################################
+# DESC This function deploys nextflow executable
+# ARGS This function doesnt require any arguments
+# RSLT Downloads nextflow executable from internet and changes to executable permission
+##########################################
+
+function buildNextflow()
+{
+	Dir=$PWD
+	mkdir -p $Dir/Nextflow
+	cd $Dir/Nextflow
+
+	curl -s https://get.nextflow.io | bash
+	chmod ugo=rwx ./nextflow
+	./nextflow --help
+}
+buildNextflow
+
+
+
 ###################
 # buildMiniConda3 #
 ###################
@@ -64,7 +89,7 @@ function buildMiniConda3()
 	conda --help
 	rm Miniconda3-latest-Linux-x86_64.sh
 }
-buildMiniConda3
+#buildMiniConda3
 
 
 ##################
@@ -95,7 +120,7 @@ function buildCAFE()
 	cd $Dir
 	conda activate CAFE_pipeline
 }
-buildCAFE
+#buildCAFE
 
 
 

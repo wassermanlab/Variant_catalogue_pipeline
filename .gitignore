@@ -22,3 +22,16 @@ hail*
 
 *.error
 *.out
+
+
+# Singularity image files #
+###########################
+*.sif
+
+
+# miniconda3 deployment #
+######################### 
+miniconda3/*
+
+
+

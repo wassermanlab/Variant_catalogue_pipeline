@@ -1,4 +1,5 @@
-Software	Version	Download	Documentation	Installation method
+|Software	| Version	| Download	Documentation	| Installation method
+| ------------- | ------------- |------------- | ------------- |
 BCFtools	1.9	https://depot.galaxyproject.org/singularity/bcftools%3A1.9--ha228f0b_4	https://samtools.github.io/bcftools/bcftools.html	Singularity
 BWA	0.7.17-r1188	https://anaconda.org/bioconda/bwa	https://github.com/lh3/bwa	Conda
 DeepVariant	1.2.0	docker://google/deepvariant:1.2.0	https://github.com/google/deepvariant	Singularity

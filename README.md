@@ -10,7 +10,8 @@ CAFE pipeline is built using [Nextflow](https://www.nextflow.io), a workflow too
 CAFE pipeline includes detection of Single Nucleotide Variants (SNV), small insertions and deletions (indels), Mitochondrial variants, Structural Variants (SV), Mobile Element Insertions (MEI), and Short Tandem Repeats (STR). The output variant catalogue can be generated for GRCh37 and/or GRCh38 human reference genomes.
 
 <p align="center">
-    <img title="CAFE Workflow" src="https://user-images.githubusercontent.com/54953390/188222156-18281f95-e40b-4ede-adc9-8b6041bc1e3d.png" width=50%>
+    <img title="CAFE Workflow" src=![CAFE_simple_Github](https://user-images.githubusercontent.com/54953390/190030122-22e38401-4131-46b9-9af5-dbbe45f50650.png)
+"" width=50%>
 </p>
 <p align="center">
 Figure : Overview of the CAFE pipeline

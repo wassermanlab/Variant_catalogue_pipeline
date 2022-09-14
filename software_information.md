@@ -1,6 +1,6 @@
 
-|Software	| Version	| Download	| Documentation	| Installation method|
-| ------------- | ------------- |------------- | ------------- |
+|Software	| Version	| Download	| Documentation	| Installation method |
+| ------------- | ------------- |------------- | ------------- | ------------- |
 |	BCFtools	|	1.9	|	https://depot.galaxyproject.org/singularity/bcftools%3A1.9--ha228f0b_4	|	https://samtools.github.io/bcftools/bcftools.html	|	Singularity	|
 |	BWA	|	0.7.17-r1188	|	https://anaconda.org/bioconda/bwa	|	https://github.com/lh3/bwa	|	Conda	|
 |	DeepVariant	|	1.2.0	|	docker://google/deepvariant:1.2.0	|	https://github.com/google/deepvariant	|	Singularity	|
@@ -21,4 +21,4 @@
 |	samtools	|	1.1	|	https://anaconda.org/bioconda/samtools	|	http://www.htslib.org	|	Conda	|
 |	Smoove	|	0.2.8	|	https://depot.galaxyproject.org/singularity/smoove%3A0.2.8--h9ee0642_0	|	https://github.com/brentp/smoove	|	Singularity	|
 |	vcftools	|	0.1.16	|	git clone https://github.com/vcftools/vcftools.git	|	https://vcftools.github.io/downloads.html	|	Direct	|
-|	VEP	|	92.4	|	https://depot.galaxyproject.org/singularity/ensembl-vep%3A92.4--htslib1.7_0	|	https://uswest.ensembl.org/info/docs/tools/vep/script/index.html	|	Singularity	|![image](https://user-images.githubusercontent.com/54953390/190031299-e776ce4f-98a1-4b98-8adf-f6661812afa4.png)
+|	VEP	|	92.4	|	https://depot.galaxyproject.org/singularity/ensembl-vep%3A92.4--htslib1.7_0	|	https://uswest.ensembl.org/info/docs/tools/vep/script/index.html	|	Singularity	|

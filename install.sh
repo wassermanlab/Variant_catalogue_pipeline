@@ -24,6 +24,8 @@ usage()
     echo "example: $ bash install.sh -d /mnt/common/DATABASES/"
 }
 
+
+# Get directory for install
 while getopts d: flag
 do
     case "${flag}" in
@@ -39,6 +41,10 @@ fi
 
 echo "Databases will be installed in: $DB_DIR";
 
+# Get directory that this pipeline lives in
+CAFE_Pipeline_Dir=$PWD
+
+
 
 
 ############
@@ -53,15 +59,15 @@ echo "Databases will be installed in: $DB_DIR";
 
 function buildNextflow()
 {
-	Dir=$PWD
-	mkdir -p $Dir/Nextflow
-	cd $Dir/Nextflow
+	mkdir -p $CAFE_Pipeline_Dir/Nextflow
+	cd $CAFE_Pipeline_Dir/Nextflow
 
 	curl -s https://get.nextflow.io | bash
 	chmod ugo=rwx ./nextflow
 	./nextflow --help
+	cd $CAFE_Pipeline_Dir
 }
-buildNextflow
+#buildNextflow
 
 
 
@@ -78,15 +84,19 @@ buildNextflow
 # This function fetches and builds miniconda 
 function buildMiniConda3() 
 {
-        Dir=$PWD
-	Miniconda_Install_Dir=$Dir/miniconda3
+	Miniconda_Install_Dir=$CAFE_Pipeline_Dir/miniconda3
 
         wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
         bash Miniconda3-latest-Linux-x86_64.sh -b -p $Miniconda_Install_Dir
 
         source ${Miniconda_Install_Dir}/etc/profile.d/conda.sh
-        cd $Dir
+
+        cd $CAFE_Pipeline_Dir
+	# Check the install
 	conda --help
+	# Install libmamba solver
+	conda install -y conda-libmamba-solver=22.8
+
 	rm Miniconda3-latest-Linux-x86_64.sh
 }
 #buildMiniConda3
@@ -112,16 +122,27 @@ function buildMiniConda3()
 # see the yml for the rest
 function buildCAFE() 
 {
-        Dir=$PWD
-	Miniconda_Install_Dir=$Dir/miniconda3
-
+	Miniconda_Install_Dir=$CAFE_Pipeline_Dir/miniconda3
+	
+	# add conda to path
 	source ${Miniconda_Install_Dir}/etc/profile.d/conda.sh
-	conda env create -f $Dir/CAFE_pipeline_conda.yml 
-	cd $Dir
-	conda activate CAFE_pipeline
-}
-#buildCAFE
 
+	# install CAFE pipeline tools into an env
+	conda env create --experimental-solver=libmamba -f $CAFE_Pipeline_Dir/CAFE_pipeline_conda.yml 
+
+	cd $CAFE_Pipeline_Dir
+	conda activate CAFE_pipeline
+
+	# install hail
+	conda deactivate
+	conda create --experimental-solver=libmamba -n hail -c bioconda -y hail=0.2.61
+	conda activate hail
+
+	
+
+}
+buildCAFE
+exit
 
 
 ###############

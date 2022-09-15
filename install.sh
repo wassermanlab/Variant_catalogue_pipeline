@@ -5,7 +5,6 @@
 ###
 ### DESCRIPTION This is the install.sh script for the CAFE pipeline project.
 ###		It will use singularity images, and conda environments, for tooling
-###             We use conda in order to install the application.
 ###
 ### Phillip Richmond
 ### 2022-09-14
@@ -59,15 +58,21 @@ CAFE_Pipeline_Dir=$PWD
 
 function buildNextflow()
 {
+	# make directory where we'll deploy nextflow
 	mkdir -p $CAFE_Pipeline_Dir/Nextflow
 	cd $CAFE_Pipeline_Dir/Nextflow
-
+	
+	# standard fetch from interweb and run
 	curl -s https://get.nextflow.io | bash
+
+	# change permissions
 	chmod ugo=rwx ./nextflow
+
+	# check
 	./nextflow --help
 	cd $CAFE_Pipeline_Dir
 }
-#buildNextflow
+buildNextflow
 
 
 
@@ -85,21 +90,25 @@ function buildNextflow()
 function buildMiniConda3() 
 {
 	Miniconda_Install_Dir=$CAFE_Pipeline_Dir/miniconda3
-
+	
+	# get installer script
         wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
         bash Miniconda3-latest-Linux-x86_64.sh -b -p $Miniconda_Install_Dir
 
+	# add conda to your path
         source ${Miniconda_Install_Dir}/etc/profile.d/conda.sh
-
         cd $CAFE_Pipeline_Dir
+
 	# Check the install
 	conda --help
+
 	# Install libmamba solver
 	conda install -y conda-libmamba-solver=22.8
 
+	# cleanup
 	rm Miniconda3-latest-Linux-x86_64.sh
 }
-#buildMiniConda3
+buildMiniConda3
 
 
 ##################
@@ -129,7 +138,8 @@ function buildCAFE()
 
 	# install CAFE pipeline tools into an env
 	conda env create --experimental-solver=libmamba -f $CAFE_Pipeline_Dir/CAFE_pipeline_conda.yml 
-
+	
+	# test it
 	cd $CAFE_Pipeline_Dir
 	conda activate CAFE_pipeline
 
@@ -138,11 +148,8 @@ function buildCAFE()
 	conda create --experimental-solver=libmamba -n hail -c bioconda -y hail=0.2.61
 	conda activate hail
 
-	
-
 }
 buildCAFE
-exit
 
 
 ###############
@@ -172,6 +179,8 @@ exit
 function PullImages()
 {
 	Dir=$PWD
+	
+	# make a directory to deploy the images
 	Singularity_Dir=$Dir/singularity
 	mkdir -p $Singularity_Dir
 	cd $Singularity_Dir
@@ -201,7 +210,7 @@ function PullImages()
 	wget -cq -O multiqc-1.9.sif https://depot.galaxyproject.org/singularity/multiqc%3A1.9--py_1
 
 	# R
-	singularity pull docker://bioconductor/bioconductor_docker:RELEASE_3_15
+	singularity pull bioconductor_docker-3.15.sif docker://bioconductor/bioconductor_docker:RELEASE_3_15
 
 	# Smoove
 	wget -cq -O smoove-0.2.8.sif https://depot.galaxyproject.org/singularity/smoove%3A0.2.8--h9ee0642_0
@@ -210,9 +219,12 @@ function PullImages()
 	wget -cq -O vep-92.4.sif https://depot.galaxyproject.org/singularity/ensembl-vep%3A92.4--htslib1.7_0
 	
 }
-#PullImages
+PullImages
 
 
+exit
+
+## Below is in development for fetching databases
 
 function createDatabaseDirectory()
 {

@@ -6,15 +6,16 @@ executor { queueSize = 60 }
 
 env {
 	NXF_EXECUTOR = "slurm"
-	NXF_TEMP = "/mnt/scratch/SILENT/Act3/Processed/Individual/tmp/"
 }
 
-launchDir = "/mnt/scratch/SILENT/Act3/Processed/Workflow/Phil_Test1/CAFE_pipeline/"
+\\ Set these two environmental variables
+launchDir = "/mnt/scratch/SILENT/Act3/Processed/Workflow/Solenne/IBVL_pipeline/"
+CAFE_Pipeline_Dir = "/mnt/common/SILENT/Act3/Richmond_Dev/CAFE_Pipeline/"
 
 params {
-	run             				= "Run_20220913"
-	batch           				= "Test1"
-        reads                           		= "/mnt/scratch/SILENT/Act3/GSC_data/Phil_run_1/Test1/*.{R1,R2}.fastq.gz"
+	run             				= "Run_20220605"
+	batch           				= "Batch_DryRun_2"
+        reads                           		= "/mnt/scratch/SILENT/Act3/GSC_data/Dry_run_batch_2/*.{R1,R2}.fastq.gz"
 	SNV						= "SNV"
 	STR						= "STR"
 	MEI						= "MEI"
@@ -52,7 +53,6 @@ params {
 //	ExpansionHunterDenovo				= '/mnt/common/Precision/ExpansionHunterDenovo/ExpansionHunterDenovo-v0.9.0-linux_x86_64/bin/ExpansionHunterDenovo'
 //	manifest_STR					= '/mnt/scratch/SILENT/Act3/Processed/Workflow/Solenne/IBVL_pipeline/manifest.txt'
 	haplocheck_path					= '/mnt/common/SILENT/Act3/haplocheck/haplocheck'
-        SINGULARITY_TMPDIR				= '/mnt/scratch/SILENT/Act3/tmp/'
 }
 
 
@@ -64,8 +64,8 @@ profiles {
                 params.ref				= '/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa'
                 params.ref_index			= '/mnt/common/DATABASES/REFERENCES/GRCh37/GENOME/GRCh37-lite.fa.fai'
                 params.Mitochondrial_chromosome		= 'MT'
-	        params.chrom                           	= (1..22) +  ['X', 'Y']
-//	      	params.chrom                           	= '22'
+//	        params.chrom                           	= (1..22) +  ['X', 'Y']
+	      	params.chrom                           	= '22'
 		params.reference_dir			= '/mnt/common/SILENT/Act3/GRCh37/gnomad/'
 		params.CADD_1_6_whole_genome_SNVs	= '/mnt/common/DATABASES/REFERENCES/GRCh37/CADD/V1.6/whole_genome_SNVs.tsv.gz'
 		params.CADD_1_6_whole_genome_SNVs_index = '/mnt/common/DATABASES/REFERENCES/GRCh37/CADD/V1.6/whole_genome_SNVs.tsv.gz.tbi'
@@ -120,29 +120,28 @@ profiles {
 singularity {
      enabled = true
      autoMounts = true
-     runOptions = "-e --home /mnt/scratch/SILENT/Act3/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/"
-     cacheDir = "/mnt/common/SILENT/Act3/singularity"
+     runOptions = "-e --home /mnt/scratch/SILENT/Act3/Processed/Workflow/ -B /mnt/scratch/SILENT/Act3/ -B /mnt/common/SILENT/Act3/ -B /mnt/common/DATABASES/REFERENCES/"
+     cacheDir = "$CAFE_Pipeline_Dir/singularity"
  }
-
 
 process {
 //conda
     withLabel: 'conda_annotate' {
-        conda = "/mnt/common/WASSERMAN_SOFTWARE/AnnotateVariants/opt/AnnotateVariantsEnvironment"
+        conda = "$CAFE_Pipeline_Dir/miniconda3/envs/CAFE_Pipeline"
 }
 
     withName: 'Hail_STR|Hail_MEI_QC|Hail_sample_QC|Hail_SV_QC|Hail_variant_MT_QC|Hail_variant_QC' {
-        conda = "/mnt/common/SILENT/Act3/conda/miniconda3/envs/hail"
+        conda = "$CAFE_Pipeline_Dir/miniconda3/envs/hail"
 }
 
 // 4GB, 2cpus
-          withName: 'align_to_MT|MT_MergeVcfs|sample_QC|list_vcfs_txt|MEI_data_organization|split_tsv_by_chr' {
+          withName: 'align_to_MT|MT_MergeVcfs|list_vcfs_txt|MEI_data_organization' {
                 memory = 4.GB
         	cpus = 2
 	}
 
 // 4GB, 8cpus
-          withName: 'split_vcf_by_chr|SV_annotation|STR_data_organization' {
+          withName: 'STR_data_organization' {
                 memory = 4.GB
                 cpus = 8
         }
@@ -154,13 +153,13 @@ process {
         }
 
 // 8GB, 4cpus
-          withName: 'MT_data_organization|Hail_variant_MT_QC|MT_Step3_metadata_sample|MT_Step3_metadata|MT_haplocheck|MT_Step2_participant_data|MT_Step1_input_tsv|Hail_variant_QC|SNV_data_organization|merge_STR|SV_data_organization|MT_norm' {
+          withName: 'MT_data_organization|Hail_variant_MT_QC|MT_Step3_metadata_sample|MT_Step3_metadata|MT_haplocheck|MT_Step2_participant_data|MT_Step1_input_tsv|Hail_variant_QC|SNV_data_organization|SV_data_organization|MT_norm' {
                 memory = 8.GB
                 cpus = 4
         }
 
 // 12Gb, 8 cpus
-	withName: 'align_sort_output_bam|expansion_hunter|Hail_sample_QC|plink_sex_inference' {
+	withName: 'align_sort_output_bam|expansion_hunter|Hail_sample_QC' {
                 memory = 12.GB
                 cpus = 8
         }	
@@ -172,7 +171,7 @@ process {
         }
 
 // 20GB, 8 cpus
-          withName: 'samtools_fixmate' {
+          withName: 'samtools_fixmate|merge_samples|merge_samples_miss0' {
                 memory = 20.GB
                 cpus = 8
         }
@@ -187,7 +186,7 @@ process {
           withName: 'shift_back|MT_Step3_metadata_sample' {
                 memory = 8.GB
                 cpus = 4
-		container = 'file:///mnt/common/SILENT/Act3/R/rstudio-bioconductor-Release_3_15.simg'
+		container = "file://$CAFE_Pipeline_Dir/singularity/bioconductor_docker_RELEASE_3_15.sif"
         }
 
 
@@ -195,75 +194,74 @@ process {
         withName: 'fastqc' {
                 memory = 2.GB
                 cpus = 4
-                container = "file:///mnt/common/SILENT/Act3/singularity/fastqc.0.11.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/fastqc-0.11.9.sif"
         }
 
 //MultiQC 4GB
-        withName: 'multiqc_indiv|multiqc_pop' {
+        withName: 'multiqc_indiv' {
                 memory=4.GB
-                container = "file:///mnt/common/SILENT/Act3/singularity/multiqc-1.9.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/multiqc-1.9.sif"
         }
 
 //Mosdepth, 4GB
         withName: 'Mosdepth' {
                 memory = 4.GB
-                container = "file:///mnt/common/SILENT/Act3/singularity/mosdepth-0.3.2.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/mosdepth-0.3.2.sif"
         }
      
 //DeepVariant
         withName: 'deepvariant_call' {
 		memory = 60.GB
                 cpus = 39
-                container = "file:///mnt/common/SILENT/Act3/singularity/deepvariant-1.2.0.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/deepvariant-1.2.0.sif"
         }
 
 //GLnexus
         withName: 'GLnexus_cli' {
                 memory = 200.GB
                 cpus = 39
-                container = "file:///mnt/common/SILENT/Act3/singularity/glnexus-1.4.1.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/glnexus-1.4.1.sif"
         }
 
 //GATK 4GB
-// Solenne : Removed 'MarkDuplicates', 'MT_MergeVcfs' and 'MT_merge_samples' from the list as it also uses conda and was not working with both in the same process 
-	withName: 'MarkDuplicates|MT_MergeVcfs|MT_call_variants|Extract_MT_Read|MT_Filter_Mutect_Calls|MT_FilterOut_sites|MT_LeftAlignAndTrimVariants|MT_Liftover|MT_Merge_stat_file|MT_SamtoFastq|gnomad_frequency_table' {
+	withName: 'MarkDuplicates|MT_MergeVcfs|MT_call_variants|Extract_MT_Read|MT_Filter_Mutect_Calls|MT_FilterOut_sites|MT_LeftAlignAndTrimVariants|MT_Liftover|MT_Merge_stat_file|MT_SamtoFastq' {
                 memory=4.GB
-                container = "file:///mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/gatk4-4.2.0.sif"
         }
 
 //GATK, 4 CPUs , 8Gb
 	withName: 'Picard_CollectWgsMetrics|Picard_CollectWgsMetrics_MT' {
                 cpus = 4
 		memory=8.GB
-                container = "file:///mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/gatk4-4.2.0.sif"
         }
 
 //GATK, 4 CPUs , 2Gb
         withName: 'Picard_CollectAlignmentSummaryMetrics' {
                 cpus = 4
                 memory=2.GB
-                container = "file:///mnt/common/SILENT/Act3/singularity/gatk4-4.2.0.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/gatk4-4.2.0.sif"
         }
 
 // Picard_R, 2Gb, 4 CPUs
         withName: 'Picard_QualityScoreDistribution' {
                 cpus=4
                 memory=2.GB
-                container = "file:///mnt/common/SILENT/Act3/singularity/picard_r.sif"
+                container = "file://$CAFE_Pipeline_Dir/singularity/picard_r.sif"
         }
 
 // Smoove, 8Gb, 3 cpus
 	withName: 'SV_smoove' {
 		cpus = 2
 		memory  = 4.GB
-		container = "file:///mnt/common/SILENT/Act3/singularity/smoove_latest.sif" 
+		container = "file://$CAFE_Pipeline_Dir/singularity/smoove-0.2.8.sif" 
 	}
 
 //  Manta, 6Gb, 24cpus
 	withName: 'SV_manta' {
 		cpus = 20
 		memory = 4.GB
-		container = "file:///mnt/common/SILENT/Act3/singularity/illumina_manta.sif"                                        
+		container = "file://$CAFE_Pipeline_Dir/singularity/illumina_manta.sif"                                        
 	}
 
 
@@ -271,19 +269,19 @@ process {
 	withName: 'SV_concat_by_sample' {
       		memory = 6.GB
 		cpus = 2
-		container = "https://depot.galaxyproject.org/singularity/bcftools%3A1.9--ha228f0b_4"
+		container = "file://$CAFE_Pipeline_Dir/singularity/https://depot.galaxyproject.org/singularity/bcftools%3A1.9--ha228f0b_4"
 	}
 
 // paragraph_duphold
     	withName: 'SV_paragraph_duphold' {
-      		container = "docker://brentp/rare-disease-sv:v0.1.2"
+      		container = "file://$CAFE_Pipeline_Dir/singularity/rare_disease_sv-0.1.2.sif"
       		cpus = 12
       		memory = 6.GB
 	}
 
 //Jasmine
     	withName: 'SV_jasmine' {
-      		container = "docker://brentp/rare-disease-sv:v0.1.2"
+      		container = "file://$CAFE_Pipeline_Dir/singularity/rare_disease_sv-0.1.2.sif"
       		cpus = 4
       		memory = 6.GB
 	}

@@ -22,3 +22,30 @@ hail*
 
 *.error
 *.out
+
+
+# Singularity image files #
+###########################
+*.sif
+
+
+# miniconda3 deployment #
+######################### 
+miniconda3/*
+
+# nextflow deployment #
+#######################
+Nextflow/*
+
+# MELT #
+########
+MELT/*
+
+# ExpansionHunter #
+###################
+ExpansionHunter/*
+
+# ExpansionHunterDenovo #
+#########################
+ExpansionHunterDenovo/*
+

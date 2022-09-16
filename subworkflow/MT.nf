@@ -28,7 +28,6 @@ include { MT_Merge_stat_file } from "./../modules/MT_Merge_stat_file"
 include { MT_Filter_Mutect_Calls } from "./../modules/MT_Filter_Mutect_Calls"
 include { MT_LeftAlignAndTrimVariants } from "./../modules/MT_LeftAlignAndTrimVariants"
 include { MT_FilterOut_sites } from "./../modules/MT_FilterOut_sites"
-include { list_vcfs_txt } from "./../modules/list_vcfs_txt"
 include { MT_haplocheck } from "./../modules/MT_haplocheck"
 include { MT_Step1_input_tsv } from "./../modules/MT_Step1_input_tsv"
 include { MT_Step2_participant_data } from "./../modules/MT_Step2_participant_data"
@@ -51,8 +50,7 @@ workflow MT {
         assembly_MT                             = params.assembly_MT
 	chrM					= params.chrM
 	reference                               = file (params.ref)
-	reference_index                      	= file (params.ref_index)
-        vep_cache_merged                        = params.vep_cache_merged
+	vep_cache_merged                        = params.vep_cache_merged
 	dir_plugin				= params.dir_plugin
         vep_cache_merged_version                = params.vep_cache_merged_version
         CADD_1_6_whole_genome_SNVs              = file (params.CADD_1_6_whole_genome_SNVs)
@@ -84,17 +82,18 @@ workflow MT {
 	MT					= params.MT
 	pon_predictions_table			= file (params.pon_predictions_table)
 	artifact_prone_sites_bed		= file (params.artifact_prone_sites_bed)
+        mitotip_predictions_table               = file (params.mitotip_predictions_table)
+
+//A copy of the reference was done locally because Hail could not read the copy located in a common directory
 	GRCh38_MT_local_fasta			= file (params.GRCh38_MT_local_fasta)
 	GRCh38_MT_local_fai			= file (params.GRCh38_MT_local_fai)
-	mitotip_predictions_table		= file (params.mitotip_predictions_table)
-
+	
 
         take : 
 		bam
 		bai
 		mosdepth
 	main:
-		// Need to be included in "data preparation" (Not in the MT sub-workflow)
 		bwa_index(ref_MT_fasta)
 		bwa_index_shifted(ref_MT_shifted_fasta)
 

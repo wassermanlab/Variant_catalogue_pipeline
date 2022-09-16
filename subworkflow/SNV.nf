@@ -6,7 +6,6 @@
 // Overview of the sub-workflow goal and characteristics :
 // Call the SNV variants
 // Include some quality controls (QC) steps
-//	- Plink which defines the sex of each sample based on seevral variables
 // Hail producing several graphs and filtering outliers samples and variants
 
 // Load the modules for the SNV workflow
@@ -31,7 +30,6 @@ workflow SNV {
 	run             			= params.run
 	batch           			= params.batch
 	assembly        			= params.assembly
-	assembly_hg				= params.assembly_hg
 	reference       			= file (params.ref)
 	reference_index 			= file (params.ref_index)
         SNV                                     = params.SNV

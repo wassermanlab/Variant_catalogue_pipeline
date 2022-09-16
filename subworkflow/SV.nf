@@ -21,15 +21,16 @@ include { melt } from "./../modules/melt"
 include { list_vcfs_txt as SV_vcfs_txt; list_vcfs_txt as STR_vcfs_txt; list_vcfs_txt as MEI_vcfs_txt } from "./../modules/list_vcfs_txt"
 include { merge_samples as SV_merge_samples} from "./../modules/merge_samples"
 include { merge_samples_miss0 as MEI_merge_samples; merge_samples_miss0 as STR_merge_samples } from "./../modules/merge_samples_miss0"
+
+include { Hail_MEI_QC } from "./../modules/Hail_MEI_QC"
+include { Hail_STR } from "./../modules/Hail_STR"
+include { Hail_SV_QC } from "./../modules/Hail_SV_QC"
+
 include { annotation_table_merged as SV_annotation; annotation_table_merged as MEI_annotation } from "./../modules/annotation_table_merged"
 
 include { SV_data_organization } from "./../modules/SV_data_organization"
 include { MEI_data_organization } from "./../modules/MEI_data_organization"
 include { STR_data_organization } from "./../modules/STR_data_organization"
-
-include { Hail_MEI_QC } from "./../modules/Hail_MEI_QC"
-include { Hail_STR } from "./../modules/Hail_STR"
-include { Hail_SV_QC } from "./../modules/Hail_SV_QC"
 
 // SV workflow
 
@@ -50,8 +51,6 @@ workflow SV {
 	SV					= params.SV
 	STR					= params.STR
 	MEI					= params.MEI
-//	ExpansionHunterDenovo			= file (params.ExpansionHunterDenovo)
-//	manifest_STR				= file (params.manifest_STR)
 
         vep_cache_merged                        = file (params.vep_cache_merged)
         vep_cache_merged_version                = params.vep_cache_merged_version
@@ -100,8 +99,6 @@ workflow SV {
   		STR_merge_samples(STR_vcfs_txt.out, assembly, batch, run, STR)
 		Hail_STR (STR_merge_samples.out.vcf, sample_sex_file, assembly, batch, run) 
                 STR_data_organization(STR_merge_samples.out.vcf, variant_catalog, assembly, run, STR)
-
-
 
 		// Mobile Element Insertions (MEIs)
                 // Sample specific (Do not need to be run for a previously processed sample)

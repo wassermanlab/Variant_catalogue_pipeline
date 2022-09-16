@@ -5,8 +5,8 @@
 |	CADD score - All gnomad release 3.0 InDels to initiate a local setup (index)	|	v1.6	|	https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/gnomad.genomes.r3.0.indel.tsv.gz.tbi	|		|		|
 |	CADD score - All possible SNVs of GRCh38/hg38	|	v1.6	|	https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz	|	https://cadd.gs.washington.edu	|		|
 |	CADD score - All possible SNVs of GRCh38/hg38 (index)	|	v1.6	|	https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz.tbi	|		|		|
-|	cr bed file (manta)	|		|		|		|		|
-|	cr bed file (manta) (index)	|		|		|		|		|
+|	cr bed file (manta)	|		|	https://github.com/melsiddieg/sv_data/blob/main/data_prep.sh	|		|		|
+|	cr bed file (manta) (index)	|	https://github.com/melsiddieg/sv_data/blob/main/data_prep.sh |		|		|		|
 |	genes file (MELT)	|		|	https://github.com/mills-lab/apps/blob/master/images/MELT/1.2.20/add_bed_files/Hg38/Hg38.genes.bed	|		|		|
 |	Reference genome	|	Grch38-lite	|	ftp://ftp.ensembl.org/pub/release-96/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz	|	gunzip -c Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz > GRCh38-lite.fa	|		|
 |	Reference genome (index)	|	Grch38-lite index	|		|	bwa-mem2 index Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa	|		|

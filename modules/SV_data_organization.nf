@@ -7,7 +7,7 @@
 // Run a R script that organize the SNV variants information in the tables expected to be displayed in the IBVL interface
 
 process SV_data_organization {
-        tag "${SV_vcf}"
+        tag "${SV_annot_merged}"
 
 	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/genomic_ibvl_frequencies/", mode: 'copy', pattern: "genomic_ibvl_frequencies_SV_*"
 	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/svs/", mode: 'copy', pattern: "svs_*"
@@ -17,11 +17,11 @@ process SV_data_organization {
 	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/svs_ctx/", mode: 'copy', pattern: "svs_ctx_*"
 
 	input :
-	path SV_vcf
 	path SV_annot_merged
 	val assembly
 	val run
 	val var_type 
+	path severity_table
 
 	output :
 	path '*'
@@ -37,6 +37,6 @@ process SV_data_organization {
 	mkdir -p \${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 
-	Rscript ../../../modules/SV_data_organization.R $assembly ${SV_vcf} ${SV_annot_merged} $run ${var_type}
+	Rscript ../../../modules/SV_data_organization.R $assembly ${SV_annot_merged} $run ${var_type} $severity_table
 	"""
 }

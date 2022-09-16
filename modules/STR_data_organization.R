@@ -3,31 +3,26 @@
 #Owned by the Silent Genomes Project Activity 3 team
 #Developped to build the IBVL, a background variant library
 
-#library(ggplot2)
-#library("ggplot2")
-# install.packages('vcfR', repos='https://cloud.r-project.org/')
-# install.packages('jsonlite', repos='https://cloud.r-project.org/')
-#install.packages("data.table", repos="https://cloud.r-project.org/")
-#library("data.table")
 library(jsonlite)
 library(vcfR)
 library(dplyr)
 library(stringr)
 library(tidyr)
 ###################
-# Create the table as expected in the SQL
+# Goal : Create the tables as expected in the SQL
+###################
 
 #Read the arguments from the nextflow process calling the Rscript named 'MT_heteroplasmy_bin.nf'
 args <- commandArgs(trailingOnly = TRUE)
 
 #Define assembly from the args
-#assembly="GRCh37"
 assembly=(args[1])
 var_type=(args[5])
 
 
-#Read the vcf file with from the IBVL
+#Read the vcf file
 STR_vcf=read.vcfR(args[2])
+
 #Ectract the allele size distribution (REPCN = Repeat)
 CN_table=extract.gt(STR_vcf,element = "REPCN")
 CN_table_ID=cbind(STR_vcf@fix[,c("ID")], CN_table)

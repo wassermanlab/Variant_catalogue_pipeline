@@ -64,6 +64,7 @@ workflow SV {
 	spliceai_indel				= file (params.spliceai_indel)
 	spliceai_indel_index			= file (params.spliceai_indel_index)
 	dir_plugin				= file (params.dir_plugin)
+        severity_table                          = file (params.severity_table)
 
 	// Workflow start here
 	take : 
@@ -87,7 +88,7 @@ workflow SV {
                 Hail_SV_QC (SV_merge_samples.out.vcf, sample_sex_file, assembly, batch, run)
 		SV_annotation(Hail_SV_QC.out.vcf_SV_filtered_frequ_only, Hail_SV_QC.out.index_SV_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SV, reference, dir_plugin)
 
-                SV_data_organization(Hail_SV_QC.out.vcf_SV_filtered_frequ_only, SV_annotation.out.annot_table_merged_R.collect(), assembly, run, SV)
+                SV_data_organization(SV_annotation.out.annotation_vcf, assembly, run, SV, severity_table)
 
 
 		//Short Tandem Repeats (STR)
@@ -113,5 +114,5 @@ workflow SV {
                 Hail_MEI_QC (MEI_merge_samples.out.vcf, sample_sex_file, assembly, batch, run)
                 MEI_annotation(Hail_MEI_QC.out.vcf_MEI_filtered_frequ_only, Hail_MEI_QC.out.index_MEI_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, MEI, reference, dir_plugin)
 
-                MEI_data_organization(Hail_MEI_QC.out.vcf_MEI_filtered_frequ_only, MEI_annotation.out.annot_table_merged_R.collect(), assembly, run, MEI)
+                 MEI_data_organization(MEI_annotation.out.annotation_vcf, assembly, run, MEI)
 }

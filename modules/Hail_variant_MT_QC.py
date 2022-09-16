@@ -1697,6 +1697,8 @@ def export_simplified_variants(input_ht: hl.Table, output_dir: str) -> None:
             ID=input_ht.locus.position,
             REF=input_ht.alleles[0],
             ALT=input_ht.alleles[1],
+            ID2=input_ht.locus.position,
+            ID3=input_ht.locus.position,
         )
         .select("filters", "AC_hom", "AC_het", "AF_hom", "AF_het", "AN", "max_hl", "hl_hist")
         .rename({"CHROM":"#CHROM", "max_hl": "max_observed_heteroplasmy", "hl_hist":"heteroplasmy_histogram"})

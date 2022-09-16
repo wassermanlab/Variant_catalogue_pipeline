@@ -3,330 +3,225 @@
 #Owned by the Silent Genomes Project Activity 3 team
 #Developped to build the IBVL, a background variant library
 
-#library(ggplot2)
-#library("ggplot2")
-# install.packages('vcfR', repos='https://cloud.r-project.org/')
 library(vcfR)
 library(dplyr)
 library(stringr)
 library(tidyr)
-###################
-# Create the table as expected in the SQL
-# SV_IBVL_frequency
-# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY, qual
-# How to define XX and XY
-# In gnomAD : https://broadinstitute.github.io/gnomad_methods/_modules/gnomad/sample_qc/sex.html
-# Can use bcftools --guess-ploidy plugin (based on varaint calls)
-#https://samtools.github.io/bcftools/howtos/install.html
-# using XYalign (based on bam)
-# https://github.com/SexChrLab/XYalign
-
 
 ###################
-# Create the table as expected in the SQL
-# SV_gnomAD_frequency
-#Need to decide if we display SV frequencies from gnomAD as the SV may not be exactly the same and could lead to confusion
-# Variant_ID, AF_tot, AC_tot, AN_tot, Hom_alt_tot
-# Create a subset with only the wanted info (outside of R) --> R will load faster a smaller file
-
+# Goal : Create the tables as expected in the SQL
 ###################
-# Create the table as expected in the SQL
-# SV_annotation (svs)
-# variant_ID, chr1, chr1_pos1 (start), chr1_po2 (end), type, length, algorithm, ucsc_url, gnomad_id, gnomad_url
-
 
 #Read the arguments from the nextflow process calling the Rscript named 'MT_heteroplasmy_bin.nf'
 args <- commandArgs(trailingOnly = TRUE)
 
 #Define assembly from the args
-#assembly="GRCh37"
 assembly=(args[1])
-var_type=(args[5])
+var_type=(args[4])
 
 algorithm="MELT"
 
-####Organize different tables
-##Read gnomAD SNV vcf
-#gnomad_file=read.table("work/31/3153f698d3ef271dc40359ebf12440/gnomad_frequency_table.tsv", header=TRUE)
-#gnomad_file=read.table(args[2], header=TRUE)
-#Create the variant ID (chr-Pos_ref_alt)
-#ID_table_gnomad=gnomad_file[,c("chrom", "start", "end", "svtype")]
-#ID_db_gnomad=paste(ID_table_gnomad$chrom, ID_table_gnomad$start, ID_table_gnomad$end, ID_table_gnomad$svtype, sep="_")
-#gnomad_file=cbind(ID_db_gnomad, gnomad_file)
+#Read the vcf file with annotation and variant frequencies
+frequ_annot_file=read.vcfR(args[2])
+chromosome=frequ_annot_file@fix[1,1]
 
-##MT vcf from the database (IBVL)
-#Read the vcf file with MT calls
-#SNV_vcf=read.vcfR("/mnt/scratch/SILENT/Act3/Processed/Individual/GRCh37/Batch_DryRun/Run_20211220/DeepVariant/DeepVariant_GLnexus_Run_20211220.vcf.gz")
-frequ_file=read.vcfR(args[2])
-#Ectract the GT
-#GT_table=extract.gt(SV_vcf,element = "GT")
-#Sample anem should only contain sample_name to intersect with sex_table
-#colnames(GT_table)= sub("_.*","",colnames(GT_table))
-#GT_table_ID=cbind(SV_vcf@fix[,c("ID")], GT_table)
-#chromosome=SV_vcf@fix[1,c("CHROM")]
+table_frequ_SV=data.frame()
+table_annot_SV=data.frame()
+table_sv_consequence=data.frame()
 
-##SNV annotation table (IBVL)
-### !!!! Need to remove the hashtag in front of the header line outside of R
-#Needed to extract rsID and clinvar ID
-SV_raw_annotaton_file=read.table(args[3], fill=TRUE, header=TRUE)
-#SNV_raw_annotaton_file=read.table("work/47/1c2e7dd036d2ea5fe303cfeeeb8e3f/DeepVariant_GLnexus_Run_20211220_annotation_table_nohash.tsv", fill=TRUE, header=TRUE)
-chromosome = unlist(strsplit(SV_raw_annotaton_file$Uploaded_variation[1], "_"))[1]
+vcf = frequ_annot_file@fix
+chr = vcf[,"CHROM"]
+pos = as.numeric(vcf[,"POS"])
+variant = vcf[,"ID"]
+ref = vcf[,"REF"]
+alt = vcf[,"ALT"]
+quality = vcf[,"QUAL"]
+
+info = vcf[,"INFO"]
+
+#Info from Hail
+#Extract table of information
+length = sapply(strsplit(info, "SVLEN="),"[[",2)
+length = as.data.frame(sapply(strsplit(length, ";"),"[[",1))
+show("length ok")
 
 
-#sex_table=read.table("sample_sex.tsv", header=TRUE)
-#sex_table = read.table(args[4], header=TRUE)
+#TSD : Provides the sequence of the Target Site Duplication (TSD) for each insertion. Will be ‘null’ if was not able to be determined.
+TSD = sapply(strsplit(info, "TSD="),"[[",2)
+TSD =  as.data.frame(sapply(strsplit(TSD, ";"),"[[",1))
+show("TSD ok")
 
-#for (i in 1:nrow(SNV_vcf@fix)) {
-##Loop to split the number of variants
-slots_var=c(seq(0, nrow(SV_raw_annotaton_file), by=5000), nrow(SV_raw_annotaton_file))
-  
-for (j in 1:(length(slots_var)-1)){
-    	#show(nrow(SV_vcf@fix))
-	#show(length(slots_var))
-	#show("slot")
-  	#show(j)
+# ASSESS : Provides an accuracy assessment, and the information used, to determine the breakpoint of each insertion. Please read our paper to learn more above individual scores (see Citing MELT).
+ASSESS = sapply(strsplit(info, "ASSESS="),"[[",2)
+ASSESS =  as.data.frame(sapply(strsplit(ASSESS, ";"),"[[",1))
+show("ASSESS ok")
 
-	min_i= slots_var[j]+1
-	max_i= slots_var[j+1]
+#Internal : Provides information on if the insertion is internal to a gene in the provided reference annotation file. The first piece of information is the gene name; the second is the location within that gene (either exon, intron, 5_UTR, or 3_UTR).
+INTERNAL = sapply(strsplit(info, "INTERNAL="),"[[",2)
+INTERNAL =  as.data.frame(sapply(strsplit(INTERNAL, ";"),"[[",1))
+show("INTERNAL ok")
 
-	table_frequ_SV=data.frame()
-        table_annot_SV=data.frame()
-	table_sv_consequence=data.frame()
+SVTYPE = sapply(strsplit(info, "SVTYPE="),"[[",2)
+SVTYPE =  as.data.frame(sapply(strsplit(SVTYPE, ";"),"[[",1))
+show("SVTYPE ok")	
+
+#Frequ_table
+af_tot_xx_xy = (sapply(strsplit(info, "AF_tot_XX_XY="),"[[",2))
+af_tot_xx_xy = (sapply(strsplit(af_tot_xx_xy, ";"),"[[",1))
+
+ac_tot_xx_xy = (sapply(strsplit(info, "AC_tot_XX_XY="),"[[",2))
+ac_tot_xx_xy = (sapply(strsplit(ac_tot_xx_xy, ";"),"[[",1))
+
+an_tot_xx_xy = (sapply(strsplit(info, "AN_tot_XX_XY="),"[[",2))
+an_tot_xx_xy = (sapply(strsplit(an_tot_xx_xy, ";"),"[[",1))
+
+hom_tot_xx_xy = (sapply(strsplit(info, "hom_tot_XX_XY="),"[[",2))
+hom_tot_xx_xy = (sapply(strsplit(hom_tot_xx_xy, ";"),"[[",1))
+
+af_tot = as.data.frame(sapply(strsplit(af_tot_xx_xy, ","),"[[",1))
+ac_tot = as.data.frame(sapply(strsplit(ac_tot_xx_xy, ","),"[[",1))
+an_tot = as.data.frame(sapply(strsplit(an_tot_xx_xy, ","),"[[",1))
+hom_tot = as.data.frame(sapply(strsplit(hom_tot_xx_xy, ","),"[[",1))
+
+af_xx = as.data.frame(sapply(strsplit(af_tot_xx_xy, ","),"[[",2))
+ac_xx = as.data.frame(sapply(strsplit(ac_tot_xx_xy, ","),"[[",2))
+an_xx = as.data.frame(sapply(strsplit(an_tot_xx_xy, ","),"[[",2))
+hom_xx = as.data.frame(sapply(strsplit(hom_tot_xx_xy, ","),"[[",2))
+
+af_xy = as.data.frame(sapply(strsplit(af_tot_xx_xy, ","),"[[",3))
+ac_xy = as.data.frame(sapply(strsplit(ac_tot_xx_xy, ","),"[[",3))
+an_xy = as.data.frame(sapply(strsplit(an_tot_xx_xy, ","),"[[",3))
+hom_xy = as.data.frame(sapply(strsplit(hom_tot_xx_xy, ","),"[[",3))
+
+show("frequ ok")
+
+##Generate table with info and annot
+#VEP annotation
+vep_annot = as.data.frame(sapply(strsplit(info, "CSQ"),"[[",2))
+
+#Split annot as one varaint can have several annot
+#Create large table
+all_info = cbind(chr, pos, variant, ref, alt, quality, af_tot, ac_tot, an_tot, hom_tot, af_xx, ac_xx, an_xx, hom_xx, af_xy, ac_xy, an_xy, hom_xy, length, TSD, ASSESS, INTERNAL, SVTYPE, vep_annot)
+colnames(all_info) = c ("chr", "pos", "variant", "ref", "alt", "quality", "af_tot", "ac_tot", "an_tot", "hom_tot", "af_xx", "ac_xx", "an_xx", "hom_xx", "af_xy", "ac_xy", "an_xy", "hom_xy", "length", "TSD", "ASSESS", "INTERNAL", "SVTYPE", "vep_annot")
+
+#Creates one row per annotation
+all_info_split = separate_rows(all_info, vep_annot, sep = ",")
+
+vep_annot = all_info_split$vep_annot
+
+#Split the VEP annotation (seperated by |)
+vep_annot_split = do.call(rbind.data.frame, strsplit(vep_annot, "\\|"))
+colnames(vep_annot_split) = c("Allele", "Consequence", "IMPACT", "SYMBOL", "Gene", "Feature_type", "Feature", "BIOTYPE", "EXON", "INTRON", "HGVSc", "HGVSp", "cDNA_position", "CDS_position", "Protein_position", "Amino_acids", "Codons", "Existing_variation", "DISTANCE", "STRAND", "FLAGS", "VARIANT_CLASS", "SYMBOL_SOURCE", "HGNC_ID", "TSL", "REFSEQ_MATCH", "SOURCE", "REFSEQ_OFFSET", "GIVEN_REF", "USED_REF", "BAM_EDIT", "SIFT", "PolyPhen", "HGVS_OFFSET", "CLIN_SIG", "SOMATIC", "PHENO", "VAR_SYNONYMS", "CADD_PHRED", "CADD_RAW", "SpliceAI_pred_DP_AG", "SpliceAI_pred_DP_AL", "SpliceAI_pred_DP_DG", "SpliceAI_pred_DP_DL", "SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL")
+        #, "SpliceAI_pred_SYMBOL") 
+
+#Create large table
+all_info_complete = cbind(all_info_split$chr, all_info_split$pos, all_info_split$variant, all_info_split$ref, all_info_split$alt, all_info_split$quality, all_info_split$af_tot, all_info_split$ac_tot, all_info_split$an_tot, all_info_split$hom_tot, all_info_split$af_xx, all_info_split$ac_xx, all_info_split$an_xx, all_info_split$hom_xx, all_info_split$af_xy, all_info_split$ac_xy, all_info_split$an_xy, all_info_split$hom_xy, all_info_split$length, all_info_split$TSD, all_info_split$ASSESS, all_info_split$INTERNAL, all_info_split$SVTYPE, vep_annot_split$Allele, vep_annot_split$Consequence, vep_annot_split$IMPACT, vep_annot_split$SYMBOL, vep_annot_split$Gene, vep_annot_split$Feature_type, vep_annot_split$Feature, vep_annot_split$BIOTYPE, vep_annot_split$EXON, vep_annot_split$INTRON, vep_annot_split$HGVSc, vep_annot_split$HGVSp, vep_annot_split$cDNA_position, vep_annot_split$CDS_position, vep_annot_split$Protein_position, vep_annot_split$Amino_acids, vep_annot_split$Codons, vep_annot_split$Existing_variation, vep_annot_split$DISTANCE, vep_annot_split$STRAND, vep_annot_split$FLAGS, vep_annot_split$VARIANT_CLASS, vep_annot_split$SYMBOL_SOURCE, vep_annot_split$HGNC_ID, vep_annot_split$TSL, vep_annot_split$REFSEQ_MATCH, vep_annot_split$SOURCE, vep_annot_split$REFSEQ_OFFSET, vep_annot_split$GIVEN_REF, vep_annot_split$USED_REF, vep_annot_split$BAM_EDIT, vep_annot_split$SIFT, vep_annot_split$PolyPhen, vep_annot_split$HGVS_OFFSET, vep_annot_split$CLIN_SIG, vep_annot_split$SOMATIC, vep_annot_split$PHENO, vep_annot_split$VAR_SYNONYMS, vep_annot_split$CADD_PHRED, vep_annot_split$CADD_RAW, vep_annot_split$SpliceAI_pred_DP_AG, vep_annot_split$SpliceAI_pred_DP_AL, vep_annot_split$SpliceAI_pred_DP_DG, vep_annot_split$SpliceAI_pred_DP_DL, vep_annot_split$SpliceAI_pred_DS_AG, vep_annot_split$SpliceAI_pred_DS_AL, vep_annot_split$SpliceAI_pred_DS_DG, vep_annot_split$SpliceAI_pred_DS_DL)	  
+			  
+colnames(all_info_complete) = c("chr", "pos", "variant", "ref", "alt", "quality", "af_tot", "ac_tot", "an_tot", "hom_tot", "af_xx", "ac_xx", "an_xx", "hom_xx", "af_xy", "ac_xy", "an_xy", "hom_xy", "length", "TSD", "ASSESS", "INTERNAL", "SVTYPE", "Allele", "Consequence", "IMPACT", "SYMBOL", "Gene", "Feature_type", "Feature", "BIOTYPE", "EXON", "INTRON", "HGVSc", "HGVSp", "cDNA_position", "CDS_position", "Protein_position", "Amino_acids", "Codons", "Existing_variation", "DISTANCE", "STRAND", "FLAGS", "VARIANT_CLASS", "SYMBOL_SOURCE", "HGNC_ID", "TSL", "REFSEQ_MATCH", "SOURCE", "REFSEQ_OFFSET", "GIVEN_REF", "USED_REF", "BAM_EDIT", "SIFT", "PolyPhen", "HGVS_OFFSET", "CLIN_SIG", "SOMATIC", "PHENO", "VAR_SYNONYMS", "CADD_PHRED", "CADD_RAW", "SpliceAI_pred_DP_AG", "SpliceAI_pred_DP_AL", "SpliceAI_pred_DP_DG", "SpliceAI_pred_DP_DL", "SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL")
+        #, "SpliceAI_pred_SYMBOL")  
+
+all_info = as.data.frame(all_info_complete)
 	
-	for (i in min_i: max_i){
-		#show(i)
+all_info$MEI_type=paste0("MEI,", all_info$SVTYPE)
+all_info$algorithm = algorithm
 
-                SV_annot_i = SV_raw_annotaton_file[i,]
-                variant = SV_annot_i$Uploaded_variation
+all_info$start = as.numeric(all_info$pos)
+all_info$length = as.numeric(all_info$length)
+all_info$end = (all_info$start + all_info$length)
 
-		list_ID = gsub(";.*","",frequ_file@fix[,c("ID")])
-		row_i=which(list_ID==variant,)
-		frequ_file_i=frequ_file@fix[row_i,]
+show("end")
+show(all_info$end)
 
-		#variant=SV_vcf@fix[i,c("ID")]
-		#To remove the multiallelic info ffrom the ID	
-		#variant = gsub(";.*$", "", variant)
-
-		#GT_table_i = GT_table[c(i),]
-		#SV_annot_i = SV_raw_annotaton_file[SV_raw_annotaton_file$Uploaded_variation==variant,]
-  
-		#Define variables specific to variant i
-		chr = frequ_file_i[c("CHROM")]
-	        pos = as.numeric(frequ_file_i[c("POS")])
-                ref = frequ_file_i[c("REF")]
-		alt = frequ_file_i[c("ALT")]
-		
-		#Variant quality
-		quality = frequ_file_i[c("QUAL")]
-
-		info_i = unlist(strsplit(frequ_file_i[c("INFO")], "=|;|,"))
-
-		col_af = which(grepl("AF_tot_XX_XY", info_i, fixed=TRUE))
-                col_an = which(grepl("AN_tot_XX_XY", info_i, fixed=TRUE))
-	        col_ac =which(grepl("AC_tot_XX_XY", info_i, fixed=TRUE))
-		col_hom = which(grepl("hom_tot_XX_XY", info_i, fixed=TRUE))
-
-                af_tot = info_i[col_af+1]
-	        ac_tot = info_i[col_ac+1]
-		an_tot = info_i[col_an+1]
-                hom_tot = info_i[col_hom+1]
-
-	        af_xx = info_i[col_af+2]
-		ac_xx = info_i[col_ac+2]
-                an_xx = info_i[col_an+2]
-	        hom_xx = info_i[col_hom+2]
-
-		af_xy = info_i[col_af+3]
-                ac_xy = info_i[col_ac+3]
-	        an_xy = info_i[col_an+3]
-		hom_xy = info_i[col_hom+3]
-                #variant_annot_id=paste0(chromosome,"_", pos+1, "_insertion")
-                #SV_annot_i = SV_raw_annotaton_file[SV_raw_annotaton_file$Uploaded_variation==variant,]
-                #gnomad_equivalent_id=paste0(chromosome, "_", pos-1, "_", pos+1, "_INS")
-
-		#Other info specific to SV
-		#TSD : Provides the sequence of the Target Site Duplication (TSD) for each insertion. Will be ‘null’ if was not able to be determined.
-                col_TSD = which(grepl("TSD", info_i, fixed=TRUE))+1
-                TSD = info_i[col_TSD]
-		# ASSESS : Provides an accuracy assessment, and the information used, to determine the breakpoint of each insertion. Please read our paper to learn more above individual scores (see Citing MELT).
-		col_ASSES = which(grepl("ASSESS", info_i, fixed=TRUE))+1
-		ASSESS = info_i[col_ASSES]
-		#Internal : Provides information on if the insertion is internal to a gene in the provided reference annotation file. The first piece of information is the gene name; the second is the location within that gene (either exon, intron, 5_UTR, or 3_UTR).
-		col_INTERNAL = which(grepl("INTERNAL", info_i, fixed=TRUE))+1
-		INTERNAL = info_i[col_INTERNAL]
-		
-		col_SVTYPE=which(grepl("SVTYPE", info_i, fixed=TRUE))+1
-		SVTYPE = info_i[col_SVTYPE]
-		MEI_type=paste0("MEI,", SVTYPE)
-		
-		col_length = which(grepl("SVLEN", info_i, fixed=TRUE))+1
-                length = as.numeric(info_i[col_length])
-
-		show("start")
-		show(start)
-		show("length")
-		show(length)
-
-		start = pos
-		end = start + length
-
-
-  		# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY
-  		# AN_tot : number of 0/0, 0/1 and 1/1 genotypes (avoid counting the ./.)
-  		#an_tot = 2*(sum(GT_table_i == "0/0", na.rm=T) + sum(GT_table_i == "0/1", na.rm=T) + sum(GT_table_i == "1/1", na.rm=T)) 
-  		#AC tot
-  		#ac_tot = sum(GT_table_i == "0/1", na.rm=T) + 2*sum(GT_table_i == "1/1", na.rm=T)
-  		#AF tot = AC/AN
-  		#af_tot = ac_tot/an_tot
-  		#Number of individus homozygotes for the alternative allele (1/1)
-  		#hom_tot = sum(GT_table_i == "1/1", na.rm=T) 
-
-  		#For XX individuals
-  		#For now, make fake false with individuals and sex : 
-  		#sex_table =  read.table("sample_sex.tsv", header=TRUE)
-  		#Subset the GT_Table for XX individuals
-  		#XX_Samples = sex_table[sex_table$Sex=="XX",1]
-  		#XX_GT_table_i = GT_table_i[XX_Samples]
-  		# AN_XX
-  		#an_xx = 2*(sum(XX_GT_table_i == "0/0", na.rm=T) + sum(XX_GT_table_i == "0/1", na.rm=T) + sum(XX_GT_table_i == "1/1", na.rm=T)) 
-  		#AC XX
-  		#ac_xx = sum(XX_GT_table_i == "0/1", na.rm=T) + 2*sum(XX_GT_table_i == "1/1", na.rm=T)
-  		#AF X = AC/AN
-  		#af_xx = ac_xx/an_xx
-  		#Number of individus homozygotes for the alternative allele (1/1)
-  		#hom_xx = sum(XX_GT_table_i == "1/1", na.rm=T) 
-  
-  		#For XY individuals
-  		#Subset the GT_Table for XY individuals
-  		#XY_Samples = sex_table[sex_table$Sex=="XY",1]
-  		#XY_GT_table_i = GT_table_i[XY_Samples]
-  		# AN_XY
-  		#an_xy = 2*(sum(XY_GT_table_i == "0/0", na.rm=T) + sum(XY_GT_table_i == "0/1", na.rm=T) + sum(XY_GT_table_i == "1/1", na.rm=T)) 
-  		#AC XY
-  		#ac_xy = sum(XY_GT_table_i == "0/1", na.rm=T) + 2*sum(XY_GT_table_i == "1/1", na.rm=T)
-  		#AF X = AC/AN
-  		#af_xy = ac_xy/an_xy
-  		#Number of individus homozygotes for the alternative allele (1/1)
-  		#hom_xy = sum(XY_GT_table_i == "1/1", na.rm=T) 
-
-
-		#Consequence
-		consequence=SV_annot_i$Consequence
-
-                #gene
-		#What if several genes? Is it several lines in the annotation file?
-                gene=SV_annot_i$SYMBOL
-
-
-
-  		# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
-  		# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
-  		# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
-  		# clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920
-  		# gnomad_URL : https://gnomad.broadinstitute.org/variant/M-<pos>-<ref>-<alt>?dataset=gnomad_r3 // M-8602-T-C
+# variant_ID, type, length, chr, pos, ref, alt, cadd_score, cadd_interpr, dbsnp_id, dbsnp_url, UCSC_url, ensembl_url, clinvar_url, gnomad_url
+# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
+# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
+# clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920
+# gnomad_URL : https://gnomad.broadinstitute.org/variant/M-<pos>-<ref>-<alt>?dataset=gnomad_r3 // M-8602-T-C
   
 
-  		# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
-		show("start")
-		show(start)
-		show("length")
-		show(length)
-		ucsc_url=paste0("https://genome.ucsc.edu/cgi-bin/hgTracks?db=",assembly, "&highlight=", assembly, ".chr", chr, "%3A", start, "-", end, "&position=chr", chr, "%3A", start-(0.25*length), "-", end+(0.25*length))
+# UCSC URL : https://genome.ucsc.edu/cgi-bin/hgTracks?db=<assembly>&highlight=<assembly>.chrM%3A<pos>-<pos>&position=chrM%3A<pos-25>-<pos+25> / hg38 or hg19 db=hg38&highlight=hg38.chrM%3A8602-8602&position=chrM%3A8577-8627
+all_info$ucsc_url=paste0("https://genome.ucsc.edu/cgi-bin/hgTracks?db=",assembly, "&highlight=", assembly, ".chr", all_info$chr, "%3A", all_info$start, "-", all_info$end, "&position=chr", all_info$chr, "%3A", all_info$start-(0.25*all_info$length), "-", all_info$end+(0.25*all_info$length))
   
-		#Could be added in V2, not part of the current SQL
-  		# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
-  		#if (assembly=="GRCh38") {
-    		#	ensembl_url=paste0("https://uswest.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", AVG_START-(0.25*AVG_LEN), "-", AVG_END+(0.25*AVG_LEN))
-  		#} else if (assembly=="GRCh37") {
-    		#	ensembl_url=paste0("https://grch37.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", AVG_START-(0.25*AVG_LEN), "-", AVG_END+(0.25*AVG_LEN))
-  		#}  
+	#Could be added in V2, not part of the current SQL
+	# Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
+	#if (assembly=="GRCh38") {
+	#	ensembl_url=paste0("https://uswest.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", AVG_START-(0.25*AVG_LEN), "-", AVG_END+(0.25*AVG_LEN))
+	#} else if (assembly=="GRCh37") {
+	#	ensembl_url=paste0("https://grch37.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", AVG_START-(0.25*AVG_LEN), "-", AVG_END+(0.25*AVG_LEN))
+	#}  
     
-                #Could be added in V2, not part of the current SQL
-		# dbsnp_id : From annotation file (SNV_annot_i), "Existing_variation" column
-  		#if (grepl("rs", SV_annot_i$Existing_variation)) {
-    		#	dbsnp_id = gsub(",.*$", "", SV_annot_i$Existing_variation)
-    			# dbsnp_URL : https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=<rs_number> // rs1556423501
-    		#	dbsnp_url=paste0("https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=", dbsnp_id)
-  		#} else {
-    		#	dbsnp_id="NA"
-    		#	dbsnp_url="NA"
-  		#}
+	#Could be added in V2, not part of the current SQL
+	# dbsnp_id : From annotation file (SNV_annot_i), "Existing_variation" column
+	#if (grepl("rs", SV_annot_i$Existing_variation)) {
+	#	dbsnp_id = gsub(",.*$", "", SV_annot_i$Existing_variation)
+	#	dbsnp_URL : https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=<rs_number> // rs1556423501
+	#	dbsnp_url=paste0("https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=", dbsnp_id)
+	#} else {
+	#	dbsnp_id="NA"
+	#	dbsnp_url="NA"
+	#}
 
-		#For SV V1, the gnomAD URL will point to the region view in gnomAD SV
-	      	#gnomAD SV is currently only avaialble in GRCh37
-		#https://gnomad.broadinstitute.org/region/22-18738600-18747000?dataset=gnomad_sv_r2_1
-		gnomad_id = "TBD"
-		if (assembly=="GRCh37") {
-			gnomad_url_region=paste0("https://gnomad.broadinstitute.org/region/", chr, "-", start, "-", end, "?dataset=gnomad_sv_r2_1")
-		} else {
-                        gnomad_url_region="NA"
-                }
+#For SV V1, the gnomAD URL will point to the region view in gnomAD SV
+#gnomAD SV is currently only avaialble in GRCh37
+#https://gnomad.broadinstitute.org/region/22-18738600-18747000?dataset=gnomad_sv_r2_1
+all_info$gnomad_id = "TBD"
+all_info$gnomad_url_region<- with(all_info, ifelse(assembly=="GRCh37", paste0("https://gnomad.broadinstitute.org/region/", all_info$chr, "-", all_info$AVG_START, "-", all_info$AVG_END, "?dataset=gnomad_sv_r2_1"), "NA"))	
 
+#Replace empty cells by "NA"
+all_info[all_info == ""] <- "NA"
   
-  		### Create tables
-  		# SV_IBVL_frequency
-  		# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY, qual
-  		temp_table_frequ_db_i = cbind(variant, af_tot, af_xx, af_xy, ac_tot, ac_xx, ac_xy, an_tot, an_xx, an_xy, hom_tot, hom_xx, hom_xy, quality)
-		table_frequ_SV=unique(rbind.data.frame(table_frequ_SV, temp_table_frequ_db_i))
-
-  		# SV_annotation (svs)
-  		# variant_ID, chr1, chr1_pos1 (start), chr1_po2 (end), type, length, algorithm, ucsc_url, gnomad_id, gnomad_url
-  		temp_table_annot_SV_i = cbind(variant, chr, start, end, MEI_type, length, algorithm, ucsc_url, gnomad_id, gnomad_url_region)
-		table_annot_SV=unique(rbind.data.frame(table_annot_SV, temp_table_annot_SV_i))
-
-
-		#sv_consequences table
-		#gene, variant, consequence (intronic, intergenic, etc)
-		#No transcript associated to SV, so no ensembl or Refseq
-		# If there is several consequences on the same line (separrated by a coma), create one line per consequence
-		temp_table_sv_consequence_i = cbind(gene, variant, consequence)
-		show(temp_table_sv_consequence_i)
-		table_sv_consequence=unique(rbind.data.frame(table_sv_consequence, temp_table_sv_consequence_i))
-		table_sv_consequence_split=separate_rows(table_sv_consequence, consequence, sep = ",")
-	}       
-       
-	### Write table slots
-    	write.table(table_frequ_SV, file=paste0("table_frequ_SV_slot", j), quote=FALSE, row.names = FALSE)
-    	write.table(table_annot_SV, file=paste0("table_annot_SV_slot", j), quote=FALSE, row.names = FALSE)
-	write.table(table_sv_consequence_split, file=paste0("table_SV_consequence_slot", j), quote=FALSE, row.names = FALSE)
-}
-
-### Write tables 
+### Create tables
 # SV_IBVL_frequency
-list_frequ_tables_slots <- list.files(pattern = paste0("table_frequ_SV_slot"))
-tables_frequ_slots=lapply(list_frequ_tables_slots, read.table, header=TRUE)
-combined_tables_frequ_slots=do.call(rbind, tables_frequ_slots)
-write.table(combined_tables_frequ_slots, file=paste0("genomic_ibvl_frequencies_", var_type, "_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
-file.remove(list_frequ_tables_slots)
+# Variant ID, AF_tot, AF_XX, AF_XY, AC_tot, AC_XX, AC_XY, AN_tot, AN_XX, AN_XY, Hom_alt_tot, Hom_alt_XX, Hom_alt_XY, qual
+table_frequ_SV = cbind(all_info$variant, all_info$af_tot, all_info$af_xx, all_info$af_xy, all_info$ac_tot, all_info$ac_xx, all_info$ac_xy, all_info$an_tot, all_info$an_xx, all_info$an_xy, all_info$hom_tot, all_info$hom_xx, all_info$hom_xy, all_info$quality)
+colnames(table_frequ_SV) = c("variant", "af_tot", "af_xx", "af_xy", "ac_tot", "ac_xx", "ac_xy", "an_tot", "an_xx", "an_xy", "hom_tot", "hom_xx", "hom_xy", "quality")
+table_frequ_SV = unique(table_frequ_SV)
+write.table(table_frequ_SV, file=paste0("genomic_ibvl_frequencies_", var_type, "_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 
-# SV_annotation
-list_annot_tables_slots <- list.files(pattern = paste0("table_annot_SV_slot"))
-tables_annot_slots=lapply(list_annot_tables_slots, read.table, header=TRUE)
-combined_tables_annot_slots=do.call(rbind, tables_annot_slots)
-colnames(combined_tables_annot_slots)=c("variant", "chr1", "chr1_pos1", "chr1_pos2", "sv_type", "sv_length", "algorithm", "ucsc_url", "gnomad_id", "gnomad_url")
-write.table(combined_tables_annot_slots, file=paste0("svs_", var_type, "_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
-file.remove(list_annot_tables_slots)
+show("IBVL table ok")
 
+# SV_annotation (svs)
+# variant_ID, chr1, chr1_pos1 (start), chr1_po2 (end), type, length, algorithm, ucsc_url, gnomad_id, gnomad_url
+table_annot_SV = cbind(all_info$variant, all_info$chr, all_info$start, all_info$end, all_info$MEI_type, all_info$length, all_info$algorithm, all_info$ucsc_url, all_info$gnomad_id, all_info$gnomad_url)
+colnames(table_annot_SV) = c("variant", "chr1", "chr1_pos1", "chr1_pos2", "sv_type", "sv_length", "algorithm", "ucsc_url", "gnomad_id", "gnomad_url")
+table_annot_SV = unique(table_annot_SV)
+write.table(table_annot_SV, file=paste0("svs_", var_type, "_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 
-# Variants_consequences table
-list_variant_consequence_tables_slots <- list.files(pattern = paste0("table_SV_consequence_slot"))
-tables_variant_consequence_slots=lapply(list_variant_consequence_tables_slots, read.table, header=TRUE)
-combined_tables_variant_consequence_slots=do.call(rbind, tables_variant_consequence_slots)
-combined_tables_variant_consequence_slots_unique=unique(combined_tables_variant_consequence_slots)
-write.table(combined_tables_variant_consequence_slots_unique, file=paste0("sv_consequences_", var_type, "_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
-file.remove(list_variant_consequence_tables_slots)
+show("table annot ok")
+
+#sv_consequences table
+#gene, variant, consequence (intronic, intergenic, etc)
+#No transcript associated to SV, so no ensembl or Refseq
+# If there is several consequences on the same line (separrated by a coma), create one line per consequence
+table_sv_consequence = cbind(all_info$SYMBOL, all_info$variant, all_info$Consequence)
+colnames(table_sv_consequence) = c("gene", "variant", "consequence")
+table_variant_consequence_split = as.data.frame(table_sv_consequence)
+table_variant_consequence_split=separate_rows(table_variant_consequence_split, consequence, sep = "&")
+table_variant_consequence_split = unique(table_variant_consequence_split)
+table_variant_consequence_split = as.data.frame(table_variant_consequence_split)
+table_variant_consequence_split_noNA = table_variant_consequence_split[!grepl("NA",table_variant_consequence_split$gene), ]
+write.table(table_variant_consequence_split_noNA, file=paste0("sv_consequences_", var_type, "_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
+
+show("sv consequ ok")
 
 #Variants
-variants_table=cbind(as.data.frame(unique(SV_raw_annotaton_file[,c("Uploaded_variation")])), "SV")
+variants_table=unique(cbind(all_info$variant, "SV"))
 colnames(variants_table)=c("variant_id", "var_type")
+variants_table = unique(variants_table)
 write.table(variants_table, file=paste0("variants_sv_", var_type, "_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
+
+show("variants ok")
 
 # Gene table
 # Short name, (NCBI gene Id, may not be necessary anymore)
-gene_table=as.data.frame(unique(SV_raw_annotaton_file[,c("SYMBOL")]))
+gene_table=as.data.frame(unique(all_info$SYMBOL))
 colnames(gene_table)=c("short_name")
-gene_table=as.data.frame(gene_table[!grepl("^-$", gene_table$short_name),])
-colnames(gene_table)=c("short_name")
-write.table(gene_table, file=paste0("genes_sv_", var_type, "_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
+gene_table = as.data.frame(gene_table)
+gene_table = unique(gene_table)
+gene_table_noNA = gene_table[!grepl("NA",gene_table$short_name), ]
+gene_table_noNA = as.data.frame(gene_table_noNA)
+colnames(gene_table_noNA)=c("short_name")
+write.table(gene_table_noNA, file=paste0("genes_sv_", var_type, "_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 
+show("gene ok")
 

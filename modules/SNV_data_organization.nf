@@ -23,7 +23,6 @@ process SNV_data_organization {
 	input :
 	path gnomad_SNV_frequ
 	path SNV_annot_merged
-        path SNV_vcf
 	val assembly
 	val run
 	path severity_table
@@ -44,7 +43,7 @@ process SNV_data_organization {
 
 	chr=\$(echo ${SNV_annot_merged.simpleName} | sed 's/^.*_\\([^_]*\\)\$/\\1/' )
 
-	Rscript ../../../modules/SNV_data_organization.R $assembly gnomad_frequency_table_\${chr}.tsv ${SNV_vcf} ${SNV_annot_merged} $severity_table
+	Rscript ../../../modules/SNV_data_organization.R $assembly gnomad_frequency_table_\${chr}.tsv ${SNV_annot_merged} $severity_table
 	"""
 }
 

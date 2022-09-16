@@ -37,4 +37,15 @@ miniconda3/*
 #######################
 Nextflow/*
 
+# MELT #
+########
+MELT/*
+
+# ExpansionHunter #
+###################
+ExpansionHunter/*
+
+# ExpansionHunterDenovo #
+#########################
+ExpansionHunterDenovo/*
 

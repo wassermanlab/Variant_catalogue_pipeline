@@ -72,7 +72,7 @@ function buildNextflow()
 	./nextflow --help
 	cd $CAFE_Pipeline_Dir
 }
-buildNextflow
+#buildNextflow
 
 
 
@@ -108,7 +108,7 @@ function buildMiniConda3()
 	# cleanup
 	rm Miniconda3-latest-Linux-x86_64.sh
 }
-buildMiniConda3
+#buildMiniConda3
 
 
 ##################
@@ -149,7 +149,7 @@ function buildCAFE()
 	conda activate hail
 
 }
-buildCAFE
+#buildCAFE
 
 
 ###############
@@ -178,10 +178,8 @@ buildCAFE
 
 function PullImages()
 {
-	Dir=$PWD
-	
 	# make a directory to deploy the images
-	Singularity_Dir=$Dir/singularity
+	Singularity_Dir=$CAFE_Pipeline_Dir/singularity
 	mkdir -p $Singularity_Dir
 	cd $Singularity_Dir
 
@@ -219,7 +217,54 @@ function PullImages()
 	wget -cq -O vep-92.4.sif https://depot.galaxyproject.org/singularity/ensembl-vep%3A92.4--htslib1.7_0
 	
 }
-PullImages
+#PullImages
+
+
+##################
+# buildCondaCAFE #
+##################
+
+
+##########################################
+# DESC This function uses miniconda3 to deploy a single conda environment
+# ARGS This function doesnt require any arguments
+# RSLT Will create an env which can be activated with conda activate CAFE_pipeline
+##########################################
+
+function InstallStandaloneTools()
+{
+	# ExpansionHunter v5
+	cd $CAFE_Pipeline_Dir
+	mkdir -p $CAFE_Pipeline_Dir/ExpansionHunter/
+	cd $CAFE_Pipeline_Dir/ExpansionHunter/
+	wget -cq https://github.com/Illumina/ExpansionHunter/releases/download/v5.0.0/ExpansionHunter-v5.0.0-linux_x86_64.tar.gz
+	tar -zxvf ExpansionHunter-v5.0.0-linux_x86_64.tar.gz
+
+
+	# ExpansionHunter DeNovo v0.9.0
+	cd $CAFE_Pipeline_Dir
+	mkdir -p $CAFE_Pipeline_Dir/ExpansionHunterDenovo/
+	cd $CAFE_Pipeline_Dir/ExpansionHunterDenovo/
+	wget -cq https://github.com/Illumina/ExpansionHunterDenovo/releases/download/v0.9.0/ExpansionHunterDenovo-v0.9.0-linux_x86_64.tar.gz
+	tar -zxvf ExpansionHunterDenovo-v0.9.0-linux_x86_64.tar.gz
+
+
+	# MELT v2.2.2
+	# This requires a licensing agreement
+	cd $CAFE_Pipeline_Dir
+	mkdir -p $CAFE_Pipeline_Dir/MELT/
+	cd $CAFE_Pipeline_Dir/MELT/
+
+	echo "To download MELT, please follow these instructions:" > MELT_install.txt
+	echo "1. Visit this page: https://melt.igs.umaryland.edu/downloads.php" >> MELT_install.txt
+	echo "2. Enter your information, and download the tar file to your local machine" >> MELT_install.txt
+	echo "3. Copy MELT from your local machine to the place of your analysis" >> MELT_install.txt
+	echo "4. Extract the tar file by running:" >> MELT_install.txt
+	echo "   tar -xvf MELTv2.2.2.tar" >> MELT_install.txt
+
+}
+InstallStandaloneTools
+
 
 
 exit

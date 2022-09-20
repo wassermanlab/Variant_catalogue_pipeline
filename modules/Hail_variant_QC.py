@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# Hail and plot initialisation
+# temp dir setting
+import sys
+temp_directory=sys.argv[3]
 
+# Hail and plot initialisation
 import hail as hl
 from hail.plot import output_notebook, show
 hl.init()
@@ -18,7 +21,6 @@ from bokeh.plotting import figure, output_file, show, save
 import pandas as pd
 import os
 from typing import Tuple
-import sys
 import string
 
 from typing import Optional, Dict, List, Union

@@ -15,6 +15,8 @@ artifact_prone_sites_bed =sys.argv[6]
 GRCh38_MT_local_fasta=sys.argv[7]
 GRCh38_MT_local_fai=sys.argv[8]
 mitotip_predictions_table=sys.argv[9]
+temp_directory=sys.argv[10]
+
 
 #Created through the nextflow pipeline
 #MT_Step1_input_tsv='MT_Step1_input_tsv.tsv'
@@ -36,7 +38,7 @@ from hail.utils.java import info
 from typing import Dict
 from hail.genetics import ReferenceGenome
 
-hl.init()
+hl.init(tmp_dir=temp_directory)
 output_notebook()
 
 

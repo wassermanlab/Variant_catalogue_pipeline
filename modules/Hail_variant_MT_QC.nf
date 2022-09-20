@@ -42,7 +42,7 @@ process Hail_variant_MT_QC {
 
 	script:
 	"""
-        #!/usr/bin/env python ../../../modules/Hail_variant_MT_QC.py $MT_Step1_input_tsv $MT_Step2_participant_data $MT_participants_to_subset $MT_Step3_participant_data $pon_prediction_table $artifact_prone_sites_bed $GRCh38_MT_local_fasta $GRCh38_MT_local_fai $mitotip_predictions_table
+        #!/usr/bin/env python ../../../modules/Hail_variant_MT_QC.py $MT_Step1_input_tsv $MT_Step2_participant_data $MT_participants_to_subset $MT_Step3_participant_data $pon_prediction_table $artifact_prone_sites_bed $GRCh38_MT_local_fasta $GRCh38_MT_local_fai $mitotip_predictions_table $params.tmp_dir
 	"""
 }
 

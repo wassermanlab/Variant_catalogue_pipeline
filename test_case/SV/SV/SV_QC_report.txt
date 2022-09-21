@@ -1,0 +1,87 @@
+Prior to variant filtering
+
+Number of SV identified (all types, all callers): 172599
+     Variant caller
+          Number of SV identified aith Smoove: 108319
+          Number of SV identified with Manta: 64280
+     Length
+          Length of the shortest SV (all types): -234069093 bp
+          Length of the longest SV (all types): 223477470 bp
+Deletions (DEL)
+     Number of deletions (DEL) identified (all callers): 137928
+          Number of deletions (DEL) identified (Manta): 38872
+          Number of deletions (DEL) identified (Smoove): 99056
+          Length of the shortest deletion: -234069093 bp
+          Length of the longest deletion: 0 bp
+Duplications (DUP)
+     Number of duplications (DUP) identified (all callers): 7157
+          Number of duplications (DUP) identified (Manta): 0
+          Number of duplications (DUP) identified (Smoove): 7157
+          Length of the shortest duplication: 117 bp
+          Length of the longest duplication: 223477470 bp
+Insertions (INS)
+     Number of insertions (INS) identified (all callers): 23965
+          Number of insertions (INS) identified (Manta): 23965
+          Number of insertions (INS) identified (Smoove): 0
+          Length of the shortest insertion: 0 bp
+          Length of the longest insertion: 3278 bp
+Inversions (INV)
+     Number of inversions (INV) identified (all callers): 3549
+          Number of inversions (INV) identified (Manta): 1443
+          Number of inversions (INV) identified (Smoove): 2106
+          Length of the shortest inversion: 32 bp
+          Length of the longest inversion: 217684426 bp
+
+
+Variant filtering
+
+Filer 2 : Length
+     Number of SV removed because of length (-50bp < length < 50bp) : 15624
+     Percentage of SV removed because of length (-50bp < length < 50bp) : 9.052196130916169 %
+Filer 3 : Filters
+     Number of SV removed because of filters (non PASS) : 9701
+     Percentage of SV removed because of filters (non PASS) : 6.179964962573658 %
+Filer 4 : Hail QC, AN (Allele number)
+     AN threshold for filtering : 136.5
+     Number of SV removed because of AN threshold : 30203
+     Percentage of SV removed because of AN threshold : 20.50803264663145 %
+Conclusion
+     Total number of SV removed : 55528
+     Percentage of the SV filtered out: 32.17168118007636 %
+
+
+After variant filtering
+
+Number of SV remaining (all types, all callers): 117071
+     Variant caller
+          Number of SV remaining with Smoove: 74320
+          Number of SV remaining with Manta: 42751
+     Length
+          Length of the shortest SV (all types): -234069093 bp
+          Length of the longest SV (all types): 223477453 bp
+Deletions (DEL)
+     Number of deletions (DEL) remaining (all callers): 99778
+          Number of deletions (DEL) remaining (Manta): 29421
+          Number of deletions (DEL) remaining (Smoove): 70357
+          Length of the shortest deletion: -234069093 bp
+          Length of the longest deletion: -51 bp
+Duplications (DUP)
+     Number of duplications (DUP) remaining (all callers): 2254
+          Number of duplications (DUP) remaining (Manta): 0
+          Number of duplications (DUP) remaining (Smoove): 2254
+          Length of the shortest duplication: 117 bp
+          Length of the longest duplication: 223477453 bp
+Insertions (INS)
+     Number of insertions (INS) remaining (all callers): 12037
+          Number of insertions (INS) remaining (Manta): 12037
+          Number of insertions (INS) remaining (Smoove): 0
+          Length of the shortest insertion: 51 bp
+          Length of the longest insertion: 975 bp
+Inversions (INV)
+     Number of inversions (INV) remaining (all callers): 3002
+          Number of inversions (INV) remaining (Manta): 1293
+          Number of inversions (INV) remaining (Smoove): 1709
+          Length of the shortest inversion: 51 bp
+          Length of the longest inversion: 137486295 bp
+
+

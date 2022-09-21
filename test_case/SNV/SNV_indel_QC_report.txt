@@ -1,0 +1,10 @@
+Number of SNV/indels not located on autosomes or sexual chromosomes : 754
+Number of SNV/indels removed because of deletion superior to 50bp: 12430
+Number of SNV/indels removed because of insertion superior to 50bp: 13085
+Number of SNV/indels removed because of depth metrics: 68493
+Number of SNV/indels removed because of genotype quality metrics: 780913
+Number of SNV/indels removed because of call rate metrics: 586297
+Number of SNV/indels removed because of allele number (AN): 586297
+Number of SNV/indels removed because of number of not called: 0
+Total number of SNV/indels removed : 1047663
+Percentage of the SNV/indels filtered out: 4.1866848648894255

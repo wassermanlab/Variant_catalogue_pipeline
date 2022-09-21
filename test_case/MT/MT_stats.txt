@@ -1,0 +1,22 @@
+Number of samples removed because contamination above 2%: 0
+Number of samples removed because mitochondrial copy number below 50: 0
+Number of samples removed because mitochondrial copy number above 500: 76
+Number of genotypes filtered because "heteroplasmy_below_min_het_threshold": 1430
+
+Number of samples: 100
+Number of unique variants: 1567
+Number of bases with variation: 1416
+
+Number of variants with "npg" filter: 756 variants
+Number of variants with "PASS" filter: 798 variants
+Number of variants with "artifact_prone_site" filter: 24 variants
+Number of variants with "indel_stack" filter: 18 variants
+Number of variants with "common_low_heteroplasmy" flag: 384 variants
+
+Minimum heteroplasmy detected: 0.103
+Maximum heteroplasmy detected: 1.0
+
+Number of SNPs: 1470
+Number of indels: 97
+Number of transitions: 1183
+Number of transversions: 287

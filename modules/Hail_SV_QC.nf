@@ -32,7 +32,7 @@ process Hail_SV_QC {
 
 	script:
 	"""
-        #!/usr/bin/env python ../../../modules/Hail_SV_QC.py $vcf_sample_filtered $sample_sex_file
+        #!/usr/bin/env python ../../../modules/Hail_SV_QC.py $vcf_sample_filtered $sample_sex_file $params.tmp_dir
 	"""
 }
 

@@ -5,13 +5,14 @@
 
 # In[91]:
 
+import sys
+temp_directory=sys.argv[2]
 
 import hail as hl
 from hail.plot import output_notebook, show
-hl.init()
+hl.init(tmp_dir=temp_directory)
 output_notebook()
 
-import sys
 
 # In[ ]:
 

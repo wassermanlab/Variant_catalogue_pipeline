@@ -3,10 +3,13 @@
 
 # In[1]:
 
+# Temp directory
+import sys
+temp_directory=sys.argv[3]
 
 import hail as hl
 from hail.plot import output_notebook, show
-hl.init()
+hl.init(tmp_dir=temp_directory)
 output_notebook()
 
 from hail.plot import show
@@ -19,7 +22,6 @@ from bokeh.plotting import figure, output_file, show, save
 import pandas as pd
 import os
 from typing import Tuple
-import sys
 import string
 
 from typing import Optional, Dict, List, Union

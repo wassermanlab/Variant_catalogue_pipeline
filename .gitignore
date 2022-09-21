@@ -49,3 +49,6 @@ ExpansionHunter/*
 #########################
 ExpansionHunterDenovo/*
 
+# tmp directory #
+#################
+tmp/*

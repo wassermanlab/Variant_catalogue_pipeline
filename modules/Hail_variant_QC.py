@@ -8,7 +8,7 @@ temp_directory=sys.argv[3]
 # Hail and plot initialisation
 import hail as hl
 from hail.plot import output_notebook, show
-hl.init()
+hl.init(tmp_dir=temp_directory)
 output_notebook()
 
 from hail.plot import show

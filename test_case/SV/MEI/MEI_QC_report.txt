@@ -1,0 +1,46 @@
+Before fiiltration 
+Number of MEI: 12438
+     Number of ALU: 9465
+     Number of LINE1: 1895
+     Number of SVA: 1078
+
+
+Variant filtering
+
+Filer 1 : Location
+     Number of MEI removed because of location (out of chr1-22, X, Y) : 0
+     Percentage of MEI removed because of location (out of chr1-22, X, Y) : 0.0 %
+Filer 2 : Filters column
+     Number of MEI removed because of filters (non PASS) : 4907
+     Percentage of MEI removed because of filters (non PASS) : 39.45168033445891 %
+Filer 3 : ASSESS value (ASSESS >= 3)
+     Number of MEI removed because of low ASSESS : 1388
+     Percentage of MEI removed because of low ASSESS : 11.159350377874256 %
+Filer 4 : SR value (SR >= 2)
+     Number of MEI removed because of low SR : 1990
+     Percentage of MEI removed because of low SR : 15.999356809776492 %
+Filer 5 : Hail QC, AN (Allele number)
+     AN threshold for filtering : 136.5
+     Number of MEI removed because of AN threshold : 3
+     Percentage of MEI removed because of AN threshold : 0.0241196333815726 %
+Conclusion
+     Total number of MEI removed : 5631
+     Percentage of the MEI filtered out: 45.272551857211766 %
+
+
+After variant filtering
+
+Number of MEI remaining (all types, all callers): 6807
+     Number of ALU: 5474
+     Number of LINE1: 920
+     Number of SVA: 413
+
+
+Localisation of the MEI
+     Intronic = 2716
+     Exonic = NOT WORKING
+     5 UTR = 4
+     3 UTR = 43
+     Promotor = 252
+     Terminator = 266
+     Null = 3514

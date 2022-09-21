@@ -1,0 +1,22 @@
+:filters
+frozenset({'none'}):7531
+frozenset({'lc'}):2037
+frozenset({'hDP'}):833
+frozenset({'rSD'}):519
+frozenset({'hDP', 'lc'}):339
+frozenset({'lc', 'rSD'}):169
+frozenset({'hDP', 'rSD'}):169
+frozenset({'ac0'}):163
+frozenset({'hDP', 'ac0'}):152
+frozenset({'ac0', 'rSD'}):112
+frozenset({'hDP', 'ac0', 'rSD'}):106
+frozenset({'hDP', 'lc', 'ac0'}):86
+frozenset({'lc', 'ac0'}):80
+frozenset({'hDP', 'lc', 'rSD'}):48
+frozenset({'hDP', 'lc', 'rSD', 'ac0'}):41
+frozenset({'lc', 'rSD', 'ac0'}):36
+frozenset({'hDP', 'ac0', 'rSD', 's25'}):6
+frozenset({'hDP', 'ac0', 's25'}):4
+frozenset({'s25', 'ac0', 'rSD'}):3
+frozenset({'s25', 'ac0'}):3
+frozenset({'hDP', 'lc', 's25', 'ac0'}):1

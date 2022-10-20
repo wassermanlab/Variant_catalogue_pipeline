@@ -1,46 +1,46 @@
-# CAFE Pipeline - Cohort Allele Frequency Estimation Pipeline
+# Variant catalogue Pipeline
 
 
 ## Introduction
 
-**CAFE Pipeline** is a workflow designed to generate variant catalogues, a list of variants and their frequencies in a population, from whole genome sequences.
+**The variant catalogue Pipeline** is a workflow designed to generate variant catalogues, a list of variants and their frequencies in a population, from whole genome sequences.
 
-CAFE pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. It takes as input Whole Genome Sequence (WGS) data and outputs multiple vcf files including the variant allele frequencies in the cohort and some basic annotation.
+the variant catalogue pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. It takes as input Whole Genome Sequence (WGS) data and outputs multiple vcf files including the variant allele frequencies in the cohort and some basic annotation.
 
-CAFE pipeline includes detection of Single Nucleotide Variants (SNV), small insertions and deletions (indels), Mitochondrial variants, Structural Variants (SV), Mobile Element Insertions (MEI), and Short Tandem Repeats (STR). The output variant catalogue can be generated for GRCh37 and/or GRCh38 human reference genomes.
+The variant catalogue pipeline includes detection of Single Nucleotide Variants (SNV), small insertions and deletions (indels), Mitochondrial variants, Structural Variants (SV), Mobile Element Insertions (MEI), and Short Tandem Repeats (STR). The output variant catalogue can be generated for GRCh37 and/or GRCh38 human reference genomes.
 
 <p align="center">
-    <img title="CAFE Workflow" src="https://user-images.githubusercontent.com/54953390/190030122-22e38401-4131-46b9-9af5-dbbe45f50650.png" width=50%>
+    <img title="The variant catalogue Workflow" src="https://user-images.githubusercontent.com/54953390/190030122-22e38401-4131-46b9-9af5-dbbe45f50650.png" width=50%>
 </p>
 <p align="center">
-Figure : Overview of the CAFE pipeline
+Figure : Overview of the variant catalogue pipeline
 </p>
 
 
 ## Pipeline description
 
-CAFE is composed of four sub-workflows represented by the grey boxes in the figure. The structure allows users to run the pipeline as a whole or choose to run individual sub-workflow(s) of interest. Each sub-workflow is composed of modules, which call upon open-access genomic software.
+The variant catalogue is composed of four sub-workflows represented by the grey boxes in the figure. The structure allows users to run the pipeline as a whole or choose to run individual sub-workflow(s) of interest. Each sub-workflow is composed of modules, which call upon open-access genomic software.
 
 A more detailed description of the pipeline will be available soon.
 
-Detailed representation of the CAFE pipeline : [CAFE_supp.pdf](https://github.com/scorreard/CAFE_Readme/files/9480518/CAFE_supp.pdf)
+Detailed representation of the variant catalogue pipeline : [CAFE_supp.pdf](https://github.com/scorreard/CAFE_Readme/files/9480518/CAFE_supp.pdf)
 
 ## Pipeline availability
 
-CAFE pipeline is implemented in the NextFlow framework and relies only on open-access tools, therefore, any user with sufficient compute capacity should be able to use this pipeline. Users who want to use this pipeline on their local servers will have to install the necessary software on their instance.
+The variant catalogue pipeline is implemented in the NextFlow framework and relies only on open-access tools, therefore, any user with sufficient compute capacity should be able to use this pipeline. Users who want to use this pipeline on their local servers will have to install the necessary software on their instance.
 
-All the software required to run CAFE pipeline are open-source and the link to the installation guidelines are available in [supplementary_information/software_information.md](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementary_information/software_information.md).
+All the software required to run the variant catalogue pipeline are open-source and the link to the installation guidelines are available in [supplementary_information/software_information.md](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementary_information/software_information.md).
 
 All the other resources necessary to run the pipeline (Reference genomes, annotation plugins, etc) are also publicly available and information related to them are available for [GRCh37](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementary_information/GRCh37_specific_files.md) in supplementary_information/GRCh37_specific_files.md, for [GRCh38](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementary_information/GRCh38_specific_files.md) in supplementary_information/GRCh38_specific_files.md and for [the mitochondrial genome](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementary_information/Mitochondrial_references.md) in supplementary_information/Mitochondrial_references.md.
 
 ## Future of the pipeline
 
-There is discussions with the [NF_core](https://nf-co.re) team to move CAFE pipeline to NF-core and improve and maintain this pipeline with the help of the community. Feel free to join in the effort!
+There is discussions with the [NF_core](https://nf-co.re) team to move the variant catalogue pipeline to NF-core and improve and maintain this pipeline with the help of the community. Feel free to join in the effort!
 
 
 ## Pipeline test on 100 genomes
 
-In order to test CAFE pipeline, 100 samples from the IGSR (International Genome Sample Resource) were processed. A more precise description of the method and results will be available soon. 
+In order to test the variant catalogue pipeline, 100 samples from the IGSR (International Genome Sample Resource) were processed. A more precise description of the method and results will be available soon. 
 
 The samples were processed in two batches, [batch_1](https://github.com/wassermanlab/CAFE_pipeline/blob/main/test_case/80_samples_information) contained 80 samples and [batch_2](https://github.com/wassermanlab/CAFE_pipeline/blob/main/test_case/20_samples_information) contained 20 samples.
 Output files generated by Nextflow (report, timeline, etc) are available in the test_case folder and vcf files containing annotated variant frequencies are also available in that folder. Intermediate files were not loaded into GitHub.

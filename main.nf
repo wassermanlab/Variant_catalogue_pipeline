@@ -5,7 +5,7 @@ nextflow.enable.dsl=2
 // this prints the input parameters
 
 log.info """
-Dry-run for the Silent Genomes Project IBVL
+Pipeline to generate a variant catalogue from WGS
 =============================================
 reads                           : ${params.reads}
 reference                       : ${params.ref}

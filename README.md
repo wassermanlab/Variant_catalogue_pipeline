@@ -10,7 +10,7 @@ the variant catalogue pipeline is built using [Nextflow](https://www.nextflow.io
 The variant catalogue pipeline includes detection of Single Nucleotide Variants (SNV), small insertions and deletions (indels), Mitochondrial variants, Structural Variants (SV), Mobile Element Insertions (MEI), and Short Tandem Repeats (STR). The output variant catalogue can be generated for GRCh37 and/or GRCh38 human reference genomes.
 
 <p align="center">
-    <img title="The variant catalogue Workflow" src="https://user-images.githubusercontent.com/54953390/190030122-22e38401-4131-46b9-9af5-dbbe45f50650.png" width=50%>
+    <img title="The variant catalogue Workflow" src="https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/supplementary_information/Variant_catalogue_figure.png" width=50%>
 </p>
 <p align="center">
 Figure : Overview of the variant catalogue pipeline
@@ -23,7 +23,7 @@ The variant catalogue is composed of four sub-workflows represented by the grey 
 
 A more detailed description of the pipeline will be available soon.
 
-Detailed representation of the variant catalogue pipeline : [CAFE_supp.pdf](https://github.com/scorreard/CAFE_Readme/files/9480518/CAFE_supp.pdf)
+Detailed representation of the variant catalogue pipeline : [Variant_catalogue_supp_figure.pdf](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/supplementary_information/Variant_catalogue_supp_figure.pdf)
 
 ## Pipeline availability
 

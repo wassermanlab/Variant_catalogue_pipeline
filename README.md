@@ -35,11 +35,11 @@ All the other resources necessary to run the pipeline (Reference genomes, annota
 
 ## Step-by-step instructions to run the pipeline
 
-1. Download and install the softwares necessary to run the pipeline.
+**1. Download and install the softwares necessary to run the pipeline.**
 
 All the software required to run the variant catalogue pipeline are open-source and the link to the installation guidelines are available in [supplementary_information/software_information.md](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementary_information/software_information.md).
 
-2. Download all the resources necessary to run the pipeline (Reference genomes, annotation plugins, etc).
+**2. Download all the resources necessary to run the pipeline** (Reference genomes, annotation plugins, etc).
 
 For [GRCh37](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementary_information/GRCh37_specific_files.md) in supplementary_information/GRCh37_specific_files.md
 
@@ -47,18 +47,18 @@ For [GRCh38](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementa
 
 For [the mitochondrial genome](https://github.com/wassermanlab/CAFE_pipeline/blob/main/supplementary_information/Mitochondrial_references.md) in supplementary_information/Mitochondrial_references.md.
 
-3. (Optional) Download a set of publicly available genomes.
-Or use your own set of genomes.
+**3. (Optional) Download a set of publicly available genomes.
+Or use your own set of genomes.**
 
 The samples that were processed in the test dataset are available here : [batch_1](https://github.com/wassermanlab/CAFE_pipeline/blob/main/test_case/80_samples_information) contained 80 samples and [batch_2](https://github.com/wassermanlab/CAFE_pipeline/blob/main/test_case/20_samples_information) contained 20 samples.
 
-4. Clone this repository.
+**4. Clone this repository.**
 
 ```
 git clone wassermanlab/Variant_catalogue_pipeline
 ```
 
-5. Update the config file and the bash file.
+**5. Update the config file and the bash file.**
 
 Upade the path in the nextflow.config and the Variant_Catalogue_v1.sh files to point to the software and files as per your organization.
 
@@ -68,7 +68,7 @@ For more information regarding nextflow config file, visit [Nextflow configurati
 
 If you want to run the pipeline with GRCh38 as a reference, replace GRCh38 by GRCh37 in the Variant_Catalogue_v1.sh file
 
-6. Launch the pipeline.
+**6. Launch the pipeline.**
 
 ```
 bash Variant_Catalogue_v1.sh

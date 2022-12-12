@@ -1,3 +1,1 @@
-test_case/*.html linguist-vendor
-test_case/*/*.html linguist-vendor
-test_case/*/*/*.html linguist-vendor
+*.sif filter=lfs diff=lfs merge=lfs -text

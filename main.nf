@@ -25,7 +25,7 @@ if (params.help) {
         nextflow run wassermanlab/Variant_catalogue_pipeline -r main -profile GRCh38
 
         Mandatory arguments:
-         -profile                      Allows to choose which reference genome to use, in this version, only GRCh and GRCh38 are available.
+         -profile                      Allows to choose which reference genome to use, in this version, only GRCh37 and GRCh38 are available.
 
        Optional arguments:
         --help                         This usage statement

@@ -8,7 +8,7 @@
 
 process fastqc {
         tag "$sample"
-	
+        container = "https://depot.galaxyproject.org/singularity/fastqc:0.11.9--0"	
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${sample}_sorted/Fastqc/", mode: 'copyNoFollow'
 
 	input:

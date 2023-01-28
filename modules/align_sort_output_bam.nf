@@ -35,8 +35,8 @@ process align_sort_output_bam {
 		ln -s \$bam_file .
 		ln -s \$bai_file .
 	else
-		bwa mem -t 8 -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${reference} ${read_pairs_ch} | samtools view -Sb | samtools sort -o ${sampleId}_sorted.bam
-		samtools index ${sampleId}_sorted.bam
+		bwa mem -t ${task.cpus} -R '@RG\\tID:${sampleId}\\tSM:${sampleId}' ${reference} ${read_pairs_ch} | samtools view -Sb | samtools sort -@ ${task.cpus} -o ${sampleId}_sorted.bam
+		samtools index -@ ${task.cpus} ${sampleId}_sorted.bam
 	fi
 	"""
 }

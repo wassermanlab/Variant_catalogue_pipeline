@@ -22,9 +22,9 @@ process deepvariant_call {
 	val run
 
 	output :
-	path '*_sorted.g.vcf.gz', emit : deepvariant_gvcf
-	path '*_sorted.vcf.gz', emit : deepvariant_vcf
-	path '*_sorted.vcf.gz.tbi', emit : deepvariant_vcf_index
+	path '*.g.vcf.gz', emit : deepvariant_gvcf
+	path '*.vcf.gz', emit : deepvariant_vcf
+	path '*.vcf.gz.tbi', emit : deepvariant_vcf_index
 
 	script:
 	"""
@@ -41,7 +41,7 @@ process deepvariant_call {
 		--intermediate_results_dir . \
 		--model_type=WGS \
 		--ref=${reference} \
-		--reads=${bam.simpleName}.bam \
+		--reads=${bam} \
 		--output_gvcf=${bam.simpleName}.g.vcf.gz \
 		--output_vcf=${bam.simpleName}.vcf.gz
 	fi

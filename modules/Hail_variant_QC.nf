@@ -21,6 +21,9 @@ process Hail_variant_QC {
 	val assembly
 	val batch
 	val run 
+        file ref
+        file ref_index
+
 
 	output :
 	path '*.html', emit : graph
@@ -32,7 +35,7 @@ process Hail_variant_QC {
 
 	script:
 	"""
-        #!/usr/bin/env python ../../../modules/Hail_variant_QC.py $vcf_sample_filtered $sample_sex_file $params.tmp_dir
+        #!/usr/bin/env python ../../../modules/Hail_variant_QC.py $vcf_sample_filtered $sample_sex_file $params.tmp_dir $assembly $ref $ref_index
 	"""
 }
 

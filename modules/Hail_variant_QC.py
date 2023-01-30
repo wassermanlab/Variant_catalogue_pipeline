@@ -26,7 +26,24 @@ import string
 from typing import Optional, Dict, List, Union
 
 #Created through the nextflow pipeline
-hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('filtered_samples_vcf.mt', overwrite=True)
+
+# Phil Richmond added 2023-01-30
+# Create ref genome
+# Based on - https://hail.is/docs/0.2/genetics/hail.genetics.ReferenceGenome.html#hail.genetics.ReferenceGenome.from_fasta_file
+# classmethod from_fasta_file(name, fasta_file, index_file, x_contigs=[], y_contigs=[], mt_contigs=[], par=[])
+# I can't reuse GRCh38, so instead I'll make a silly 'GRCh38ForHail'
+# I pass the "assembly" variables in sys.argv[4], so I'll pass the fasta in sys.argv[5], the fasta index in sys.argv[6]
+
+# here catching the 'X', 'Y', 'MT'
+try:
+    RefGenome = hl.ReferenceGenome.from_fasta_file('%sForHail'%sys.argv[4],sys.argv[5],sys.argv[6], x_contigs=['X'], y_contigs=['Y'], mt_contigs=['MT'])
+    hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=RefGenome).write('filtered_samples_vcf.mt', overwrite=True)
+except:
+# here catching the chrX, chrY, chrM
+    RefGenome = hl.ReferenceGenome.from_fasta_file('%sForHail'%sys.argv[4],sys.argv[5],sys.argv[6], x_contigs=['X'], y_contigs=['Y'], mt_contigs=['MT'])
+    hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=RefGenome).write('filtered_samples_vcf.mt', overwrite=True)
+
+#hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('filtered_samples_vcf.mt', overwrite=True)
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 #**Import file**

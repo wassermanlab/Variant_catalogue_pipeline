@@ -33,8 +33,32 @@ import os
 # For specific on how to look at the mt file, refer to the bottom of this Jupyter notebook)
 
 # In[ ]:
+# Modified by Phil Richmond January 2023
+# Based on https://hail.is/docs/0.2/methods/impex.html#hail.methods.import_vcf
+   # couldn't get this to work since my mito chromosome isn't a simple fix f"{i}":f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y']),f"MT":f"chrM"}
 
-hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True).write('SNV_vcf.mt', overwrite=True)
+# This doesn't work because of the killer immune receptor contigs and other random contigs...I think best to not use the built-in Hail references and just roll our own based on fasta input
+#try:
+#    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=sys.argv[3]).write('SNV_vcf.mt', overwrite=True)
+#except:
+#    recode = {"1":"chr1","2":"chr2","3":"chr3","4":"chr4","5":"chr5","6":"chr6","7":"chr7","8":"chr8","9":"chr9","10":"chr10","11":"chr11","12":"chr12","13":"chr13","14":"chr14","15":"chr15","16":"chr16","17":"chr17","18":"chr18","19":"chr19","20":"chr20","21":"chr21","22":"chr22","X":"chrX","Y":"chrY","MT":"chrM"}
+#    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=sys.argv[3], contig_recoding=recode).write('SNV_vcf.mt', overwrite=True)
+
+# Create ref genome
+# Based on - https://hail.is/docs/0.2/genetics/hail.genetics.ReferenceGenome.html#hail.genetics.ReferenceGenome.from_fasta_file
+# classmethod from_fasta_file(name, fasta_file, index_file, x_contigs=[], y_contigs=[], mt_contigs=[], par=[])
+# I can't reuse GRCh38, so instead I'll make a silly 'GRCh38ForHail'
+# I pass the "assembly" variables in sys.argv[3], so I'll pass the fasta in sys.argv[4], the fasta index in sys.argv[5]
+
+
+# here catching the 'X', 'Y', 'MT'
+try:
+    RefGenome = hl.ReferenceGenome.from_fasta_file('%sForHail'%sys.argv[3],sys.argv[4],sys.argv[5], x_contigs=['X'], y_contigs=['Y'], mt_contigs=['MT']) 
+    hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=RefGenome).write('SNV_vcf.mt', overwrite=True)
+except:
+# here catching the chrX, chrY, chrM
+    RefGenome = hl.ReferenceGenome.from_fasta_file('%sForHail'%sys.argv[3],sys.argv[4],sys.argv[5], x_contigs=['X'], y_contigs=['Y'], mt_contigs=['MT']) 
+    hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=RefGenome).write('SNV_vcf.mt', overwrite=True)
 
 
 # In[ ]:

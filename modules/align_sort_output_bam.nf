@@ -13,7 +13,7 @@ process align_sort_output_bam {
 	label 'conda_annotate'
 	tag "$sampleId"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/BAM/", mode: 'copyNoFollow'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/BAM/"
 
 	input :
 	path reference

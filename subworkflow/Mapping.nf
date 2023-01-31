@@ -47,7 +47,7 @@ workflow Mapping {
                 q4              = Picard_CollectAlignmentSummaryMetrics(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, assembly, batch, run)
                 q5              = Picard_QualityScoreDistribution(align_sort_output_bam.out.samples_bam, align_sort_output_bam.out.samples_bam_index, assembly, batch, run)
                 quality_metrics = q1.concat(q2.all_files,q3,q4,q5).collect()
-                multiqc_indiv(quality_metrics, assembly, batch, run)
+                //multiqc_indiv(quality_metrics, assembly, batch, run)
 
 	emit :
 		reference_index 	= bwa_index.out.collect()

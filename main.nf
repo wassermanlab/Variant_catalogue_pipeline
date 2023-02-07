@@ -38,6 +38,7 @@ if (params.help) {
 //include { Initialisation } from "./subworkflow/Initialisation"
 include { Mapping } from  "./subworkflow/Mapping"
 include { SNV } from "./subworkflow/SNV"
+include { SV } from "./subworkflow/SV"
 
 workflow{
 	samples 	= Channel
@@ -53,4 +54,5 @@ workflow{
 //	Initialisation()
         Mapping()
 	SNV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index)
+        SV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, SNV.out.sample_sex_file)
 }

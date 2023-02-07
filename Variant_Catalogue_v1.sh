@@ -7,7 +7,7 @@
 #SBATCH --time=200:30:00
 #SBATCH -p silent_q
 #SBATCH --mail-user=melsiddieg@cmmt.ubc.ca
-#SBATCH --mail-type=ALL
+# #SBATCH --mail-type=FAIL
 
 ## Output and Stderr
 #SBATCH --output=%x-%j.out
@@ -16,5 +16,5 @@
 source /mnt/common/SILENT/Act3/conda/miniconda3/etc/profile.d/conda.sh
 Nextflow=/mnt/common/Precision/NextFlow/nextflow
 module load singularity
-
-$Nextflow run main.nf -profile GRCh37 -resume -with-trace -with-report -with-timeline  -with-dag flowchart.png
+prof=$1
+$Nextflow run main.nf -profile $prof -resume  -with-trace -with-report -with-timeline  -with-dag flowchart.png

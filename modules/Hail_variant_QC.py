@@ -188,7 +188,7 @@ if genome == "GRCh37":
 elif genome =="GRCh38":
     intervals = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
 else:
-    raise NotImplementedError
+    raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
 SNV_mt_var_filtered = hl.filter_intervals(mt, [hl.parse_locus_interval(x,reference_genome=genome) for x in intervals], keep=True)
 
 SNV_mt_var_filtered = SNV_mt_var_filtered.filter_rows(

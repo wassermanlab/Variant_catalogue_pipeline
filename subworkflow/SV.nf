@@ -81,35 +81,35 @@ workflow SV {
 		sv_merged = SV_jasmine(svs, reference, reference_index, assembly, batch, run)
 		genotyped = SV_paragraph_duphold(sv_merged, bam, bai, reference, reference_index, assembly, batch, run)
 
-                // Aggregated steps (Need to be run everytime a new sample is added to the cohort)
+              // Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		SV_vcfs_txt(SV_paragraph_duphold.out.vcf.collect(), assembly, batch, run, SV)
 		SV_merge_samples(SV_vcfs_txt.out, assembly, batch, run, SV)
                 Hail_SV_QC (SV_merge_samples.out.vcf, sample_sex_file, assembly, batch, run)
 		SV_annotation(Hail_SV_QC.out.vcf_SV_filtered_frequ_only, Hail_SV_QC.out.index_SV_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SV, reference, dir_plugin)
 
-                SV_data_organization(SV_annotation.out.annotation_vcf, assembly, run, SV, severity_table)
+                //SV_data_organization(SV_annotation.out.annotation_vcf, assembly, run, SV, severity_table)
 
 
 		//Short Tandem Repeats (STR)
                 // Sample specific (Do not need to be run for a previously processed sample)
 		expansion_hunter(bam, bai, reference, reference_index, variant_catalog, assembly, batch, run)
 
-                // Aggregated steps (Need to be run everytime a new sample is added to the cohort)
+              // Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		STR_vcfs_txt(expansion_hunter.out.vcf.collect(), assembly, batch, run, STR)
   		STR_merge_samples(STR_vcfs_txt.out, assembly, batch, run, STR)
 		Hail_STR (STR_merge_samples.out.vcf, sample_sex_file, assembly, batch, run) 
-                STR_data_organization(STR_merge_samples.out.vcf, variant_catalog, assembly, run, STR)
+                // STR_data_organization(STR_merge_samples.out.vcf, variant_catalog, assembly, run, STR)
 
 		// Mobile Element Insertions (MEIs)
                 // Sample specific (Do not need to be run for a previously processed sample)
 		samtools_fixmate(bam, bai, assembly, batch, run)
-		melt(samtools_fixmate.out.samples_fixmate_bam, samtools_fixmate.out.samples_fixmate_bam_index, reference, reference_index, transposon_file, genes_file, assembly, batch, run)
-                
-		// Aggregated steps (Need to be run everytime a new sample is added to the cohort)
-		MEI_vcfs_txt(melt.out.vcf.collect(), assembly, batch, run, MEI)
-		MEI_merge_samples(MEI_vcfs_txt.out, assembly, batch, run, MEI)
-                Hail_MEI_QC (MEI_merge_samples.out.vcf, sample_sex_file, assembly, batch, run)
-                MEI_annotation(Hail_MEI_QC.out.vcf_MEI_filtered_frequ_only, Hail_MEI_QC.out.index_MEI_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, MEI, reference, dir_plugin)
+//		melt(samtools_fixmate.out.samples_fixmate_bam, samtools_fixmate.out.samples_fixmate_bam_index, reference, reference_index, transposon_file, genes_file, assembly, batch, run)
+//                
+//		// Aggregated steps (Need to be run everytime a new sample is added to the cohort)
+//		MEI_vcfs_txt(melt.out.vcf.collect(), assembly, batch, run, MEI)
+//		MEI_merge_samples(MEI_vcfs_txt.out, assembly, batch, run, MEI)
+//                Hail_MEI_QC (MEI_merge_samples.out.vcf, sample_sex_file, assembly, batch, run)
+//                MEI_annotation(Hail_MEI_QC.out.vcf_MEI_filtered_frequ_only, Hail_MEI_QC.out.index_MEI_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, MEI, reference, dir_plugin)
 
-                 MEI_data_organization(MEI_annotation.out.annotation_vcf, assembly, run, MEI)
+        //         MEI_data_organization(MEI_annotation.out.annotation_vcf, assembly, run, MEI)
 }

@@ -184,7 +184,7 @@ plot_sp (het_freq_hwe_SNV_table,
 #intervals = ['X','Y','1-22']
 contigs = [list(range(1,23)),"X","Y"]
 if genome == "GRCh37":
-    intervals = contigs
+    intervals = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
 elif genome =="GRCh38":
     intervals = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
 else:

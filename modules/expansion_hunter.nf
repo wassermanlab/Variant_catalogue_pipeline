@@ -13,7 +13,7 @@ process expansion_hunter {
 	label 'conda_annotate'
 	tag "${bam.simpleName}"
 
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/STR/Sample/", mode: 'copyNoFollow'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/STR/Sample/"//, mode: 'copyNoFollow'
 
 	input:
 	file bam
@@ -42,11 +42,12 @@ process expansion_hunter {
 		--reference $reference  \
 		--reads ${bam} \
 		--variant-catalog ${variant_catalog} \
-		-n ${task.cpus} 
-	
-		bcftools view -O z -o ${bam.simpleName}_str_noID.vcf.gz ${bam.simpleName}.vcf
+		-n ${task.cpus}  
+                bgzip ${bam.simpleName}.vcf
+                tabix -p vcf ${bam.simpleName}.vcf.gz
+		bcftools view --force -O z -o ${bam.simpleName}_str_noID.vcf.gz ${bam.simpleName}.vcf.gz
 		bcftools index ${bam.simpleName}_str_noID.vcf.gz
-		bcftools annotate --set-id '%CHROM\\_%POS\\_%END\\_%REF\\_%ALT' -O z -o ${bam.simpleName}_str.vcf.gz ${bam.simpleName}_str_noID.vcf.gz
+		bcftools annotate  --set-id +'%CHROM\\_%POS\\_%END\\_%REF\\_%ALT' -O z -o ${bam.simpleName}_str.vcf.gz ${bam.simpleName}_str_noID.vcf.gz
 		bcftools index --tbi ${bam.simpleName}_str.vcf.gz
 	fi
 	"""

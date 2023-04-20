@@ -23,6 +23,6 @@ process multiqc_indiv {
 
 	script :
 	"""
-	multiqc $params.outdir_ind/${assembly}/${batch}/${run}/QC/
+	multiqc . #$params.outdir_ind/${assembly}/${batch}/${run}/QC/
 	"""
 }

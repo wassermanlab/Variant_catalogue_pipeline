@@ -12,18 +12,15 @@ hl.init()
 output_notebook()
 
 from hail.plot import show
-from pprint import pprint
 from bokeh.models import Span
 hl.plot.output_notebook()
 from bokeh.models import Range1d
-from bokeh.plotting import figure, output_file, show, save
+from bokeh.plotting import output_file, show, save
 
 import pandas as pd
 import os
-from typing import Tuple
-import string
 
-from typing import Optional, Dict, List, Union
+from typing import Optional, Dict, List
 
 
 # #Created through the nextflow pipeline
@@ -39,12 +36,12 @@ sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 mt = hl.read_matrix_table('SV_vcf.mt')
 
-#Add the sample sex info
-#Only samples which passed QC are present in this file
+# Add the sample sex info
+# Only samples which passed QC are present in this file
 mt = mt.annotate_cols(**sex_table[mt.s])
 
-#Keep only samples that passed QC, and with non ambiguous sex
-mt  = mt.filter_cols((mt.sex != 'XX') | (mt.sex != 'XY'))
+# Keep only samples that passed QC, and with non ambiguous sex
+mt= mt.filter_cols((mt.sex != 'XX') | (mt.sex != 'XY'))
 
 
 # **Graph functions**
@@ -865,7 +862,7 @@ def report_stats():
     """
     Generate output report with basic stats.
     """
-    out_stats = hl.hadoop_open(f"SV_QC_report.txt", "w")
+    out_stats = hl.hadoop_open("SV_QC_report.txt", "w")
     # Report numbers of filtered SV
     out_stats.write(
         f"Prior to variant filtering\n\n"
@@ -1096,7 +1093,7 @@ def annotate_freq(
         + sample_group_filters
     )
 
-    freq_sample_count = mt.aggregate_cols(
+    mt.aggregate_cols(
         [hl.agg.count_where(x[1]) for x in sample_group_filters]
     )
 

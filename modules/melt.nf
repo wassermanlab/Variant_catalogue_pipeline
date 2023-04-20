@@ -10,7 +10,7 @@ process melt {
 	label 'conda_annotate'
 	tag "${bam.simpleName}"
 
-	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MEI/Sample/", mode: 'copyNoFollow'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/MEI/Sample/"//, mode: 'copyNoFollow'
 		
 	input:
 	file bam

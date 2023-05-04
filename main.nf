@@ -39,6 +39,7 @@ if (params.help) {
 include { Mapping } from  "./subworkflow/Mapping"
 include { SNV } from "./subworkflow/SNV"
 include { SV } from "./subworkflow/SV"
+include { MT } from "./subworkflow/MT"
 
 workflow{
 	samples 	= Channel
@@ -55,4 +56,5 @@ workflow{
         Mapping()
         SNV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index)
         SV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, SNV.out.sample_sex_file)
+	MT(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, Mapping.out.mosdepth_output)
 }

@@ -6,7 +6,7 @@
 #SBATCH --mem=4G
 #SBATCH -p silent_q
 #SBATCH --mail-user=prichmond@bcchr.ca
-# #SBATCH --mail-type=FAIL
+#SBATCH --mail-type=ALL
 
 ## Output and Stderr
 #SBATCH --output=%x-%j.out

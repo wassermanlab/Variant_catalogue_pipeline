@@ -53,7 +53,7 @@ workflow Mapping {
 		reference_index 	= bwa_index.out.collect()
 		bam_sorted 		= align_sort_output_bam.out.samples_bam
 		bam_sorted_index 	= align_sort_output_bam.out.samples_bam_index
-               // mosdepth_output 	= Mosdepth.out.summary_stat.collect()
+                mosdepth_output 	= Mosdepth.out.summary_stat.collect()
 
 }
 

@@ -23,6 +23,7 @@ severity_table=read.table((args[5]), fill=TRUE, header=TRUE)
 
 #Read the vcf file with annotation and variant frequencies
 frequ_annot_file=read.vcfR(args[2])
+# Check if any given chromosome has data to read
 if (length(frequ_annot_file@fix[0]) == 0){
   print("No input variants")
 }else {

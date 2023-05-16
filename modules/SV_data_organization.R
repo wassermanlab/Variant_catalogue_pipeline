@@ -23,6 +23,10 @@ severity_table=read.table((args[5]), fill=TRUE, header=TRUE)
 
 #Read the vcf file with annotation and variant frequencies
 frequ_annot_file=read.vcfR(args[2])
+if (length(frequ_annot_file@fix[0]) == 0){
+  print("No input variants")
+}else {
+
 chromosome=frequ_annot_file@fix[1,1]
 
 
@@ -284,3 +288,4 @@ colnames(gene_table_noNA)=c("short_name")
 write.table(gene_table_noNA, file=paste0("genes_sv_", var_type, "_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 
 show("gene_table ok")
+}

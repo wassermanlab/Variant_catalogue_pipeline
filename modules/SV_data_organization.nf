@@ -24,7 +24,7 @@ process SV_data_organization {
 	path severity_table
 
 	output :
-	path '*' optional: true
+	path '*', optional: true
 
 	script:
 	"""

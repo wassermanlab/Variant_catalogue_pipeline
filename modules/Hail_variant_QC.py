@@ -8,7 +8,7 @@ temp_directory=sys.argv[3]
 # Hail and plot initialisation
 import hail as hl
 from hail.plot import output_notebook, show
-hl.init(tmp_dir=temp_directory)
+hl.init()
 output_notebook()
 
 from hail.plot import show
@@ -24,9 +24,9 @@ from typing import Tuple
 import string
 
 from typing import Optional, Dict, List, Union
-
+genome = sys.argv[4]
 #Created through the nextflow pipeline
-hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('filtered_samples_vcf.mt', overwrite=True)
+hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=genome).write('filtered_samples_vcf.mt', overwrite=True)
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 #**Import file**
@@ -180,8 +180,16 @@ plot_sp (het_freq_hwe_SNV_table,
 #- Number of samples with missing genotype per variant lower than the low threshoold
 #Not implemented :  Hardy–Weinberg values
 
-intervals = [hl.parse_locus_interval(x) for x in ['X', 'Y', '1-22']]
-SNV_mt_var_filtered = hl.filter_intervals(mt, intervals, keep=True)
+#intervals = [hl.parse_locus_interval(x,reference_genome=genome) for x in ['X','Y', '1-22']]
+#intervals = ['X','Y','1-22']
+contigs = [list(range(1,23)),"X","Y"]
+if genome == "GRCh37":
+    intervals = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+elif genome =="GRCh38":
+    intervals = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+else:
+    raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
+SNV_mt_var_filtered = hl.filter_intervals(mt, [hl.parse_locus_interval(x,reference_genome=genome) for x in intervals], keep=True)
 
 SNV_mt_var_filtered = SNV_mt_var_filtered.filter_rows(
     (SNV_mt_var_filtered.variant_qc.dp_stats.mean > stat(DP_SNV_table) [2]) &
@@ -223,7 +231,7 @@ def report_stats():
     )
     out_stats.close()
     
-n_non_chr = mt.count()[0] - hl.filter_intervals(mt, intervals, keep=True).count()[0]
+n_non_chr = mt.count()[0] - hl.filter_intervals(mt, [hl.parse_locus_interval(x,reference_genome=genome) for x in intervals], keep=True).count()[0]
 
 n_large_del = mt.filter_rows(hl.len(mt.alleles[0]) > 50).count()[0]
 n_large_ins = mt.filter_rows(hl.len(mt.alleles[1]) > 50).count()[0]

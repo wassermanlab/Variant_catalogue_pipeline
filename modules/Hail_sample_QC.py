@@ -7,6 +7,7 @@
 
 import sys
 temp_directory=sys.argv[2]
+genome=sys.argv[3]
 
 import hail as hl
 from hail.plot import output_notebook, show
@@ -34,7 +35,7 @@ import os
 
 # In[ ]:
 
-hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True).write('SNV_vcf.mt', overwrite=True)
+hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=genome).write('SNV_vcf.mt', overwrite=True)
 
 
 # In[ ]:
@@ -298,13 +299,13 @@ plot_histo(r_ti_tv_table,
            'Ratio transitions to transversions per sample')
 
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
+## In[ ]:
+#
+#
+#
+#
+#
+## In[ ]:
 
 
 

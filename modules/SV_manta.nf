@@ -47,7 +47,6 @@ process SV_manta {
 		python2 ./runWorkflow.py \
 		-j ${task.cpus} \
 		-m local
-	
 		bcftools reheader -s sample.txt results/variants/diploidSV.vcf.gz > ${bam.simpleName}_diploidSV.vcf.gz
 		bcftools index -f --tbi ${bam.simpleName}_diploidSV.vcf.gz
 	fi

@@ -1,1 +1,1 @@
-singularity/*sif filter=lfs diff=lfs merge=lfs -text
+singularity/*.sif filter=lfs diff=lfs merge=lfs -text

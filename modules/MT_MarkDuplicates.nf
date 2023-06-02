@@ -24,14 +24,9 @@ process MarkDuplicates {
 
         script:
         """
-	sample_name=\$(echo ${bam_MT.baseName} | cut -d _ -f 1)
-	if [ -a $params.outdir_ind/${assembly}/*/${run}/MT/Sample/\${sample_name}_MT_merged_filtered_trimmed_filtered_sites.vcf.gz ]; then
-		touch ${bam_MT.baseName}_marked_duplicates.bam
-	else
 		gatk MarkDuplicates \
-		I=${bam_MT.baseName}.bam \
+		I=${bam_MT} \
 		O=${bam_MT.baseName}_marked_duplicates.bam \
 		M=${bam_MT.baseName}_marked_duplicates_metrics.txt
-        fi
 	"""
 }

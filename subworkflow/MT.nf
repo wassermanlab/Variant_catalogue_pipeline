@@ -100,28 +100,68 @@ workflow MT {
                 // Sample specific (Do not need to be run for a previously processed sample)
 		Extract_MT_Read(bam, bai, Mitochondrial_chromosome, assembly, batch, run)
 		MT_SamtoFastq(Extract_MT_Read.out, assembly, batch, run)
-		align_to_MT(ref_MT_fasta, bwa_index.out, MT_SamtoFastq.out.fastq_MT, assembly, batch, run)
-		align_to_MT_shifted(ref_MT_shifted_fasta, bwa_index_shifted.out, MT_SamtoFastq.out.fastq_MT, assembly, batch, run)
-		MarkDuplicates(align_to_MT.out.align_to_MT_bam, align_to_MT.out.align_to_MT_bai, assembly, batch, run)
-                MarkDuplicates_index(align_to_MT.out.align_to_MT_bam, align_to_MT.out.align_to_MT_bai, assembly, batch, run, MarkDuplicates.out.bam.collect())
-
-		MarkDuplicates_shifted(align_to_MT_shifted.out.align_to_MT_bam, align_to_MT_shifted.out.align_to_MT_bai, assembly, batch, run)
-		MarkDuplicates_index_shifted(align_to_MT_shifted.out.align_to_MT_bam, align_to_MT_shifted.out.align_to_MT_bai, assembly, batch, run, MarkDuplicates_shifted.out.bam.collect())
-		Picard_CollectWgsMetrics_MT(ref_MT_fasta, ref_MT_fasta_index, non_control_region_interval_list, align_to_MT.out.align_to_MT_bam, align_to_MT.out.align_to_MT_bai, assembly, batch, run)
-		Picard_CollectWgsMetrics_MT_shifted(ref_MT_shifted_fasta, ref_MT_shifted_fasta_index, control_region_shifted_reference_interval_list, align_to_MT_shifted.out.align_to_MT_bam, align_to_MT_shifted.out.align_to_MT_bai, assembly, batch, run)
-		shift_back(Picard_CollectWgsMetrics_MT_shifted.out, Picard_CollectWgsMetrics_MT.out.collect(), assembly, batch, run, path_R_libraries)
+		//
+                align_to_MT(ref_MT_fasta, bwa_index.out, MT_SamtoFastq.out.fastq_MT, 
+                assembly, batch, run)
+		//
+                align_to_MT_shifted(ref_MT_shifted_fasta, bwa_index_shifted.out,
+                MT_SamtoFastq.out.fastq_MT, assembly, batch, run)
+		//
+                MarkDuplicates(align_to_MT.out.align_to_MT_bam, 
+                align_to_MT.out.align_to_MT_bai, assembly, batch, run)
+                //
+                MarkDuplicates_index(align_to_MT.out.align_to_MT_bam, 
+                align_to_MT.out.align_to_MT_bai, assembly, batch, run, MarkDuplicates.out.bam.collect())
+                //    
+		MarkDuplicates_shifted(align_to_MT_shifted.out.align_to_MT_bam,
+                align_to_MT_shifted.out.align_to_MT_bai, assembly, batch, run)
+		//
+                MarkDuplicates_index_shifted(align_to_MT_shifted.out.align_to_MT_bam,
+                align_to_MT_shifted.out.align_to_MT_bai, assembly, batch, run,
+                MarkDuplicates_shifted.out.bam.collect())
+		//
+                Picard_CollectWgsMetrics_MT(ref_MT_fasta, ref_MT_fasta_index,
+                non_control_region_interval_list, align_to_MT.out.align_to_MT_bam,
+                align_to_MT.out.align_to_MT_bai, assembly, batch, run)
+		//
+                Picard_CollectWgsMetrics_MT_shifted(ref_MT_shifted_fasta,
+                ref_MT_shifted_fasta_index, control_region_shifted_reference_interval_list,
+                align_to_MT_shifted.out.align_to_MT_bam, align_to_MT_shifted.out.align_to_MT_bai,
+                assembly, batch, run)
+		//
+                shift_back(Picard_CollectWgsMetrics_MT_shifted.out,
+                Picard_CollectWgsMetrics_MT.out.collect(), assembly, batch, run, path_R_libraries)
 		MT_Step1_input_tsv(shift_back.out.Sample_MT_Step1_input_tsv.collect(), assembly, batch, run)
-		MT_call_variants(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MarkDuplicates.out.bam, MarkDuplicates_index.out.bai.collect(), Mitochondrial_chromosome, assembly, batch, run)
-		MT_call_variants_shifted(ref_MT_shifted_fasta, ref_MT_shifted_fasta_index, ref_MT_shifted_fasta_dict, MarkDuplicates_shifted.out.bam, MarkDuplicates_index_shifted.out.bai.collect(), Mitochondrial_chromosome, assembly, batch, run)
-		MT_Liftover(MT_call_variants_shifted.out.Mutect2_vcf, MT_call_variants_shifted.out.Mutect2_vcf_index, ref_MT_fasta, ref_MT_fasta_dict, bwa_index.out, ShiftBack_chain, assembly, batch, run)
+		MT_call_variants(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict,
+                MarkDuplicates.out.bam, MarkDuplicates_index.out.bai.collect(),
+                Mitochondrial_chromosome, assembly, batch, run)
+		MT_call_variants_shifted(ref_MT_shifted_fasta, ref_MT_shifted_fasta_index, 
+                ref_MT_shifted_fasta_dict, MarkDuplicates_shifted.out.bam,
+                MarkDuplicates_index_shifted.out.bai.collect(), Mitochondrial_chromosome, assembly, batch, run)
+		MT_Liftover(MT_call_variants_shifted.out.Mutect2_vcf,
+                MT_call_variants_shifted.out.Mutect2_vcf_index, ref_MT_fasta, ref_MT_fasta_dict,
+                bwa_index.out, ShiftBack_chain, assembly, batch, run)
 		MT_MergeVcfs(MT_Liftover.out.lifted_vcf.collect(), MT_call_variants.out.Mutect2_vcf, assembly, batch, run)
 		MT_norm(MT_MergeVcfs.out.vcf, assembly, batch, run)
-		MT_Merge_stat_file(MT_call_variants.out.Mutect2_stat, MT_call_variants_shifted.out.Mutect2_stat.collect(), assembly, batch, run)
-		MT_Filter_Mutect_Calls(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_norm.out.vcf, MT_norm.out.index, MT_Merge_stat_file.out.collect(), assembly, batch, run)
-		MT_LeftAlignAndTrimVariants(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_Filter_Mutect_Calls.out.vcf, MT_Filter_Mutect_Calls.out.index, assembly, batch, run)
-		MT_FilterOut_sites(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, MT_LeftAlignAndTrimVariants.out.vcf, MT_LeftAlignAndTrimVariants.out.index, blacklist_sites_hg38_MT_file, blacklist_sites_hg38_MT_index_file, assembly, batch, run)
+		//
+                MT_Merge_stat_file(MT_call_variants.out.Mutect2_stat,
+                //
+                MT_call_variants_shifted.out.Mutect2_stat.collect(), assembly, batch, run)
+		//
+                MT_Filter_Mutect_Calls(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict,
+                MT_norm.out.vcf, MT_norm.out.index, MT_Merge_stat_file.out.collect(), assembly, batch, run)
+		//
+                MT_LeftAlignAndTrimVariants(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict, 
+                //
+                MT_Filter_Mutect_Calls.out.vcf, MT_Filter_Mutect_Calls.out.index, assembly, batch, run)
+		//
+                MT_FilterOut_sites(ref_MT_fasta, ref_MT_fasta_index, ref_MT_fasta_dict,
+                MT_LeftAlignAndTrimVariants.out.vcf, MT_LeftAlignAndTrimVariants.out.index,
+                blacklist_sites_hg38_MT_file, blacklist_sites_hg38_MT_index_file, assembly, batch, run)
+                //
                 MT_haplocheck(MT_FilterOut_sites.out.vcf, assembly, batch, run, haplocheck_path)
-                MT_Step3_metadata_sample(mosdepth, MT_haplocheck.out.file, assembly, batch, run, path_R_libraries)
+                MT_Step3_metadata_sample(mosdepth, MT_haplocheck.out.file, assembly, batch,
+                run, path_R_libraries)
 
                 // Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		MT_Step2_participant_data(MT_FilterOut_sites.out.sample_MT_Step2_participant_data.collect(), MT_FilterOut_sites.out.Sample_list.collect(), assembly, batch, run)

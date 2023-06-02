@@ -10,9 +10,9 @@
 // The results are aggregated using multiQC
 
 
-// Load the modules for the ALN workflow
+// Load the modules for the mapping workflow
 include { align_sort_output_bam } from "./../modules/align_sort_output_bam"
-include { bwa_index; bwa_index as bwa_index_shifted } from "./../modules/bwa_index"
+include { bwa_index } from "./../modules/bwa_index"
 
 include {fastqc} from "./../modules/fastqc"
 include {Mosdepth} from "./../modules/mosdepth"

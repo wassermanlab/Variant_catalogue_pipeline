@@ -5,7 +5,7 @@ nextflow.enable.dsl=2
 // this prints the input parameters
 
 log.info """
-Dry-run for the Silent Genomes Project IBVL
+Varaint catalogue pipeline - Nextflow
 =============================================
 reads                           : ${params.reads}
 reference                       : ${params.ref}
@@ -15,9 +15,21 @@ batch	                        : ${params.batch}
 """
 
 if (params.help) {
-    log.info 'Pipeline designed to generate a genetic variant catalogue'
-    log.info 'Pipeline developped to generate the IBVL (Silent Genomes Project)'
-    log.info 'Let\'s reduce health care disparities'
+    log.info """
+    Usage:
+        This is the variant catalogue pipeline
+	This pipeline was developped to generate the IBVL (Silent Genomes Project)
+	Let\'s reduce health care disparities
+	
+        The typical command for running the pipeline is as follows:
+        nextflow run wassermanlab/Variant_catalogue_pipeline -r main -profile GRCh38
+
+        Mandatory arguments:
+         -profile                      Allows to choose which reference genome to use, in this version, only GRCh37 and GRCh38 are available.
+
+       Optional arguments:
+        --help                         This usage statement
+    """
     exit 1
 }
 

@@ -24,10 +24,6 @@ process samtools_fixmate {
 	script:
 	"""
 	sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
-	if [ -a $params.outdir_ind/${assembly}/*/${run}/MEI/Sample/\${sample_name}_mei.vcf.gz ]; then
-		touch \${sample_name}_fixmate_ordered.bam
-		touch \${sample_name}_fixmate_ordered.bam.bai
-	else
 		# Resort the bam file by query name for samtools fixmate (coordiante-sorted bam does not work)
 		samtools sort -n -O BAM -@ 20  ${bam} > ${bam.SimpleName}_nsorted.bam
 
@@ -39,7 +35,8 @@ process samtools_fixmate {
 
 		# index the sorted bam file
 		samtools index  -@ 20  ${bam.SimpleName}_fixmate_ordered.bam
-	fi
+		rm *_nsorted.bam* *_fixmate.bam
+	
 	"""
 }
 

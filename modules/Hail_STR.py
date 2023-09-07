@@ -338,7 +338,7 @@ else:
 
 # intervals = [hl.parse_locus_interval(x) for x in ['X', 'Y', '1-22']]
 STR_mt_locus_filtered = hl.filter_intervals(mt, 
-                                            [hl.parse_locus_interval(x,reference_genome=genome)
+                                            [hl.parse_locus_interval(x,reference_genome=referenceGenome)
                                              for x in intervals], keep=True)
 
 

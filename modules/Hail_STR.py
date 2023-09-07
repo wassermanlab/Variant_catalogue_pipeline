@@ -327,16 +327,21 @@ plot_sp (het_freq_hwe_table,
 # **Step 1 : chr 1-22, X, Y**
 
 # In[31]:
+#
+#contigs = [list(range(1,23)),"X","Y"]
 
-contigs = [list(range(1,23)),"X","Y"]
-if genome == "GRCh37":
-    intervals = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-elif genome =="GRCh38":
-    intervals = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-else:
-    raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
+# Phil 2023-09-07: this is another place where the intervals create an issue with hard-coded expectation of contig name
+try:
+    contigs = referenceGenome.contigs
+except:
+    if genome == "GRCh37":
+        contigs = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+    elif genome =="GRCh38":
+        contigs = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+    else:
+        raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
 
-# intervals = [hl.parse_locus_interval(x) for x in ['X', 'Y', '1-22']]
+intervals = [hl.parse_locus_interval(x) for x in contigs]
 STR_mt_locus_filtered = hl.filter_intervals(mt, 
                                             [hl.parse_locus_interval(x,reference_genome=referenceGenome)
                                              for x in intervals], keep=True)

@@ -15,8 +15,6 @@ process Hail_sample_QC {
 	input :
 	file SNV_vcf
 	val assembly
-	val batch
-	val run 
 	val ref
 	val ref_index
 

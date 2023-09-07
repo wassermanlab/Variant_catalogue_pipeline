@@ -5,6 +5,9 @@
 
 import sys
 temp_directory=sys.argv[3]
+genome=sys.argv[4]
+ref_fasta=sys.argv[5]
+ref_fasta_index=sys.argv[6]
 
 import hail as hl
 from hail.plot import output_notebook, show
@@ -24,7 +27,22 @@ from typing import Optional, Dict, List
 
 
 # #Created through the nextflow pipeline
-hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('SV_vcf.mt', overwrite=True)
+# hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True).write('SV_vcf.mt', overwrite=True)
+# Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here
+# In[ ]:
+try:
+    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=genome).write('SV_vcf.mt', overwrite=True)
+except:
+    # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
+    # PAR taken for GRCh38 from http://useast.ensembl.org/info/genome/genebuild/human_PARS.html
+    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",ref_fasta,ref_fasta_index,x_contigs=['X'],y_contigs=['Y'],mt_contigs=['MT'],par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
+    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=referenceGenome).write('SV_vcf.mt', overwrite=True)
+
+
+
+
+
+
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 # **Import file**

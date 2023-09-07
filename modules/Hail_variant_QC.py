@@ -200,14 +200,29 @@ plot_sp (het_freq_hwe_SNV_table,
 
 #intervals = [hl.parse_locus_interval(x,reference_genome=genome) for x in ['X','Y', '1-22']]
 #intervals = ['X','Y','1-22']
-contigs = [list(range(1,23)),"X","Y"]
-if genome == "GRCh37":
-    intervals = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-elif genome =="GRCh38":
-    intervals = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-else:
-    raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
-SNV_mt_var_filtered = hl.filter_intervals(mt, [hl.parse_locus_interval(x,reference_genome=genome) for x in intervals], keep=True)
+#contigs = [list(range(1,23)),"X","Y"]
+#if genome == "GRCh37":
+#    intervals = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+#elif genome =="GRCh38":
+#    intervals = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+#else:
+#    raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
+
+# Phil 2023-09-07: this is another place where the intervals create an issue with hard-coded expectation of contig name
+try:
+    contigs = referenceGenome.contigs
+except:
+    if genome == "GRCh37":
+        contigs = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+    elif genome =="GRCh38":
+        contigs = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+    else:
+        raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
+
+intervals = [hl.parse_locus_interval(x, reference_genome=referenceGenome) for x in contigs]
+
+
+SNV_mt_var_filtered = hl.filter_intervals(mt, intervals, keep=True)
 
 SNV_mt_var_filtered = SNV_mt_var_filtered.filter_rows(
     (SNV_mt_var_filtered.variant_qc.dp_stats.mean > stat(DP_SNV_table) [2]) &

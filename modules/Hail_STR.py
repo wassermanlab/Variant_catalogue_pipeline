@@ -341,10 +341,10 @@ except:
     else:
         raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
 
-intervals = [hl.parse_locus_interval(x) for x in contigs]
-STR_mt_locus_filtered = hl.filter_intervals(mt, 
-                                            [hl.parse_locus_interval(x,reference_genome=referenceGenome)
-                                             for x in intervals], keep=True)
+intervals = [hl.parse_locus_interval(x, reference_genome=referenceGenome) for x in contigs]
+print(contigs)
+print(intervals)
+STR_mt_locus_filtered = hl.filter_intervals(mt, intervals, keep=True)
 
 
 # **Step 2 : mt.filters column**

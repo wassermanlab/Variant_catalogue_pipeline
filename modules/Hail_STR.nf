@@ -21,6 +21,8 @@ process Hail_STR {
 	val assembly
 	val ref
 	val ref_index
+	val batch
+	val run
 
 	output :
 	path '*.html', emit : graph

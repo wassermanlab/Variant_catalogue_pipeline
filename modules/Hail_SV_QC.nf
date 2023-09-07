@@ -21,6 +21,8 @@ process Hail_SV_QC {
 	val assembly
 	val ref
 	val ref_index
+	val batch
+	val run
 	
 
 	output :

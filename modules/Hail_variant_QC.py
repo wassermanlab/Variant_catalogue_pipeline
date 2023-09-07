@@ -264,7 +264,9 @@ def report_stats():
     )
     out_stats.close()
     
-n_non_chr = mt.count()[0] - hl.filter_intervals(mt, [hl.parse_locus_interval(x,reference_genome=genome) for x in intervals], keep=True).count()[0]
+#n_non_chr = mt.count()[0] - hl.filter_intervals(mt, [hl.parse_locus_interval(x,reference_genome=genome) for x in intervals], keep=True).count()[0]
+
+n_non_chr = mt.count()[0] - hl.filter_intervals(mt, intervals, keep=True).count()[0]
 
 n_large_del = mt.filter_rows(hl.len(mt.alleles[0]) > 50).count()[0]
 n_large_ins = mt.filter_rows(hl.len(mt.alleles[1]) > 50).count()[0]

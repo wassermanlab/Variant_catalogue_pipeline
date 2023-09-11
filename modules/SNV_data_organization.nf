@@ -42,8 +42,8 @@ process SNV_data_organization {
 	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 
 	chr=\$(echo ${SNV_annot_merged.simpleName} | sed 's/^.*_\\([^_]*\\)\$/\\1/' )
-
-	Rscript ../../../modules/SNV_data_organization.R $assembly gnomad_frequency_table_\${chr}.tsv ${SNV_annot_merged} $severity_table
+        freq_file=\$(find  . -iname "gnomad_frequency_table_*\${chr}.tsv")
+	Rscript ../../../modules/SNV_data_organization.R $assembly \${freq_file} ${SNV_annot_merged} $severity_table
 	"""
 }
 

@@ -13,13 +13,25 @@ library(tidyr)
 
 #Read the arguments from the nextflow process calling the Rscript named 'MT_heteroplasmy_bin.nf'
 args <- commandArgs(trailingOnly = TRUE)
-
+if (!require(glue)) {
+  install.packages("glue")  # Install the package if not installed
+  library(glue)             # Load the package
+}
+if (!require(data.table)) {
+  install.packages("data.table")  # Install the package if not installed
+  library(data.table)             # Load the package
+}
 #Define assembly from the args
 assembly=(args[1])
-
+chr = args[2]
 ####Organize different tables
 ##Read gnomAD SNV vcf
-gnomad_file=read.table(args[2], header=TRUE)
+pat = glue("gnomad_frequency_table_(chr)?{chr}")
+gfile = grep(perl = TRUE,pattern = pat,x = list.files(),value = T)
+gnomad_file=fread(gfile)
+if (length(gnomad_file)>11)gnomad_file[,12]=NULL
+names(gnomad_file)
+head(gnomad_file)
 #Create the variant ID (chr-Pos_ref_alt)
 ID_table_gnomad=gnomad_file[,c("CHROM", "POS", "REF", "ALT")]
 ID_db_gnomad=paste(ID_table_gnomad$CHROM, ID_table_gnomad$POS, ID_table_gnomad$REF, ID_table_gnomad$ALT, sep="_")

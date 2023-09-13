@@ -26,16 +26,12 @@ assembly=(args[1])
 chr = args[2]
 ####Organize different tables
 ##Read gnomAD SNV vcf
-<<<<<<< HEAD
 pat = glue("gnomad_frequency_table_(chr)?{chr}.tsv")
-=======
-pat = glue("gnomad_frequency_table_(chr)?{chr}")
->>>>>>> bfd55523898b716ed6a2d97274c89af0eaaf65f2
 gfile = grep(perl = TRUE,pattern = pat,x = list.files(),value = T)
 gnomad_file=fread(gfile)
 if (length(gnomad_file)>11)gnomad_file[,12]=NULL
-names(gnomad_file)
-head(gnomad_file)
+#names(gnomad_file)
+#head(gnomad_file)
 #Create the variant ID (chr-Pos_ref_alt)
 ID_table_gnomad=gnomad_file[,c("CHROM", "POS", "REF", "ALT")]
 ID_db_gnomad=paste(ID_table_gnomad$CHROM, ID_table_gnomad$POS, ID_table_gnomad$REF, ID_table_gnomad$ALT, sep="_")

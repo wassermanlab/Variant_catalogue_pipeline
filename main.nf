@@ -35,7 +35,7 @@ if (params.help) {
 
 
 // Include the other workflow that themselves includes the modules
-//include { Initialisation } from "./subworkflow/Initialisation"
+include { Initialisation } from "./subworkflow/Initialisation"
 include { Mapping } from  "./subworkflow/Mapping"
 include { SNV } from "./subworkflow/SNV"
 include { SV } from "./subworkflow/SV"
@@ -52,7 +52,7 @@ workflow{
 	outdir_ind 	= file (params.outdir_ind)
 
 	main :
-//	Initialisation()
+	//Initialisation()
         Mapping()
         SNV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index)
         SV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, SNV.out.sample_sex_file)

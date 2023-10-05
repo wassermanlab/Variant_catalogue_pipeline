@@ -17,7 +17,7 @@ workflow Initialisation {
 
 	// Load the parameters and files
 	gnomad_SNV_vcf          = file (params.gnomad_SNV_vcf)
-	gnomad_SNV_index        = file (params.gnomad_SNV_index)
+	gnomad_SNV_index        = file (params.gnomad_SNV_vcf_index)
         chr                     = params.chrom
 
 

@@ -38,7 +38,6 @@ workflow Mapping {
     		.fromPath(input)
                      .splitCsv(header: true)
                      .map { row -> tuple(file(row.fastq_1), file(row.fastq_1)) }
-                     .flatten()
     		.set {read_pairs_ch}
 
 	main:

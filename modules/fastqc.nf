@@ -12,7 +12,7 @@ process fastqc {
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Individuals/${sample}_sorted/Fastqc/", mode: 'copyNoFollow'
 
 	input:
-        path reads 
+        tuple (val(sample), file(reads)) 
         path outdir_ind
 	val assembly
 	val batch
@@ -24,5 +24,6 @@ process fastqc {
 	script:
         """
 		fastqc -t ${task.cpus} ${reads.get(0)} ${reads.get(1)}
+
 	"""
 }

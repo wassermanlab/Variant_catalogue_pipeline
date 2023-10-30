@@ -37,7 +37,7 @@ workflow Mapping {
 	Channel
     		.fromPath(input)
                      .splitCsv(header: true)
-                     .map { row -> tuple(file(row.fastq_1), file(row.fastq_1)) }
+                     .map { row -> tuple(row.sample, [file(row.fastq_1), file(row.reafastq_2)]) }
     		.set {read_pairs_ch}
 
 	main:

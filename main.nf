@@ -46,9 +46,8 @@ workflow{
 	samples = Channel
     		.fromPath(input)
                      .splitCsv(header: true)
-                     .map { row -> [file(row.fastq_1), file(row.fastq_1)] }
-                     .flatten()
-		.ifEmpty { error "Cannot find any reads matching: ${params.input}" }    
+                     .map { row -> tuple(row.sample, [file(row.fastq_1), file(row.reafastq_2)]) }
+		    .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }    
 
 	batch = params.batch
 	assembly = params.assembly

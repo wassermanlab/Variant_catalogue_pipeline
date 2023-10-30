@@ -44,10 +44,10 @@ include { MT } from "./subworkflow/MT"
 workflow{
     input = file (params.input)
 	samples = Channel
-    		.fromPath(input)
+    		.fromPath(params.input)
                      .splitCsv(header: true)
-                     .map { row -> tuple(row.sample, [file(row.fastq_1), file(row.reafastq_2)]) }
-		    .ifEmpty { error "Cannot find any reads matching: ${params.reads}" }    
+                     .map { row -> tuple(row.sample, [file(row.fastq_1), file(row.fastq_2)]) }
+		    //.ifEmpty { error "Cannot find any reads matching: ${params.reads}" }    
 
 	batch = params.batch
 	assembly = params.assembly

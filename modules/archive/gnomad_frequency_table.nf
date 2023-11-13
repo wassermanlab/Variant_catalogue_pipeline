@@ -14,7 +14,6 @@ process gnomad_frequency_table {
 	publishDir "$params.reference_dir", mode: 'copy'
 
         input :
-        val assembly
         file gnomad_SNV_vcf
 	file gnomad_SNV_index
 	each chr
@@ -22,13 +21,7 @@ process gnomad_frequency_table {
         output :
         file '*'
 
-        script:
-        if (${params.assembly}=="GRCh37" && $chr == "Y")
-        """
-        echo "CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tAF\tAN\tAC\tnhomalt" > ${gnomad_SNV_vcf.simpleName}_frequency_table_Y.tsv
-        echo "Y\t1\t.\tN\tN\t.\t.\t.\t.\t.\t." >> ${gnomad_SNV_vcf.simpleName}_frequency_table_Y.tsv
-        """
-        else
+        script :
         """
         gatk --java-options "-Xmx4G" \
 	VariantsToTable \

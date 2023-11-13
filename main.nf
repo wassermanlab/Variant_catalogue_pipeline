@@ -42,17 +42,14 @@ include { SV } from "./subworkflow/SV"
 include { MT } from "./subworkflow/MT"
 
 workflow{
-    input = file (params.input)
-	samples = Channel
-    		.fromPath(params.input)
-                     .splitCsv(header: true)
-                     .map { row -> tuple(row.sample, [file(row.fastq_1), file(row.fastq_2)]) }
-		    //.ifEmpty { error "Cannot find any reads matching: ${params.reads}" }    
+	samples 	= Channel
+		.fromFilePairs (params.reads)
+		.ifEmpty { error "Cannot find any reads matching: ${params.reads}" }    
 
-	batch = params.batch
-	assembly = params.assembly
-	run = params.run
-	outdir_ind = file (params.outdir_ind)
+	batch 		= params.batch
+	assembly        = params.assembly
+	run		= params.run
+	outdir_ind 	= file (params.outdir_ind)
 
 	main :
 //	Initialisation()

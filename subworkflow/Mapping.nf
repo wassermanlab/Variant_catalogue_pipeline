@@ -32,12 +32,9 @@ workflow Mapping {
         outdir_ind      = file (params.outdir_ind)
         reference       = file (params.ref)
         reference_index = file (params.ref_index)
-        input           = file (params.input)
 
 	Channel
-    		.fromPath(params.input)
-                     .splitCsv(header: true)
-                     .map { row -> tuple(row.sample, [file(row.fastq_1), file(row.fastq_2)]) }
+    		.fromFilePairs(params.reads )
     		.set {read_pairs_ch}
 
 	main:

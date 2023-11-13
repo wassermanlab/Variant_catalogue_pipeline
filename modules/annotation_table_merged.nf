@@ -63,7 +63,6 @@ process annotation_table_merged {
 	--variant_class \
 	--polyphen b \
 	--sift b \
-	--af_gnomadg \
 	--hgvs \
         --check_existing \
         --var_synonyms \

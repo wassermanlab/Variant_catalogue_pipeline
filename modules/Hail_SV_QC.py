@@ -32,7 +32,6 @@ from typing import Optional, Dict, List
 # In[ ]:
 try:
     hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=genome).write('SV_vcf.mt', overwrite=True)
-    referenceGenome = genome
 except:
     # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
     # PAR taken for GRCh38 from http://useast.ensembl.org/info/genome/genebuild/human_PARS.html

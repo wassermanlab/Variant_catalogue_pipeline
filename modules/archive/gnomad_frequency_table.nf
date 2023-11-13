@@ -11,7 +11,7 @@
 process gnomad_frequency_table {
 	tag "${gnomad_vcf}"
 
-	publishDir "$params.gnomad_SNV_frequency_outdir", mode: 'copy'
+	publishDir "$params.reference_dir", mode: 'copy'
 
         input :
         val assembly

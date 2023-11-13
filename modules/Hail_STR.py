@@ -336,10 +336,8 @@ try:
 except:
     if genome == "GRCh37":
         contigs = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-        referenceGenome="GRCh37"
     elif genome =="GRCh38":
         contigs = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-        referenceGenome="GRCh38"
     else:
         raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
 

@@ -64,6 +64,7 @@ process annotation_table_merged {
 	--polyphen b \
 	--sift b \
 	--hgvs \
+        --af_gnomadg  \
         --check_existing \
         --var_synonyms \
 	--tsl \

@@ -43,7 +43,7 @@ process SNV_data_organization {
 
 	chr=\$(echo '${SNV_annot_merged.simpleName}' | sed 's/^.*_\\([^_]*\\)\$/\\1/' )
         #freq_file=\$(find . -iname 'gnomad_frequency_table_*.tsv' | grep -E 'gnomad_frequency_table_(chr)?\${chr}.tsv')
-	Rscript ../../../modules/SNV_data_organization.R ${assembly} \${chr}  ${SNV_annot_merged} $severity_table
+	Rscript ../../../modules/SNV_data_organization.R ${assembly} \${chr}  ${SNV_annot_merged} $severity_table ${gnomad_SNV_frequ}
 	"""
 }
 

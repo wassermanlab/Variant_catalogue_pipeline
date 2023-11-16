@@ -25,10 +25,15 @@ if (!require(data.table)) {
 assembly=(args[1])
 chr = args[2]
 ####Organize different tables
-##Read gnomAD SNV vcf
+##Read gnomAD SNV vcf:
 pat = glue("gnomad_frequency_table_(chr)?{chr}.tsv")
-gfile = grep(perl = TRUE,pattern = pat,x = list.files(),value = T)
-gnomad_file=fread(gfile)
+if (assembly == "GRCH37" && chr == "Y") {
+    columns = c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "AF", "AC", "AN", "nhomalt")
+    gnomad_file <- setnames(data.table(matrix(NA, nrow = 1, ncol = length(columns))), columns)
+} else {
+    gfile = grep(perl = TRUE, pattern = pat, x = list.files(), value = TRUE)
+    gnomad_file = fread(gfile)
+}
 if (length(gnomad_file)>11)gnomad_file[,12]=NULL
 #names(gnomad_file)
 #head(gnomad_file)

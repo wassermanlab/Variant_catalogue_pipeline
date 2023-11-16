@@ -27,7 +27,7 @@ chr = args[2]
 ####Organize different tables
 ##Read gnomAD SNV vcf:
 pat = glue("gnomad_frequency_table_(chr)?{chr}.tsv")
-if (assembly == "GRCH37" && chr == "Y") {
+if (assembly == "GRCh37" && chr == "Y") {
     columns = c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "AF", "AC", "AN", "nhomalt")
     gnomad_file <- setnames(data.table(matrix(NA, nrow = 1, ncol = length(columns))), columns)
 } else {

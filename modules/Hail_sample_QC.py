@@ -394,7 +394,7 @@ related_samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, False)
 
 # related_samples_to_remove.count()
 # write samples that has been filterd due to execessive relatedness
-related_samples_to_remove.write('related_samples_to_remove.txt')
+related_samples_to_remove.write('removed_related_samples.txt')
 # hail matrix table filtered by relatedness and Hail SampleQC
 filtered_mt = filtered_mt.filter_cols( hl.is_defined(
     related_samples_to_remove[filtered_mt.s]),

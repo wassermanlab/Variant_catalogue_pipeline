@@ -3,8 +3,6 @@
 
 # Hail and plot initialisation
 
-# In[91]:
-
 import sys
 temp_directory=sys.argv[2]
 genome=sys.argv[3]
@@ -15,9 +13,6 @@ import hail as hl
 from hail.plot import output_notebook, show
 hl.init(tmp_dir=temp_directory)
 output_notebook()
-
-
-# In[ ]:
 
 
 from hail.plot import show
@@ -36,7 +31,6 @@ import os
 # For specific on how to look at the mt file, refer to the bottom of this Jupyter notebook)
 
 # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here
-# In[ ]:
 try:
     hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=genome).write('SNV_vcf.mt', overwrite=True)
     referenceGenome = genome
@@ -47,8 +41,6 @@ except:
     hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=referenceGenome).write('SNV_vcf.mt', overwrite=True)
 
 
-
-# In[ ]:
 
 
 mt = hl.read_matrix_table('SNV_vcf.mt')
@@ -61,8 +53,6 @@ mt = hl.read_matrix_table('SNV_vcf.mt')
 # - plot_histo : To create the histogram as expected
 # - plot_sp : To create the scatter plots as expected
 
-# In[ ]:
-
 
 def stat(table):
     Mean = table[table.columns[1]]. mean()  
@@ -74,7 +64,6 @@ def stat(table):
     return Mean, StdDev, Low_threashold, High_threashold, min_graph, max_graph
 
 
-# In[106]:
 
 
 def plot_histo (table_plot, mt_plot, variable) :
@@ -92,7 +81,6 @@ def plot_histo (table_plot, mt_plot, variable) :
     return save(p)
 
 
-# In[107]:
 
 
 def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_variable) :
@@ -119,7 +107,6 @@ def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_var
 
 # **Generate the sample quality control metrics using hail**
 
-# In[ ]:
 
 
 mt = hl.sample_qc(mt)
@@ -152,7 +139,6 @@ mt = hl.sample_qc(mt)
 
 # Save the values as table
 
-# In[ ]:
 
 
 mt.sample_qc.dp_stats.mean.export('DP.tsv')
@@ -171,10 +157,6 @@ mt.sample_qc.n_transition.export('n_transition.tsv')
 mt.sample_qc.n_transversion.export('n_transversion.tsv')
 
 # Open the tables as data frame
-
-# In[ ]:
-
-
 DP_table=pd.read_table('DP.tsv')
 GQ_table=pd.read_table('GQ.tsv')
 call_rate_table=pd.read_table('call_rate.tsv')
@@ -192,10 +174,6 @@ n_transversion_table=pd.read_table('n_transversion.tsv')
 
 
 # Rename the column of the tables
-
-# In[ ]:
-
-
 DP_table.rename(columns = {DP_table.columns[1]:'DP'}, inplace = True)
 GQ_table.rename(columns = {GQ_table.columns[1]:'GQ'}, inplace = True)
 call_rate_table.rename(columns = {call_rate_table.columns[1]:'call_rate'}, inplace = True)
@@ -213,14 +191,9 @@ n_transversion_table.rename(columns = {n_transversion_table.columns[1]:'n_transv
 
 
 # Create the graphs
-
-# In[108]:
-
-
 plot_histo(DP_table, mt.sample_qc.dp_stats.mean, 'Mean Depth per sample')
 
 
-# In[109]:
 
 
 plot_histo(GQ_table,
@@ -228,7 +201,6 @@ plot_histo(GQ_table,
            'Mean Genotype quality per sample')
 
 
-# In[110]:
 
 
 plot_histo(call_rate_table,
@@ -236,7 +208,6 @@ plot_histo(call_rate_table,
            'Call Rate per sample')
 
 
-# In[111]:
 
 
 plot_histo(r_het_hom_var_table,
@@ -244,7 +215,6 @@ plot_histo(r_het_hom_var_table,
            'Ratio heterozygous to homozygous variants per sample')
 
 
-# In[112]:
 
 
 plot_sp (n_het_table,
@@ -255,7 +225,6 @@ plot_sp (n_het_table,
          'Number of homozygous variants')
 
 
-# In[113]:
 
 
 plot_histo(n_snp_table,
@@ -263,7 +232,6 @@ plot_histo(n_snp_table,
            'Number of SNPs per sample')
 
 
-# In[115]:
 
 
 plot_histo(n_singleton_table,
@@ -271,7 +239,6 @@ plot_histo(n_singleton_table,
            'Number of singletons per sample')
 
 
-# In[116]:
 
 
 plot_sp (n_insertion_table,
@@ -282,7 +249,6 @@ plot_sp (n_insertion_table,
          'Number of deletions')
 
 
-# In[117]:
 
 
 plot_histo(r_insertion_deletion_table,
@@ -290,7 +256,6 @@ plot_histo(r_insertion_deletion_table,
            'Ratio insertions to deletions per sample')
 
 
-# In[118]:
 
 
 plot_sp (n_transition_table,
@@ -301,24 +266,11 @@ plot_sp (n_transition_table,
          'Number of transversions')
 
 
-# In[119]:
 
 
 plot_histo(r_ti_tv_table,
            mt.sample_qc.r_ti_tv,
            'Ratio transitions to transversions per sample')
-
-
-## In[ ]:
-#
-#
-#
-#
-#
-## In[ ]:
-
-
-
 
 
 # **Filter the samples based on the threasholds repersented on the figures**
@@ -339,9 +291,7 @@ plot_histo(r_ti_tv_table,
 # - ?? Ratio insertions to deletion per sample lower than the low threshoold or higher than high threshold
 # - Ratio transition to transversions per sample lower than the low threshoold or higher than high threshold
 
-# In[120]:
-
-
+# - final matrix table exported to the next stage of Variant QC
 filtered_mt = mt.filter_cols(
     (stat(DP_table) [3] > mt.sample_qc.dp_stats.mean)  &
     (mt.sample_qc.dp_stats.mean > stat(DP_table) [2]) &
@@ -362,9 +312,7 @@ filtered_mt = mt.filter_cols(
 )
 
 
-# In[124]:
-
-hl.export_vcf(filtered_mt, 'filtered_samples.vcf.bgz', tabix = True)
+# hl.export_vcf(filtered_mt, 'filtered_samples.vcf.bgz', tabix = True)
 
 # Write the report of the number of filtered out samples and the reason they were filtered out
 
@@ -430,5 +378,26 @@ imputed_sex_filtered_samples = imputed_sex_filtered_samples.annotate(
 filtered_samples_sex=imputed_sex_filtered_samples.select("sex")
 filtered_samples_sex.export('filtered_samples_sex.tsv')
 
+# relatedness calcluations
+biallelic = mt.filter_rows(hl.len(filtered_mt.alleles) == 2)
+biallelic = biallelic.annotate_rows(a_index=1, was_split=False,
+ old_locus=biallelic.locus, old_alleles=biallelic.alleles)
+# multiallelic = filtered_mt.filter_rows(hl.len(mt.alleles) > 2)
+# split = hl.split_multi(multiallelic)
+# mt_result = split.union_rows(biallelic)
+biallelic_mt = biallelic.filter_rows(biallelic.allele_count == 2)
+#mt.aggregate_rows(hl.agg.fraction(mt.info.MULTI_ALLELIC is True))
 
+pc_rel = hl.pc_relate(biallelic_mt.GT, 0.01, k=2, statistics='kin')
+pairs = pc_rel.filter(pc_rel['kin'] > 0.125) # gnomad threshold for related samples
+related_samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, False)
 
+# related_samples_to_remove.count()
+# write samples that has been filterd due to execessive relatedness
+related_samples_to_remove.write('related_samples_to_remove.txt')
+# hail matrix table filtered by relatedness and Hail SampleQC
+filtered_mt = filtered_mt.filter_cols( hl.is_defined(
+    related_samples_to_remove[filtered_mt.s]),
+    keep=False)
+
+hl.export_vcf(filtered_mt, 'filtered_samples.vcf.bgz', tabix = True)

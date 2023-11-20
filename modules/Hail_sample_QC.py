@@ -379,25 +379,24 @@ filtered_samples_sex=imputed_sex_filtered_samples.select("sex")
 filtered_samples_sex.export('filtered_samples_sex.tsv')
 
 # relatedness calcluations
-biallelic = mt.filter_rows(hl.len(filtered_mt.alleles) == 2)
+biallelic = mt.filter_rows(hl.len(mt.alleles) == 2)
 biallelic = biallelic.annotate_rows(a_index=1, was_split=False,
  old_locus=biallelic.locus, old_alleles=biallelic.alleles)
 # multiallelic = filtered_mt.filter_rows(hl.len(mt.alleles) > 2)
 # split = hl.split_multi(multiallelic)
 # mt_result = split.union_rows(biallelic)
-biallelic_mt = biallelic.filter_rows(biallelic.allele_count == 2)
+#biallelic_mt = biallelic.filter_rows(biallelic.allele_count == 2)
 #mt.aggregate_rows(hl.agg.fraction(mt.info.MULTI_ALLELIC is True))
-
-pc_rel = hl.pc_relate(biallelic_mt.GT, 0.01, k=2, statistics='kin')
+pc_rel = hl.pc_relate(biallelic.GT, 0.01, k=2, statistics='kin')
 pairs = pc_rel.filter(pc_rel['kin'] > 0.125) # gnomad threshold for related samples
 related_samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, False)
 
 # related_samples_to_remove.count()
 # write samples that has been filterd due to execessive relatedness
-related_samples_to_remove.write('removed_related_samples.txt')
+related_samples_to_remove.export("removed_related_samples.csv",delimiter=",")
 # hail matrix table filtered by relatedness and Hail SampleQC
-filtered_mt = filtered_mt.filter_cols( hl.is_defined(
-    related_samples_to_remove[filtered_mt.s]),
+rel_mt = filtered_mt.filter_cols( hl.is_defined(
+    related_samples_to_remove[mt.col_key]),
     keep=False)
 
-hl.export_vcf(filtered_mt, 'filtered_samples.vcf.bgz', tabix = True)
+hl.export_vcf(rel_mt, 'filtered_samples.vcf.bgz', tabix = True)

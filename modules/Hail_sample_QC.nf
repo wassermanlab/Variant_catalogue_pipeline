@@ -11,6 +11,7 @@ process Hail_sample_QC {
 
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Samples/", mode: 'copy', pattern : '*.html'
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Samples/", mode: 'copy', pattern : '*.tsv'
+	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Samples/", mode: 'copy', pattern : '*.txt'
 	publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : '*filtered_samples.vcf.bgz'
 
 	input :
@@ -25,6 +26,7 @@ process Hail_sample_QC {
 	path '*.html', emit : graph
 	path '*filtered_samples.vcf.bgz', emit : vcf_sample_filtered
 	path '*filtered_samples_sex.tsv', emit : filtered_sample_sex
+	path "*removed_related_samples.txt", emit: filtered_related_samples
 
 	script:
 	"""

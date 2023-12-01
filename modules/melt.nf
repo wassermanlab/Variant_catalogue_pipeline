@@ -50,7 +50,7 @@ process melt {
 		-b hs37d5/NC_007605 \
 		-t ${transposon_file}  \
 		-h ${reference} \
-		-bamfile $bam \
+		-bamfile ${bam.SimpleName}_fixmate_ordered.bam \
 		-w \${sample_name} \
 		-n ${genes_file}
 
@@ -62,7 +62,7 @@ process melt {
 		bcftools concat -a -Oz  -o \${sample_name}_mei_noID.vcf.gz *vcf.gz
 		bcftools annotate --set-id '%CHROM\\_%POS\\_%SVTYPE\\_%SVLEN' -O z -o \${sample_name}_mei.vcf.gz \${sample_name}_mei_noID.vcf.gz
 		bcftools index --tbi \${sample_name}_mei.vcf.gz
-		rm *fixmate_ordered.bam
+		rm *fixmate_ordered.bam*
 	"""
 }
 

@@ -30,7 +30,7 @@ process Picard_CollectAlignmentSummaryMetrics {
 		ln -s \$Picard_Alignment
 	else
         	gatk CollectAlignmentSummaryMetrics \
-		--java-options "-Xmx2000M" \
+		--java-options "-Xmx8000M" \
 		-I ${bam} \
 		-O ${bam.simpleName}_Picard_Alignment
 	fi

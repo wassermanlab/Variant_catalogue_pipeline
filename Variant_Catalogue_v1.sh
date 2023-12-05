@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=4G
-#SBATCH -p silent_q
+#SBATCH -p dev_q
 #SBATCH --mail-user=prichmond@bcchr.ca
 #SBATCH --mail-type=ALL
 

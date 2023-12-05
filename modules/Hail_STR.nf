@@ -19,8 +19,10 @@ process Hail_STR {
 	file vcf_sample_filtered
 	path sample_sex_file
 	val assembly
+	val ref
+	val ref_index
 	val batch
-	val run 
+	val run
 
 	output :
 	path '*.html', emit : graph
@@ -34,7 +36,7 @@ process Hail_STR {
 	"""
         #!/usr/bin/env python ../../../modules/Hail_STR.py \
         $vcf_sample_filtered $sample_sex_file $params.tmp_dir \
-        ${params.assembly}
+        ${params.assembly} $ref $ref_index
         """
 }
 

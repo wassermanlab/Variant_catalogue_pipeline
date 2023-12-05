@@ -15,6 +15,8 @@ from typing import Optional, Dict, List
 
 temp_directory=sys.argv[3]
 genome = sys.argv[4]
+ref_fasta=sys.argv[5]
+ref_fasta_index=sys.argv[6]
 
 hl.init(tmp_dir=temp_directory)
 output_notebook()
@@ -22,9 +24,17 @@ output_notebook()
 hl.plot.output_notebook()
 
 # #Created through the nextflow pipeline
-hl.import_vcf(sys.argv[1], array_elements_required=False,
-              reference_genome=genome,
-              force_bgz=True).write('STR_vcf.mt', overwrite=True)
+# Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here
+# In[ ]:
+try:
+    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=genome).write('STR_vcf.mt', overwrite=True)
+except:
+    # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
+    # PAR taken for GRCh38 from http://useast.ensembl.org/info/genome/genebuild/human_PARS.html
+    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",ref_fasta,ref_fasta_index,x_contigs=['X'],y_contigs=['Y'],mt_contigs=['MT'],par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
+    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=referenceGenome).write('STR_vcf.mt', overwrite=True)
+
+
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 
@@ -317,19 +327,26 @@ plot_sp (het_freq_hwe_table,
 # **Step 1 : chr 1-22, X, Y**
 
 # In[31]:
+#
+#contigs = [list(range(1,23)),"X","Y"]
 
-contigs = [list(range(1,23)),"X","Y"]
-if genome == "GRCh37":
-    intervals = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-elif genome =="GRCh38":
-    intervals = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-else:
-    raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
+# Phil 2023-09-07: this is another place where the intervals create an issue with hard-coded expectation of contig name
+try:
+    contigs = referenceGenome.contigs
+except:
+    if genome == "GRCh37":
+        contigs = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+        referenceGenome="GRCh37"
+    elif genome =="GRCh38":
+        contigs = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+        referenceGenome="GRCh38"
+    else:
+        raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
 
-# intervals = [hl.parse_locus_interval(x) for x in ['X', 'Y', '1-22']]
-STR_mt_locus_filtered = hl.filter_intervals(mt, 
-                                            [hl.parse_locus_interval(x,reference_genome=genome)
-                                             for x in intervals], keep=True)
+intervals = [hl.parse_locus_interval(x, reference_genome=referenceGenome) for x in contigs]
+print(contigs)
+print(intervals)
+STR_mt_locus_filtered = hl.filter_intervals(mt, intervals, keep=True)
 
 
 # **Step 2 : mt.filters column**

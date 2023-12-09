@@ -1,57 +1,53 @@
 #!/usr/bin/env python
 # coding: utf-8
+import hail as hl
+from hail.plot import output_notebook, show
+from bokeh.models import Span
+from bokeh.models import Range1d
+from bokeh.plotting import  output_file, save
+import pandas as pd
+import os
+import sys
+from typing import Optional, Dict, List
+hl.plot.output_notebook()
 
 # temp dir setting
-import sys
 temp_directory=sys.argv[3]
 genome=sys.argv[4]
 ref_fasta=sys.argv[5]
 ref_fasta_index=sys.argv[6]
+chr = sys.argv[7]
 
 # Hail and plot initialisation
-import hail as hl
-from hail.plot import output_notebook, show
+
 hl.init()
 output_notebook()
 
-from hail.plot import show
-from pprint import pprint
-from bokeh.models import Span
-hl.plot.output_notebook()
-from bokeh.models import Range1d
-from bokeh.plotting import figure, output_file, show, save
-
-import pandas as pd
-import os
-from typing import Tuple
-import string
-
-from typing import Optional, Dict, List, Union
 #Created through the nextflow pipeline
 
 #hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=genome).write('filtered_samples_vcf.mt', overwrite=True)
 
 # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here
-# In[ ]:
+chromosome_interval = hl.parse_locus_interval(chr)
 try:
-    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=genome).write('filtered_samples_vcf.mt', overwrite=True)
-    referenceGenome = genome
+    mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, 
+    reference_genome=genome).filter_intervals(chromosome_interval)
+#.write('filtered_samples_vcf.mt', overwrite=True)
 except:
     # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
     # PAR taken for GRCh38 from http://useast.ensembl.org/info/genome/genebuild/human_PARS.html
-    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",ref_fasta,ref_fasta_index,x_contigs=['X'],y_contigs=['Y'],mt_contigs=['MT'],par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
-    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=referenceGenome).write('filtered_samples_vcf.mt', overwrite=True)
+    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",
+    ref_fasta,ref_fasta_index,x_contigs=['X'], y_contigs=['Y'],mt_contigs=['MT'],
+    par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
+    mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True,
+    reference_genome=referenceGenome).chromosome_interval = hl.parse_locus_interval(chr)
 
-
-
-
+    #.write('filtered_samples_vcf.mt', overwrite=True)
 # Sex table
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 #**Import file**
 #Inport a vcf file and read it as a matrix table (mt, hail specific file type)
-
-mt = hl.read_matrix_table('filtered_samples_vcf.mt')
 
 #**Graph functions**
 #In order to create the graph, 3 functions were needed
@@ -252,7 +248,7 @@ def report_stats():
     out_stats = hl.hadoop_open(f"SNV_indel_QC_report.txt", "w")
     # Report numbers of filtered SNV/indels
     out_stats.write(
-        f"Number of SNV/indels not located on autosomes or sexual chromosomes : {n_non_chr}\n"
+        # f"Number of SNV/indels not located on autosomes or sexual chromosomes : {n_non_chr}\n"
         f"Number of SNV/indels removed because of deletion superior to 50bp: {n_large_del}\n"
         f"Number of SNV/indels removed because of insertion superior to 50bp: {n_large_ins}\n"
         f"Number of SNV/indels removed because of depth metrics: {DP_var_removed}\n"
@@ -267,7 +263,7 @@ def report_stats():
     
 #n_non_chr = mt.count()[0] - hl.filter_intervals(mt, [hl.parse_locus_interval(x,reference_genome=genome) for x in intervals], keep=True).count()[0]
 
-n_non_chr = mt.count()[0] - hl.filter_intervals(mt, intervals, keep=True).count()[0]
+# n_non_chr = mt.count()[0] - hl.filter_intervals(mt, intervals, keep=True).count()[0]
 
 n_large_del = mt.filter_rows(hl.len(mt.alleles[0]) > 50).count()[0]
 n_large_ins = mt.filter_rows(hl.len(mt.alleles[1]) > 50).count()[0]

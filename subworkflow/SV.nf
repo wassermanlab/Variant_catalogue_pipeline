@@ -14,7 +14,7 @@ include { SV_concat_by_sample } from "./../modules/SV_concat_by_sample"
 include { SV_jasmine } from "./../modules/SV_jasmine"
 include { SV_paragraph_duphold } from "./../modules/SV_paragraph_duphold"
 
-include { samtools_fixmate } from "./../modules/samtools_fixmate"
+// include { samtools_fixmate } from "./../modules/samtools_fixmate"
 include { expansion_hunter } from "./../modules/expansion_hunter"
 include { melt } from "./../modules/melt"
 

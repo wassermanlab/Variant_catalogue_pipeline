@@ -102,8 +102,8 @@ workflow SV {
 
 		// Mobile Element Insertions (MEIs)
                 // Sample specific (Do not need to be run for a previously processed sample)
-		samtools_fixmate(bam, bai, assembly, batch, run)
-		melt(samtools_fixmate.out.samples_fixmate_bam, samtools_fixmate.out.samples_fixmate_bam_index, reference, reference_index, transposon_file, genes_file, assembly, batch, run)
+		// samtools_fixmate(bam, bai, assembly, batch, run)
+		melt(bam, bai, reference, reference_index, transposon_file, genes_file, assembly, batch, run)
                 
 		// Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		MEI_vcfs_txt(melt.out.vcf.collect(), assembly, batch, run, MEI)

@@ -19,8 +19,13 @@ ref_fasta_index=sys.argv[6]
 chr = sys.argv[7]
 
 # Hail and plot initialisation
+# Configure Spark properties
+spark_conf = {
+    'spark.driver.memory': '8g'  # Set the driver memory, e.g., to 8 GB
+}
 
-hl.init()
+# Initialize Hail with custom Spark configuration
+hl.init(master='local[*]', spark_conf=spark_conf)
 output_notebook()
 
 #Created through the nextflow pipeline

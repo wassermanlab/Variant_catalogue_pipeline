@@ -31,7 +31,7 @@ output_notebook()
 chromosome_interval = hl.parse_locus_interval(chr)
 try:
     mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, 
-    reference_genome=genome).filter_intervals(chromosome_interval)
+    reference_genome=genome)
 #.write('filtered_samples_vcf.mt', overwrite=True)
 except:
     # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
@@ -40,10 +40,11 @@ except:
     ref_fasta,ref_fasta_index,x_contigs=['X'], y_contigs=['Y'],mt_contigs=['MT'],
     par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
     mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True,
-    reference_genome=referenceGenome).chromosome_interval = hl.parse_locus_interval(chr)
+    reference_genome=referenceGenome)
 
     #.write('filtered_samples_vcf.mt', overwrite=True)
 # Sex table
+mt = hl.filter_intervals(mt,chromosome_interval)
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 #**Import file**
@@ -462,6 +463,7 @@ SNV_mt_var_filtered_no_geno = SNV_mt_var_filtered.rows()
 #        File name : SNV_filtered_frequ_only.vcf.bgz
 
 
-hl.export_vcf(SNV_mt_var_filtered, 'SNV_filtered_with_geno.vcf.bgz', tabix=True)
+hl.export_vcf(SNV_mt_var_filtered, f'SNV_filtered_with_geno_{chr}.vcf.bgz', tabix=True)
 
-hl.export_vcf(SNV_mt_var_filtered_no_geno, 'SNV_filtered_frequ_only.vcf.bgz', tabix=True)
+hl.export_vcf(SNV_mt_var_filtered_no_geno, f'SNV_filtered_frequ_only_{chr}.vcf.bgz',
+ tabix=True)

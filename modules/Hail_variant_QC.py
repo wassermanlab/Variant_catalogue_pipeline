@@ -44,7 +44,7 @@ except:
 
     #.write('filtered_samples_vcf.mt', overwrite=True)
 # Sex table
-mt = hl.filter_intervals(mt,chromosome_interval)
+mt = mt.filter_rows(mt.locus.contig == chr)
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
 #**Import file**

@@ -31,7 +31,6 @@ process annotation_table_merged {
 		file spliceai_snv_index
 		file spliceai_indel
         file spliceai_indel_index
-		each chr
 		val var_type 
 		file reference
 		file dir_plugin
@@ -45,9 +44,8 @@ process annotation_table_merged {
         """
 	vep \
         -i ${vcf} \
-        -o ${vcf.simpleName}_${var_type}_annotation_table_merged_${chr}.vcf \
+        -o ${vcf.simpleName}_${var_type}_annotation_table_merged.vcf \
 	--vcf \
-	--chr ${chr}  \
 	--offline \
 	--merged \
         --assembly $assembly_VEP \
@@ -70,6 +68,6 @@ process annotation_table_merged {
         --dir_plugins ${dir_plugin} \
 	--plugin CADD,$CADD_1_6_whole_genome_SNVs,$CADD_1_6_InDels \
         --plugin SpliceAI,snv=${spliceai_snv},indel=${spliceai_indel} \
-	--stats_file ${vcf.simpleName}_${chr}_VEP_merged_stats
+	--stats_file ${vcf.simpleName}_VEP_merged_stats
 	"""
 }

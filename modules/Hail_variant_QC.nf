@@ -9,7 +9,7 @@
 // Future update : Include gnomAD frequency to each varaint, annotate the varaints using vep
 
 process Hail_variant_QC {
-
+          maxForks 1
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/SNV/", mode: 'copy', pattern : '*.html'
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/SNV/", mode: 'copy', pattern : 'SNV_indel_QC_report.txt'
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : 'SNV_filtered_with_geno*'

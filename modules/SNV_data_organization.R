@@ -1,3 +1,4 @@
+
 #R script
 #Created by Solenne Correard in December 2021
 #Owned by the Silent Genomes Project Activity 3 team
@@ -14,25 +15,38 @@ library(tidyr)
 #Read the arguments from the nextflow process calling the Rscript named 'MT_heteroplasmy_bin.nf'
 args <- commandArgs(trailingOnly = TRUE)
 if (!require(glue)) {
-  install.packages("glue")  # Install the package if not installed
+	  install.packages("glue")  # Install the package if not installed
   library(glue)             # Load the package
+
 }
 if (!require(data.table)) {
-  install.packages("data.table")  # Install the package if not installed
+	  install.packages("data.table")  # Install the package if not installed
   library(data.table)             # Load the package
+
 }
 #Define assembly from the args
-assembly=(args[1])
-chr = args[2]
+assembly=args[1]
+vcf_path <- args[3]
+# Pattern to extract chromomse number
+chr_pat = ".*only_((chr)?[0-9]{1,2}|X|Y)_.+"
+
+# Use sub to extract the chromosome number
+chr <- sub(chr_pat, "\\1", vcf_path,perl = TRUE)
+
+# Print the result
+
 ####Organize different tables
 ##Read gnomAD SNV vcf:
 pat = glue("gnomad_frequency_table_(chr)?{chr}.tsv")
 if (assembly == "GRCh37" && chr == "Y") {
-    columns = c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "AF", "AC", "AN", "nhomalt")
-    gnomad_file <- setnames(data.table(matrix(NA, nrow = 1, ncol = length(columns))), columns)
+	  columns = c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "AF", "AC", "AN", "nhomalt")
+  gnomad_file <- setnames(data.table(matrix(NA, nrow = 1, ncol = length(columns))), columns)
+    gnomad_file$CHROM ="Y"
+
 } else {
-    gfile = grep(perl = TRUE, pattern = pat, x = list.files(), value = TRUE)
-    gnomad_file = fread(gfile)
+	gfile = grep(perl = TRUE, pattern = pat, x = list.files(), value = TRUE)
+  	gnomad_file = fread(gfile)
+
 }
 if (length(gnomad_file)>11)gnomad_file[,12]=NULL
 #names(gnomad_file)
@@ -43,7 +57,7 @@ ID_db_gnomad=paste(ID_table_gnomad$CHROM, ID_table_gnomad$POS, ID_table_gnomad$R
 gnomad_file=cbind(ID_db_gnomad, gnomad_file)
 
 #File with frequencies calculated in Hail and annotation from VEP
-frequ_annot_file=read.vcfR(args[3])
+frequ_annot_file=read.vcfR(vcf_path)
 chromosome=frequ_annot_file@fix[1,1]
 
 #Severity table
@@ -55,7 +69,7 @@ table_variant_transcript=data.frame()
 table_variant_consequence=data.frame()
 table_variant_annotation=data.frame()
 able_variant_annotation_i=data.frame()
-	
+
 vcf = frequ_annot_file@fix
 chr = vcf[,"CHROM"]
 pos = as.numeric(vcf[,"POS"])
@@ -118,15 +132,15 @@ vep_annot = all_info_split$vep_annot
 #Split the VEP annotation (seperated by |)
 vep_annot_split = do.call(rbind.data.frame, strsplit(vep_annot, "\\|"))
 colnames(vep_annot_split) = c("Allele", "Consequence", "IMPACT", "SYMBOL", "Gene", "Feature_type", "Feature", "BIOTYPE", "EXON", "INTRON", "HGVSc", "HGVSp", "cDNA_position", "CDS_position", "Protein_position", "Amino_acids", "Codons", "Existing_variation", "DISTANCE", "STRAND", "FLAGS", "VARIANT_CLASS", "SYMBOL_SOURCE", "HGNC_ID", "TSL", "REFSEQ_MATCH", "SOURCE", "REFSEQ_OFFSET", "GIVEN_REF", "USED_REF", "BAM_EDIT", "SIFT", "PolyPhen", "HGVS_OFFSET", "CLIN_SIG", "SOMATIC", "PHENO", "VAR_SYNONYMS", "CADD_PHRED", "CADD_RAW", "SpliceAI_pred_DP_AG", "SpliceAI_pred_DP_AL", "SpliceAI_pred_DP_DG", "SpliceAI_pred_DP_DL", "SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL")
-        #, "SpliceAI_pred_SYMBOL")
+#, "SpliceAI_pred_SYMBOL")
 
 show("vep_annot_split ok")
 
 #Create large table
 all_info_complete = cbind(all_info_split$chr, all_info_split$pos, all_info_split$variant, all_info_split$ref, all_info_split$alt, all_info_split$quality, all_info_split$af_tot, all_info_split$ac_tot, all_info_split$an_tot, all_info_split$hom_tot, all_info_split$af_xx, all_info_split$ac_xx, all_info_split$an_xx, all_info_split$hom_xx, all_info_split$af_xy, all_info_split$ac_xy, all_info_split$an_xy, all_info_split$hom_xy, vep_annot_split$Allele, vep_annot_split$Consequence, vep_annot_split$IMPACT, vep_annot_split$SYMBOL, vep_annot_split$Gene, vep_annot_split$Feature_type, vep_annot_split$Feature, vep_annot_split$BIOTYPE, vep_annot_split$EXON, vep_annot_split$INTRON, vep_annot_split$HGVSc, vep_annot_split$HGVSp, vep_annot_split$cDNA_position, vep_annot_split$CDS_position, vep_annot_split$Protein_position, vep_annot_split$Amino_acids, vep_annot_split$Codons, vep_annot_split$Existing_variation, vep_annot_split$DISTANCE, vep_annot_split$STRAND, vep_annot_split$FLAGS, vep_annot_split$VARIANT_CLASS, vep_annot_split$SYMBOL_SOURCE, vep_annot_split$HGNC_ID, vep_annot_split$TSL, vep_annot_split$REFSEQ_MATCH, vep_annot_split$SOURCE, vep_annot_split$REFSEQ_OFFSET, vep_annot_split$GIVEN_REF, vep_annot_split$USED_REF, vep_annot_split$BAM_EDIT, vep_annot_split$SIFT, vep_annot_split$PolyPhen, vep_annot_split$HGVS_OFFSET, vep_annot_split$CLIN_SIG, vep_annot_split$SOMATIC, vep_annot_split$PHENO, vep_annot_split$VAR_SYNONYMS, vep_annot_split$CADD_PHRED, vep_annot_split$CADD_RAW, vep_annot_split$SpliceAI_pred_DP_AG, vep_annot_split$SpliceAI_pred_DP_AL, vep_annot_split$SpliceAI_pred_DP_DG, vep_annot_split$SpliceAI_pred_DP_DL, vep_annot_split$SpliceAI_pred_DS_AG, vep_annot_split$SpliceAI_pred_DS_AL, vep_annot_split$SpliceAI_pred_DS_DG, vep_annot_split$SpliceAI_pred_DS_DL)
-			  
+
 colnames(all_info_complete) = c("chr", "pos", "variant", "ref", "alt", "quality", "af_tot", "ac_tot", "an_tot", "hom_tot", "af_xx", "ac_xx", "an_xx", "hom_xx", "af_xy", "ac_xy", "an_xy", "hom_xy", "Allele", "Consequence", "IMPACT", "SYMBOL", "Gene", "Feature_type", "Feature", "BIOTYPE", "EXON", "INTRON", "HGVSc", "HGVSp", "cDNA_position", "CDS_position", "Protein_position", "Amino_acids", "Codons", "Existing_variation", "DISTANCE", "STRAND", "FLAGS", "VARIANT_CLASS", "SYMBOL_SOURCE", "HGNC_ID", "TSL", "REFSEQ_MATCH", "SOURCE", "REFSEQ_OFFSET", "GIVEN_REF", "USED_REF", "BAM_EDIT", "SIFT", "PolyPhen", "HGVS_OFFSET", "CLIN_SIG", "SOMATIC", "PHENO", "VAR_SYNONYMS", "CADD_PHRED", "CADD_RAW", "SpliceAI_pred_DP_AG", "SpliceAI_pred_DP_AL", "SpliceAI_pred_DP_DG", "SpliceAI_pred_DP_DL", "SpliceAI_pred_DS_AG", "SpliceAI_pred_DS_AL", "SpliceAI_pred_DS_DG", "SpliceAI_pred_DS_DL")
-        #, "SpliceAI_pred_SYMBOL")  
+#, "SpliceAI_pred_SYMBOL")  
 
 All_info = as.data.frame(all_info_complete)
 
@@ -145,10 +159,10 @@ show("all info ok")
 
 #Length and type
 All_info$length <- with(All_info, ifelse(All_info$VARIANT_CLASS == "SNV", "1",
-					ifelse(All_info$VARIANT_CLASS == "insertion" , length(All_info$alt)-1,
-					       ifelse(All_info$VARIANT_CLASS == "deletion" , length(All_info$ref)-1,
-						      ifelse(All_info$VARIANT_CLASS == "indel" , abs(length(All_info$alt)-length(All_info$ref)), "NA")))))
-	
+					                                          ifelse(All_info$VARIANT_CLASS == "insertion" , length(All_info$alt)-1,
+											                                                 ifelse(All_info$VARIANT_CLASS == "deletion" , length(All_info$ref)-1,
+																		                                                       ifelse(All_info$VARIANT_CLASS == "indel" , abs(length(All_info$alt)-length(All_info$ref)), "NA")))))
+
 # CADD_score / interpr
 # If you would like to apply a cutoff on deleteriousness, e.g. to identify potentially pathogenic variants, we would suggest to put a cutoff somewhere between 10 and 20. Maybe at 15, as this also happens to be the median value for all possible canonical splice site changes and non-synonymous variants in CADD v1.0. However, there is not a natural choice here -- it is always arbitrary. We therefore recommend integrating C-scores with other evidence and to rank your candidates for follow up rather than hard filtering.
 
@@ -165,11 +179,11 @@ All_info$SpliceAI_pred_DS_DG = as.numeric(All_info$SpliceAI_pred_DS_DG)
 All_info$SpliceAI_pred_DS_DL = as.numeric(All_info$SpliceAI_pred_DS_DL)
 
 All_info$splice_ai <- with(All_info, ifelse(((All_info$SpliceAI_pred_DS_AG > All_info$SpliceAI_pred_DS_AL) & (All_info$SpliceAI_pred_DS_AG > All_info$SpliceAI_pred_DS_DG) & (All_info$SpliceAI_pred_DS_AG > All_info$SpliceAI_pred_DS_DL)), All_info$SpliceAI_pred_DS_AG,
-					    ifelse(((All_info$SpliceAI_pred_DS_AL>All_info$SpliceAI_pred_DS_AG ) & (All_info$SpliceAI_pred_DS_AL > All_info$SpliceAI_pred_DS_DG) & (All_info$SpliceAI_pred_DS_AL > All_info$SpliceAI_pred_DS_DL)), All_info$SpliceAI_pred_DS_AL,
-						   ifelse(((All_info$SpliceAI_pred_DS_DG > All_info$SpliceAI_pred_DS_AG) & (All_info$SpliceAI_pred_DS_DG > All_info$SpliceAI_pred_DS_AL) & (All_info$SpliceAI_pred_DS_DG > All_info$SpliceAI_pred_DS_DL)), All_info$SpliceAI_pred_DS_DG, 
-							  ifelse(((All_info$SpliceAI_pred_DS_DL > All_info$SpliceAI_pred_DS_AG) & (All_info$SpliceAI_pred_DS_DL > All_info$SpliceAI_pred_DS_AL) & (All_info$SpliceAI_pred_DS_DL > All_info$SpliceAI_pred_DS_DG)), All_info$SpliceAI_pred_DS_DL, "NA")))))
-					    
-        
+					                                                ifelse(((All_info$SpliceAI_pred_DS_AL>All_info$SpliceAI_pred_DS_AG ) & (All_info$SpliceAI_pred_DS_AL > All_info$SpliceAI_pred_DS_DG) & (All_info$SpliceAI_pred_DS_AL > All_info$SpliceAI_pred_DS_DL)), All_info$SpliceAI_pred_DS_AL,
+											                                                          ifelse(((All_info$SpliceAI_pred_DS_DG > All_info$SpliceAI_pred_DS_AG) & (All_info$SpliceAI_pred_DS_DG > All_info$SpliceAI_pred_DS_AL) & (All_info$SpliceAI_pred_DS_DG > All_info$SpliceAI_pred_DS_DL)), All_info$SpliceAI_pred_DS_DG, 
+																			                                                           ifelse(((All_info$SpliceAI_pred_DS_DL > All_info$SpliceAI_pred_DS_AG) & (All_info$SpliceAI_pred_DS_DL > All_info$SpliceAI_pred_DS_AL) & (All_info$SpliceAI_pred_DS_DL > All_info$SpliceAI_pred_DS_DG)), All_info$SpliceAI_pred_DS_DL, "NA")))))
+
+
 # dbsnp_id : From annotation file (SNV_annot_i), "Existing_variation" column
 # dbsnp_URL : https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=<rs_number> // rs1556423501
 All_info$dbsnp_id<- with(All_info, ifelse(grepl("rs", All_info$Existing_variation), gsub(",.*$", "", All_info$Existing_variation), "NA"))
@@ -179,24 +193,24 @@ All_info$dbsnp_url <- with(All_info, ifelse(grepl("rs", All_info$Existing_variat
 All_info$pos= as.numeric(All_info$pos)
 
 All_info$ucsc_url = paste0("https://genome.ucsc.edu/cgi-bin/hgTracks?db=",assembly, "&highlight=", assembly, ".chr", All_info$chr, "%3A", All_info$pos, "-", All_info$pos, "&position=chr", All_info$chr, "%3A", All_info$pos-25, "-", All_info$pos+25)
-	
+
 # Ensembl_url : https://uswest.ensembl.org/Homo_sapiens/Location/View?r=<chr>%3A<pos-25>-<pos+25> // r=17%3A63992802-64038237
 All_info$ensembl_url<- with(All_info, ifelse(assembly=="GRCh38", paste0("https://uswest.ensembl.org/Homo_sapiens/Location/View?r=", chr, "%3A", All_info$pos-25, "-", All_info$pos+25), paste0("https://grch37.ensembl.org/Homo_sapiens/Location/View?r=", All_info$chr, "%3A", All_info$pos-25, "-", All_info$pos+25)))
-	    
+
 #clinvar_VCV : From annotation file, "VCV" info
 #If clinvar number is specified (If column contains ClinVar)
 #clinvar URL : https://www.ncbi.nlm.nih.gov/clinvar/variation/<VCV>/ // 692920	
 All_info$clinvar_vcv<- with(All_info, ifelse(grepl("ClinVar::VCV", All_info$VAR_SYNONYMS), str_extract(All_info$VAR_SYNONYMS, "(?<=VCV)[0-9]*"), "NA"))	
 All_info$clinvar_url<- with(All_info, ifelse(grepl("ClinVar::VCV", All_info$VAR_SYNONYMS), paste0("https://www.ncbi.nlm.nih.gov/clinvar/variation/", All_info$clinvar_vcv, "/"), "NA"))
-	
+
 # gnomad_URL : https://gnomad.broadinstitute.org/variant/M-<pos>-<ref>-<alt>?dataset=gnomad_r3 // M-8602-T-C
 #Only displayed if variant is in gnomad table
 All_info$gnomad_url <- with(All_info, ifelse(All_info$variant %in% gnomad_file$ID_db_gnomad & assembly=="GRCh38", paste0("https://gnomad.broadinstitute.org/variant/", All_info$chr, "-", All_info$pos, "-", All_info$ref, "-", All_info$alt, "?dataset=gnomad_r3"),
-				   ifelse(All_info$variant %in% gnomad_file$ID_db_gnomad & assembly=="GRCh37", paste0("https://gnomad.broadinstitute.org/variant/", All_info$chr, "-", All_info$pos, "-", All_info$ref, "-", All_info$alt, "?dataset=gnomad_r2_1"), "NA")))
+					                                                  ifelse(All_info$variant %in% gnomad_file$ID_db_gnomad & assembly=="GRCh37", paste0("https://gnomad.broadinstitute.org/variant/", All_info$chr, "-", All_info$pos, "-", All_info$ref, "-", All_info$alt, "?dataset=gnomad_r2_1"), "NA")))
 
 #Replace empty cells by "NA"
 All_info[All_info == ""] <- "NA"  
-	
+
 #All_info$variant_transcript=paste0(All_info$variant, "_", All_info$Feature)
 
 

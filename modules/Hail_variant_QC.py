@@ -222,7 +222,7 @@ except:
     else:
         raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
 
-intervals = [hl.parse_locus_interval(x, reference_genome=referenceGenome) for x in contigs]
+intervals = [hl.parse_locus_interval(x, reference_genome=genome) for x in contigs]
 
 
 SNV_mt_var_filtered = hl.filter_intervals(mt, intervals, keep=True)

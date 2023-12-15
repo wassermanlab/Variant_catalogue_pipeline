@@ -65,7 +65,7 @@ workflow SNV {
 
                 Hail_sample_QC(bcf_to_vcf.out.vcf, assembly,reference,reference_index,batch,run)
                 Hail_variant_QC(Hail_sample_QC.out.vcf_sample_filtered, Hail_sample_QC.out.filtered_sample_sex, assembly, reference, reference_index,batch,run,chr)
-                SNV_annotation_table_merged(Hail_variant_QC.out.vcf_SNV_filtered_frequ_only, Hail_variant_QC.out.index_SNV_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SNV, reference, dir_plugin)
+                SNV_annotation_table_merged(Hail_variant_QC.out.vcf_SNV_filtered_frequ_only, Hail_variant_QC.out.index_SNV_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, SNV, reference, dir_plugin)
 
 		SNV_data_organization(gnomad_SNV_frequ, SNV_annotation_table_merged.out.annotation_vcf, assembly, run, severity_table)
 

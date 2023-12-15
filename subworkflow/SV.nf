@@ -14,7 +14,7 @@ include { SV_concat_by_sample } from "./../modules/SV_concat_by_sample"
 include { SV_jasmine } from "./../modules/SV_jasmine"
 include { SV_paragraph_duphold } from "./../modules/SV_paragraph_duphold"
 
-include { samtools_fixmate } from "./../modules/samtools_fixmate"
+//include { samtools_fixmate } from "./../modules/samtools_fixmate"
 include { expansion_hunter } from "./../modules/expansion_hunter"
 include { melt } from "./../modules/melt"
 
@@ -85,7 +85,7 @@ workflow SV {
 		SV_vcfs_txt(SV_paragraph_duphold.out.vcf.collect(), assembly, batch, run, SV)
 		SV_merge_samples(SV_vcfs_txt.out, assembly, batch, run, SV)
                 Hail_SV_QC (SV_merge_samples.out.vcf, sample_sex_file, assembly, reference, reference_index, batch, run)
-		SV_annotation(Hail_SV_QC.out.vcf_SV_filtered_frequ_only, Hail_SV_QC.out.index_SV_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, SV, reference, dir_plugin)
+		SV_annotation(Hail_SV_QC.out.vcf_SV_filtered_frequ_only, Hail_SV_QC.out.index_SV_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, SV, reference, dir_plugin)
 
                 SV_data_organization(SV_annotation.out.annotation_vcf, assembly, run, SV, severity_table)
 
@@ -102,14 +102,14 @@ workflow SV {
 
 		// Mobile Element Insertions (MEIs)
                 // Sample specific (Do not need to be run for a previously processed sample)
-		samtools_fixmate(bam, bai, assembly, batch, run)
-		melt(samtools_fixmate.out.samples_fixmate_bam, samtools_fixmate.out.samples_fixmate_bam_index, reference, reference_index, transposon_file, genes_file, assembly, batch, run)
+		// samtools_fixmate(bam, bai, assembly, batch, run)
+		melt(bam, bai, reference, reference_index, transposon_file, genes_file, assembly, batch, run)
                 
 		// Aggregated steps (Need to be run everytime a new sample is added to the cohort)
 		MEI_vcfs_txt(melt.out.vcf.collect(), assembly, batch, run, MEI)
 		MEI_merge_samples(MEI_vcfs_txt.out, assembly, batch, run, MEI)
                 Hail_MEI_QC (MEI_merge_samples.out.vcf, sample_sex_file, assembly, reference, reference_index, batch, run)
-                MEI_annotation(Hail_MEI_QC.out.vcf_MEI_filtered_frequ_only, Hail_MEI_QC.out.index_MEI_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, chr, MEI, reference, dir_plugin)
+                MEI_annotation(Hail_MEI_QC.out.vcf_MEI_filtered_frequ_only, Hail_MEI_QC.out.index_MEI_filtered_frequ_only, vep_cache_merged, vep_cache_merged_version, assembly, run, assembly, CADD_1_6_whole_genome_SNVs, CADD_1_6_whole_genome_SNVs_index, CADD_1_6_InDels, CADD_1_6_InDels_index, spliceai_snv, spliceai_snv_index, spliceai_indel, spliceai_indel_index, MEI, reference, dir_plugin)
 
                 MEI_data_organization(MEI_annotation.out.annotation_vcf, assembly, run, MEI)
 }

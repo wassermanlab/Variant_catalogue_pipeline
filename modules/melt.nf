@@ -29,21 +29,28 @@ process melt {
 
 	script:
 	"""
-                sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
+		sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
+		# Resort the bam file by query name for samtools fixmate (coordiante-sorted bam does not work)
+		samtools sort -n -O BAM -@ 20  ${bam} > ${bam.SimpleName}_nsorted.bam
 
-	if [ -a $params.outdir_ind/${assembly}/*/${run}/MEI/Sample/\${sample_name}_mei.vcf.gz ]; then
-		melt_vcf=\$(find $params.outdir_ind/${assembly}/*/${run}/MEI/Sample/ -name \${sample_name}_mei.vcf.gz)
-		melt_index=\$(find $params.outdir_ind/${assembly}/*/${run}/MEI/Sample/ -name \${sample_name}_mei.vcf.gz.tbi)
-		ln -s \$melt_vcf .
-		ln -s \$melt_index .
-	else
+		# Samtools fixmate will add MQ tags
+		samtools fixmate -m -O BAM -@ 20  ${bam.SimpleName}_nsorted.bam  ${bam.SimpleName}_fixmate.bam
+
+		# Now sort bam file by coordinates to resume the pipeline 
+		samtools sort  -@ 20  ${bam.SimpleName}_fixmate.bam -o ${bam.SimpleName}_fixmate_ordered.bam
+
+		# index the sorted bam file
+		samtools index  -@ 20  ${bam.SimpleName}_fixmate_ordered.bam
+		rm *_nsorted.bam* *_fixmate.bam
+
+        sample_name=\$(echo ${bam.simpleName} | cut -d _ -f 1)
 		mkdir -p \${sample_name}
 	
 		java -Xmx8G -jar ${params.Melt_dir}/MELT.jar Single \
 		-b hs37d5/NC_007605 \
 		-t ${transposon_file}  \
 		-h ${reference} \
-		-bamfile $bam \
+		-bamfile ${bam.SimpleName}_fixmate_ordered.bam \
 		-w \${sample_name} \
 		-n ${genes_file}
 
@@ -55,7 +62,7 @@ process melt {
 		bcftools concat -a -Oz  -o \${sample_name}_mei_noID.vcf.gz *vcf.gz
 		bcftools annotate --set-id '%CHROM\\_%POS\\_%SVTYPE\\_%SVLEN' -O z -o \${sample_name}_mei.vcf.gz \${sample_name}_mei_noID.vcf.gz
 		bcftools index --tbi \${sample_name}_mei.vcf.gz
-	fi
+		rm *fixmate_ordered.bam*
 	"""
 }
 

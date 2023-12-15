@@ -9,7 +9,7 @@
 // Future update : Include gnomAD frequency to each varaint, annotate the varaints using vep
 
 process Hail_variant_QC {
-
+          maxForks 1
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/SNV/", mode: 'copy', pattern : '*.html'
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/SNV/", mode: 'copy', pattern : 'SNV_indel_QC_report.txt'
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : 'SNV_filtered_with_geno*'
@@ -23,18 +23,19 @@ process Hail_variant_QC {
 	val ref_index
 	val batch
 	val run
+	each chr
 
 	output :
 	path '*.html', emit : graph
 	path 'SNV_indel_QC_report.txt', emit : SNV_QC_report
 
-	path 'SNV_filtered_with_geno.vcf.bgz*', emit : SNV_filtered_with_geno
-        path 'SNV_filtered_frequ_only.vcf.bgz', emit : vcf_SNV_filtered_frequ_only
-        path 'SNV_filtered_frequ_only.vcf.bgz.tbi', emit : index_SNV_filtered_frequ_only
+	path 'SNV_filtered_with_geno*.vcf.bgz*', emit : SNV_filtered_with_geno
+    path 'SNV_filtered_frequ_only*.vcf.bgz', emit : vcf_SNV_filtered_frequ_only
+    path 'SNV_filtered_frequ_only*.vcf.bgz.tbi', emit : index_SNV_filtered_frequ_only
 
 	script:
 	"""
-        #!/usr/bin/env python ../../../modules/Hail_variant_QC.py $vcf_sample_filtered $sample_sex_file $params.tmp_dir $assembly $ref $ref_index
+        #!/usr/bin/env python ../../../modules/Hail_variant_QC.py $vcf_sample_filtered $sample_sex_file $params.tmp_dir $assembly $ref $ref_index $chr
 	"""
 }
 

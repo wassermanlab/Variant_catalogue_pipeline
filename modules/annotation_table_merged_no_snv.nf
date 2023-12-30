@@ -8,7 +8,7 @@
 // Same process for SNV and MT variants (using vep, obtaining a tsv)
 // The last line remove the # in front of "Uploaded_varaintion", which is necessary for downstream analysis
 
-process annotation_table_merged {
+process annotation_table_merged_no_snv {
 	label 'conda_annotate'
 	tag "${chr}"
 

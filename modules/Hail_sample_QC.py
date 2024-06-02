@@ -3,11 +3,14 @@
 
 # Hail and plot initialisation
 
+# Last Updated: June 1, 2024 - Stephanie Petrone
+#   Update: fixing issue with contig naming discrepency for GRCh38 files 
+#   and Hail's expected labeling conventions ('chr' prefix for GRCh38)
 # In[91]:
 
 import sys
 temp_directory=sys.argv[2]
-genome=sys.argv[3]
+genome=sys.argv[3] #either GRCh37 or GRCh38 (params.assembly)
 ref_fasta=sys.argv[4]
 ref_fasta_index=sys.argv[5]
 
@@ -34,19 +37,29 @@ import os
 
 # Import a vcf file and read it as a matrix table (mt, hail specific file type)
 # For specific on how to look at the mt file, refer to the bottom of this Jupyter notebook)
+# Use different function calls for GRCh37 and GRCh38 to accounting
+# for different contig labeling and Hail's requirements
+# (Hail requires GRCh37 to have no 'chr' prefix and GRCh38 to use it
+if genome == 'GRCh37':
+    hl.import_vcf(sys.argv[1],
+        array_elements_required=False, 
+        force_bgz=True, 
+        reference_genome=genome).write('SNV_vcf.mt', overwrite=True)
 
-# Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here
-# In[ ]:
-try:
-    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=genome).write('SNV_vcf.mt', overwrite=True)
-    referenceGenome = genome
-except:
-    # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
-    # PAR taken for GRCh38 from http://useast.ensembl.org/info/genome/genebuild/human_PARS.html
-    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",ref_fasta,ref_fasta_index,x_contigs=['X'],y_contigs=['Y'],mt_contigs=['MT'],par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
-    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=referenceGenome).write('SNV_vcf.mt', overwrite=True)
+elif genome == 'GRCh38':
+    # add extra re-coding step, as reference genome and vcf files
+    # for GRCh38 data are using GRCh37 labelling (no 'chr' prefix)
+    # and Hail requires that they use the 'chr' prefix
+    recode = {"MT":"chrM", **{f"{i}":f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])}} 
 
+    hl.import_vcf(sys.argv[1], 
+        array_elements_required=False, 
+        force_bgz=True, 
+        reference_genome=genome,
+        contig_recoding=recode).write('SNV_vcf.mt', overwrite=True)
 
+else:
+    raise Exception("Must use GRCh37 or GRCh38 assembly!")
 
 # In[ ]:
 

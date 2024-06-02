@@ -13,7 +13,7 @@ hl.plot.output_notebook()
 
 # temp dir setting
 temp_directory=sys.argv[3]
-genome=sys.argv[4]
+genome=sys.argv[4] # assembly - GRCh37 or GRCh38
 ref_fasta=sys.argv[5]
 ref_fasta_index=sys.argv[6]
 chr = sys.argv[7]
@@ -28,27 +28,52 @@ spark_conf = {
 hl.init(master='local[*]', spark_conf=spark_conf)
 output_notebook()
 
-#Created through the nextflow pipeline
 
+# import vcf - sys_argv[1] is output from Hail_sample_QC.py
+# created through the nextflow pipeline
+# import with recoding for GRCh38 data as data follows GRCh37 labelling
+# (no 'chr' prefix) and Hail requires the 'chr' prefix for GRCh38 data
+if genome == 'GRCh37':
+    mt = hl.import_vcf(sys.argv[1],
+                array_elements_required=False,
+                force_bgz=True,
+                reference_genome=genome)
+
+elif genome == 'GRCh38':
+
+    recode = {"MT":"chrM", **{f"{i}":f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])}}
+
+    mt = hl.import_vcf(sys.argv[1],
+                array_elements_required=False,
+                force_bgz=True,
+                reference_genome=genome,
+                contig_recoding=recode)                
+
+else:
+    raise Exception("Must use either GRCh37 or GRCh38!")
+
+ 
 #hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=genome).write('filtered_samples_vcf.mt', overwrite=True)
 
 # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here
-chromosome_interval = hl.parse_locus_interval(chr)
-try:
-    mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, 
-    reference_genome=genome)
+#chromosome_interval = hl.parse_locus_interval(chr)
+#try:
+#    mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, 
+#    reference_genome=genome)
 #.write('filtered_samples_vcf.mt', overwrite=True)
-except:
+#except:
     # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
     # PAR taken for GRCh38 from http://useast.ensembl.org/info/genome/genebuild/human_PARS.html
-    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",
-    ref_fasta,ref_fasta_index,x_contigs=['X'], y_contigs=['Y'],mt_contigs=['MT'],
-    par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
-    mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True,
-    reference_genome=referenceGenome)
+#    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",
+#    ref_fasta,ref_fasta_index,x_contigs=['X'], y_contigs=['Y'],mt_contigs=['MT'],
+#    par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
+#    mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True,
+#    reference_genome=referenceGenome)
 
     #.write('filtered_samples_vcf.mt', overwrite=True)
-# Sex table
+
+
+# Sex table (sys_argv[2] is the sample sex table created in Hail_sample_QC.py)
 mt = mt.filter_rows(mt.locus.contig == chr)
 sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
 
@@ -211,16 +236,12 @@ plot_sp (het_freq_hwe_SNV_table,
 #else:
 #    raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
 
-# Phil 2023-09-07: this is another place where the intervals create an issue with hard-coded expectation of contig name
-try:
-    contigs = referenceGenome.contigs
-except:
-    if genome == "GRCh37":
-        contigs = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-    elif genome =="GRCh38":
-        contigs = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-    else:
-        raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
+if genome == "GRCh37":
+    contigs = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+elif genome =="GRCh38":
+    contigs = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
+else:
+    raise ValueError("must use a valid assembly - GRCh37 or GRCh38")
 
 intervals = [hl.parse_locus_interval(x, reference_genome=genome) for x in contigs]
 

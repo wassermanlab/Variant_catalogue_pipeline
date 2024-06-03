@@ -49,6 +49,10 @@ if (length(gnomad_file)>11)gnomad_file[,12]=NULL
 #head(gnomad_file)
 #Create the variant ID (chr-Pos_ref_alt)
 ID_table_gnomad=gnomad_file[,c("CHROM", "POS", "REF", "ALT")]
+#### Kiana added (definitely not a good fix, ideally should avoid this mismatch since the very beginning)
+if (nchar(ID_table_gnomad$CHROM) > 1) {
+        ID_table_gnomad <- ID_table_gnomad %>% mutate(across(c('CHROM'), \(x) substr(x, 4, nchar(CHROM))))
+}
 ID_db_gnomad=paste(ID_table_gnomad$CHROM, ID_table_gnomad$POS, ID_table_gnomad$REF, ID_table_gnomad$ALT, sep="_")
 gnomad_file=cbind(ID_db_gnomad, gnomad_file)
 

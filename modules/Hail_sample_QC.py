@@ -431,11 +431,12 @@ report_stats()
 # Using gnomAD hard filters :
 #- Ambiguous sex: fell outside of:
 #- XY: F-stat > 0.8
-#- XX: F-stat < 0.4
+#- XX: F-stat < 0.5 - this value is determined by visually
+#                     looking at the distribution
 
 imputed_sex_filtered_samples = hl.impute_sex(filtered_mt.GT)
 imputed_sex_filtered_samples = imputed_sex_filtered_samples.annotate(
-        sex=hl.if_else(imputed_sex_filtered_samples.f_stat < 0.2,
+        sex=hl.if_else(imputed_sex_filtered_samples.f_stat < 0.5,
                        "XX",
                        (hl.if_else(imputed_sex_filtered_samples.f_stat > 0.8,"XY", "ambiguous"))
                 )
@@ -445,3 +446,13 @@ filtered_samples_sex.export('filtered_samples_sex.tsv')
 
 
 
+# Create a histogram for showing distribution for XX and XY 
+# calculated with the hl.impute_sex() function (f-stat)
+pl = hl.plot.histogram(imputed_sex_filtered_samples.f_stat, title="Sample Sex Distribution")
+pl.yaxis.axis_label = 'Count'
+pl.xaxis.axis_label = 'F-stat'
+annot = Span(dimension="height", location=0.5 ,line_dash='dashed', line_width=3,line_color="red")
+pl.add_layout(annot)
+
+output_file(filename=("impute_sex_distribution.html"))
+save(pl)

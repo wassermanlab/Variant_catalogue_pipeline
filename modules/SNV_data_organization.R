@@ -27,13 +27,9 @@ if (!require(data.table)) {
 #Define assembly from the args
 assembly=args[1]
 vcf_path <- args[3]
-# Pattern to extract chromomse number
-chr_pat = ".*only_((chr)?[0-9]{1,2}|X|Y)_.+"
 
-# Use sub to extract the chromosome number
-chr <- sub(chr_pat, "\\1", vcf_path,perl = TRUE)
-
-# Print the result
+#parsed chrom value passed as arg 2
+chr=args[2]
 
 ####Organize different tables
 ##Read gnomAD SNV vcf:

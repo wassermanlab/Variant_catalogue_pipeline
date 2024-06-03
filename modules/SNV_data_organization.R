@@ -49,7 +49,10 @@ if (length(gnomad_file)>11)gnomad_file[,12]=NULL
 #head(gnomad_file)
 #Create the variant ID (chr-Pos_ref_alt)
 ID_table_gnomad=gnomad_file[,c("CHROM", "POS", "REF", "ALT")]
-#### Kiana added (definitely not a good fix, ideally should avoid this mismatch since the very beginning)
+# Kiana added: changes to match the chromosome labels used in the gnomAD tsv file to our variant files
+# later on, the intersection of the variants in the gnomAD and our table are calculated
+# so the labels need to match for correct functionality (i.e. either have no 'chr' prefix or both have it)
+# (Ideally, this would be avoided by generating the gnomAD tsv using the same format in the initialization module)
 if (nchar(ID_table_gnomad$CHROM) > 1) {
         ID_table_gnomad <- ID_table_gnomad %>% mutate(across(c('CHROM'), \(x) substr(x, 4, nchar(CHROM))))
 }

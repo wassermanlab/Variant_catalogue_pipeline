@@ -53,7 +53,7 @@ ID_table_gnomad=gnomad_file[,c("CHROM", "POS", "REF", "ALT")]
 # later on, the intersection of the variants in the gnomAD and our table are calculated
 # so the labels need to match for correct functionality (i.e. either have no 'chr' prefix or both have it)
 # (Ideally, this would be avoided by generating the gnomAD tsv using the same format in the initialization module)
-if (nchar(ID_table_gnomad$CHROM) > 2) {
+if (nchar(ID_table_gnomad$CHROM[1]) > 2) {
         ID_table_gnomad <- ID_table_gnomad %>% mutate(across(c('CHROM'), \(x) substr(x, 4, nchar(CHROM))))
 }
 ID_db_gnomad=paste(ID_table_gnomad$CHROM, ID_table_gnomad$POS, ID_table_gnomad$REF, ID_table_gnomad$ALT, sep="_")

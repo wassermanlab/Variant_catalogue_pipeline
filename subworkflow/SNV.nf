@@ -1,7 +1,7 @@
 // Nextflow sub-workflow
 // Created by Solenne Correard in December 2021
 // Owned by the Silent Genomes Project Activity 3 team
-// Developped to build the IBVL, a background variant library
+// Developed to build the IBVL, a background variant library
 
 // Overview of the sub-workflow goal and characteristics :
 // Call the SNV variants

@@ -10,14 +10,14 @@ Varaint catalogue pipeline - Nextflow
 reads                           : ${params.reads}
 reference                       : ${params.ref}
 assembly                        : ${params.assembly}
-run	                        : ${params.run}
+run		                        : ${params.run}
 batch	                        : ${params.batch}
 """
 
 if (params.help) {
     log.info """
     Usage:
-        This is the variant catalogue pipeline
+    This is the variant catalogue pipeline
 	This pipeline was developped to generate the IBVL (Silent Genomes Project)
 	Let\'s reduce health care disparities
 	
@@ -42,18 +42,20 @@ include { SV } from "./subworkflow/SV"
 include { MT } from "./subworkflow/MT"
 
 workflow{
-	samples 	= Channel
-		.fromFilePairs (params.reads)
-		.ifEmpty { error "Cannot find any reads matching: ${params.reads}" }    
+
+	input_reads = Channel.fromPath(params.sample_sheet)
+		.splitCsv()
+		.map { row -> tuple(row[0], tuple(file(row[1]), file(row[2]))) }
+		.ifEmpty { error "cannot find reads in ${params.sample_sheet}" }
 
 	batch 		= params.batch
-	assembly        = params.assembly
-	run		= params.run
+	assembly    = params.assembly
+	run			= params.run
 	outdir_ind 	= file (params.outdir_ind)
 
 	main :
 	//Initialisation()
-        Mapping()
+        Mapping(input_reads)
 //      SNV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index)
 //      SV(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, SNV.out.sample_sex_file)
 //	MT(Mapping.out.bam_sorted, Mapping.out.bam_sorted_index, Mapping.out.mosdepth_output)

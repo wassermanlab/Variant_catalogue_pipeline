@@ -41,8 +41,8 @@ process SNV_data_organization {
 	mkdir -p \${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 	export R_LIBS=\${Silent_Genomes_R}/.local/R/\$EBVERSIONR/
 
-	chr=\$(echo '${SNV_annot_merged.simpleName}' | sed 's/^.*_\\([^_]*\\)\$/\\1/' )
-        #freq_file=\$(find . -iname 'gnomad_frequency_table_*.tsv' | grep -E 'gnomad_frequency_table_(chr)?\${chr}.tsv')
+	chr=\$(echo '${SNV_annot_merged.simpleName}' | grep -oP 'chr.?.?' | grep -oP [[:digit:]XY]+ )
+    #freq_file=\$(find . -iname 'gnomad_frequency_table_*.tsv' | grep -E 'gnomad_frequency_table_(chr)?\${chr}.tsv')
 	Rscript ../../../modules/SNV_data_organization.R ${assembly} \${chr}  ${SNV_annot_merged} $severity_table ${gnomad_SNV_frequ}
 	"""
 }

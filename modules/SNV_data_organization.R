@@ -1,4 +1,3 @@
-
 #R script
 #Created by Solenne Correard in December 2021
 #Owned by the Silent Genomes Project Activity 3 team
@@ -27,13 +26,9 @@ if (!require(data.table)) {
 #Define assembly from the args
 assembly=args[1]
 vcf_path <- args[3]
-# Pattern to extract chromomse number
-chr_pat = ".*only_((chr)?[0-9]{1,2}|X|Y)_.+"
 
-# Use sub to extract the chromosome number
-chr <- sub(chr_pat, "\\1", vcf_path,perl = TRUE)
-
-# Print the result
+#parsed chrom value passed as arg 2
+chr=args[2]
 
 ####Organize different tables
 ##Read gnomAD SNV vcf:
@@ -53,6 +48,13 @@ if (length(gnomad_file)>11)gnomad_file[,12]=NULL
 #head(gnomad_file)
 #Create the variant ID (chr-Pos_ref_alt)
 ID_table_gnomad=gnomad_file[,c("CHROM", "POS", "REF", "ALT")]
+# Kiana added: changes to match the chromosome labels used in the gnomAD tsv file to our variant files
+# later on, the intersection of the variants in the gnomAD and our table are calculated
+# so the labels need to match for correct functionality (i.e. either have no 'chr' prefix or both have it)
+# (Ideally, this would be avoided by generating the gnomAD tsv using the same format in the initialization module)
+if (nchar(ID_table_gnomad$CHROM[1]) > 2) {
+        ID_table_gnomad <- ID_table_gnomad %>% mutate(across(c('CHROM'), \(x) substr(x, 4, nchar(CHROM))))
+}
 ID_db_gnomad=paste(ID_table_gnomad$CHROM, ID_table_gnomad$POS, ID_table_gnomad$REF, ID_table_gnomad$ALT, sep="_")
 gnomad_file=cbind(ID_db_gnomad, gnomad_file)
 

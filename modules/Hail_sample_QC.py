@@ -3,11 +3,14 @@
 
 # Hail and plot initialisation
 
+# Last Updated: June 1, 2024 - Stephanie Petrone
+#   Update: fixing issue with contig naming discrepency for GRCh38 files 
+#   and Hail's expected labeling conventions ('chr' prefix for GRCh38)
 # In[91]:
 
 import sys
 temp_directory=sys.argv[2]
-genome=sys.argv[3]
+genome=sys.argv[3] #either GRCh37 or GRCh38 (params.assembly)
 ref_fasta=sys.argv[4]
 ref_fasta_index=sys.argv[5]
 
@@ -34,19 +37,29 @@ import os
 
 # Import a vcf file and read it as a matrix table (mt, hail specific file type)
 # For specific on how to look at the mt file, refer to the bottom of this Jupyter notebook)
+# Use different function calls for GRCh37 and GRCh38 to accounting
+# for different contig labeling and Hail's requirements
+# (Hail requires GRCh37 to have no 'chr' prefix and GRCh38 to use it
+if genome == 'GRCh37':
+    hl.import_vcf(sys.argv[1],
+        array_elements_required=False, 
+        force_bgz=True, 
+        reference_genome=genome).write('SNV_vcf.mt', overwrite=True)
 
-# Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here
-# In[ ]:
-try:
-    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=genome).write('SNV_vcf.mt', overwrite=True)
-    referenceGenome = genome
-except:
-    # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
-    # PAR taken for GRCh38 from http://useast.ensembl.org/info/genome/genebuild/human_PARS.html
-    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",ref_fasta,ref_fasta_index,x_contigs=['X'],y_contigs=['Y'],mt_contigs=['MT'],par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
-    hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, reference_genome=referenceGenome).write('SNV_vcf.mt', overwrite=True)
+elif genome == 'GRCh38':
+    # add extra re-coding step, as reference genome and vcf files
+    # for GRCh38 data are using GRCh37 labelling (no 'chr' prefix)
+    # and Hail requires that they use the 'chr' prefix
+    recode = {"MT":"chrM", **{f"{i}":f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])}} 
 
+    hl.import_vcf(sys.argv[1], 
+        array_elements_required=False, 
+        force_bgz=True, 
+        reference_genome=genome,
+        contig_recoding=recode).write('SNV_vcf.mt', overwrite=True)
 
+else:
+    raise Exception("Must use GRCh37 or GRCh38 assembly!")
 
 # In[ ]:
 
@@ -418,11 +431,12 @@ report_stats()
 # Using gnomAD hard filters :
 #- Ambiguous sex: fell outside of:
 #- XY: F-stat > 0.8
-#- XX: F-stat < 0.4
+#- XX: F-stat < 0.5 - this value is determined by visually
+#                     looking at the distribution
 
 imputed_sex_filtered_samples = hl.impute_sex(filtered_mt.GT)
 imputed_sex_filtered_samples = imputed_sex_filtered_samples.annotate(
-        sex=hl.if_else(imputed_sex_filtered_samples.f_stat < 0.2,
+        sex=hl.if_else(imputed_sex_filtered_samples.f_stat < 0.5,
                        "XX",
                        (hl.if_else(imputed_sex_filtered_samples.f_stat > 0.8,"XY", "ambiguous"))
                 )
@@ -432,3 +446,13 @@ filtered_samples_sex.export('filtered_samples_sex.tsv')
 
 
 
+# Create a histogram for showing distribution for XX and XY 
+# calculated with the hl.impute_sex() function (f-stat)
+pl = hl.plot.histogram(imputed_sex_filtered_samples.f_stat, title="Sample Sex Distribution")
+pl.yaxis.axis_label = 'Count'
+pl.xaxis.axis_label = 'F-stat'
+annot = Span(dimension="height", location=0.5 ,line_dash='dashed', line_width=3,line_color="red")
+pl.add_layout(annot)
+
+output_file(filename=("impute_sex_distribution.html"))
+save(pl)

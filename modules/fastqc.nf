@@ -1,10 +1,13 @@
 // Nextflow process
 // Created by Solenne Correard in December 2021
 // Owned by the Silent Genomes Project Activity 3 team
-// Developped to build the IBVL, a background variant library
+// Developed to build the IBVL, a background variant library
 
 // Overview of the process goal and characteristics :
 // Pre-alignment QC : Fastqc
+
+// June 2024 update by Kiana R: Nextflow's caching keeps track of already processed samples
+// Thus no extra action is required to skip this process if the files have been already generated
 
 process fastqc {
         tag "$sample"
@@ -23,13 +26,6 @@ process fastqc {
 
 	script:
         """
-	if [ -a ${params.outdir_ind}/${assembly}/*/${run}/QC/Individuals/${sample}_sorted/Fastqc/${sample}.R1_fastqc.zip ]; then
-		fastqc_R1=\$(find ${params.outdir_ind}/${assembly}/*/${run}/QC/Individuals/${sample}_sorted/Fastqc/ -name ${sample}.R1_fastqc.zip )
-		fastqc_R2=\$(find ${params.outdir_ind}/${assembly}/*/${run}/QC/Individuals/${sample}_sorted/Fastqc/ -name ${sample}.R2_fastqc.zip )
-		ln -s \$fastqc_R1 .
-		ln -s \$fastqc_R2 .
-	else
-		fastqc -t ${task.cpus} ${reads.get(0)} ${reads.get(1)}
-        fi
+	fastqc -t ${task.cpus} ${reads.get(0)} ${reads.get(1)}
 	"""
 }

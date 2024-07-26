@@ -10,6 +10,7 @@
 
 // Load the modules for the ALN workflow
 
+include { bwa_index } from "./../modules/bwa_index"
 include { gnomad_frequency_table } from "./../modules/gnomad_frequency_table"
 
 // Initialisation workflow
@@ -19,7 +20,6 @@ workflow Initialisation {
 	gnomad_SNV_vcf          = file (params.gnomad_SNV_vcf)
 	gnomad_SNV_index        = file (params.gnomad_SNV_vcf_index)
         chr                     = params.chrom
-
 
 	main:
 		gnomad_frequency_table(gnomad_SNV_vcf, gnomad_SNV_index, chr)

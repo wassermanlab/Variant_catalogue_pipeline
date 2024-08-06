@@ -4,8 +4,10 @@
 # Hail and plot initialisation
 
 # Last Updated: June 1, 2024 - Stephanie Petrone
-#   Update: fixing issue with contig naming discrepency for GRCh38 files 
+#  - Update: fixing issue with contig naming discrepency for GRCh38 files 
 #   and Hail's expected labeling conventions ('chr' prefix for GRCh38)
+#  - Update: sex imputation cut-off (f-stat) changed from 0.2 to 0.5 as XX samples
+#    were being missed. Histogram added to visualize during run for QC check. 
 # In[91]:
 
 import sys

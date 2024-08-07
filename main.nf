@@ -7,7 +7,7 @@ nextflow.enable.dsl=2
 log.info """
 Varaint catalogue pipeline - Nextflow
 =============================================
-reads                           : ${params.reads}
+reads                           : ${params.sample_sheet}
 reference                       : ${params.ref}
 assembly                        : ${params.assembly}
 run		                        : ${params.run}

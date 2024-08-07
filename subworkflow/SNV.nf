@@ -59,7 +59,7 @@ workflow SNV {
 		deepvariant_call(reference, reference_index, bam, bai, assembly, batch, run)
 
 		// Aggregated steps (Need to be run everytime a new sample is added to the cohort)
-		list_vcfs_txt(deepvariant_call.out.deepvariant_gvcf.collect(), assembly, batch, run, SNV)
+    //	list_vcfs_txt(deepvariant_call.out.deepvariant_gvcf.collect(), assembly, batch, run, SNV)
 	//	GLnexus_cli(list_vcfs_txt.out, run)
 	//	bcf_to_vcf(GLnexus_cli.out, assembly, batch, run)
 

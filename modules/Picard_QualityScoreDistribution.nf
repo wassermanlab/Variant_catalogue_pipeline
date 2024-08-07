@@ -3,8 +3,6 @@
 // To that effect, it outputs a chart and tables indicating the range of quality scores and the total numbers of bases corresponding to those scores. 
 // (!) R is necessary for the chart
 
-// June 2024 update by Kiana R: Nextflow's caching keeps track of already processed samples
-// Thus no extra action is required to skip this process if the files have been already generated
 
 process Picard_QualityScoreDistribution {
         tag "${bam.simpleName}"

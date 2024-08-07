@@ -7,10 +7,6 @@
 // Alignment. fastq alignment with bwa mem 
 // Sort and index with samtools
 
-// Last edit: August 6, 2024 by Stephanie Petrone
-// The bwa mem option -k 23 was added (changed from default of 19). 
-// This was benchmarked with hap.py and had marginally better results; 
-// Additionally, based on the HG002-4 samples, the alignment was faster. 
 
 
 process align_sort_output_bam {
@@ -30,6 +26,10 @@ process align_sort_output_bam {
 	output :
 	path '*.bam', emit: samples_bam
 	path '*.bam.bai', emit: samples_bam_index
+
+	// The bwa mem option -k 23 was added (changed from default of 19). 
+	// This was benchmarked with hap.py and had marginally better results; 
+	// Additionally, based on the HG002-4 samples, the alignment was faster. 
 
 	script:
 	"""

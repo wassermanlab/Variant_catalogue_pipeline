@@ -8,8 +8,6 @@
 // This tool takes a SAM/BAM file input and produces metrics detailing the quality of the read alignments 
 // as well as the proportion of the reads that passed machine signal-to-noise threshold quality filters. 
 
-// June 2024 update by Kiana R: Nextflow's caching keeps track of already processed samples
-// Thus no extra action is required to skip this process if the files have been already generated
 
 process Picard_CollectAlignmentSummaryMetrics {
         tag "${bam}"

@@ -7,8 +7,6 @@
 // Post-alignment QC
 // Quality check of the bam file with Mosdepth
 
-// June 2024 update by Kiana R: Nextflow's caching keeps track of already processed samples
-// Thus no extra action is required to skip this process if the files have been already generated
 
 process Mosdepth {
         tag "$bam"

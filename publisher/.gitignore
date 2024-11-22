@@ -13,5 +13,5 @@ wheels/
 
 !.env-sample
 !.python-version
-
+!fixtures/**/*.tsv
 jobs

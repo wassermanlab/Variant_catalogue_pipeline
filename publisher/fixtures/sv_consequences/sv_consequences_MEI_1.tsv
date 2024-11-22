@@ -1,0 +1,8 @@
+gene	variant	consequence
+GENE1	VAR1	intron_variant
+GENE2	VAR2	feature_elongation
+GENE3	VAR3	non_coding_transcript_variant
+GENE4	VAR4	intron_variant
+GENE5	VAR5	feature_elongation
+GENE6	VAR6	intron_variant
+GENE7	VAR7	non_coding_transcript_variant

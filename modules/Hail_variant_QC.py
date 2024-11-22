@@ -183,8 +183,11 @@ def stat(table):
 
 def plot_histo (table_plot, mt_plot, variable) :
     output_file(filename=os.path.join(("variant_QC_"+variable+".html")), title=f"Variant QC HTML file {chr}")
+    range = (stat(table_plot) [4], stat(table_plot) [5])
+    if ((stat(table_plot) [5] - stat(table_plot) [4]) <= 0 ):
+        range = (0,1)
     p = hl.plot.histogram(mt_plot,
-                      range = (stat(table_plot) [4], stat(table_plot) [5]),
+                      range,
                       bins = 60,
                       legend=variable,
                       title="Red lines are Mean +/- 3xStdDev")
@@ -781,8 +784,8 @@ if(chr == "autosomal"):
         hl.export_vcf(contig_mt_no_geno, f'SNV_filtered_frequ_only_{c}.vcf.bgz',tabix=True)
 
 else:
-    hl.export_vcf(SNV_mt_var_filtered, f'SNV_filtered_with_geno_{chr}.vcf.bgz', tabix=True)
-    hl.export_vcf(SNV_mt_var_filtered_no_geno, f'SNV_filtered_frequ_only_{chr}.vcf.bgz',
+    hl.export_vcf(SNV_mt_var_filtered, f'SNV_filtered_with_geno_{contigs}.vcf.bgz', tabix=True)
+    hl.export_vcf(SNV_mt_var_filtered_no_geno, f'SNV_filtered_frequ_only_{contigs}.vcf.bgz',
      tabix=True)
 
 

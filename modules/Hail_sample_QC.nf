@@ -30,14 +30,14 @@ process Hail_sample_QC {
 	path '*.txt'
 
 	script:
-	if (params.filter_sample == False)
+	if (!params.filter_samples)
 		"""
 			#!/usr/bin/env python ../../../modules/Hail_sample_QC.py $SNV_vcf $params.tmp_dir $assembly $ref $ref_index
 		"""
-	else if (params.filter_sample == True)
+	else if (params.filter_samples)
 		"""
 			#!/usr/bin/env python ../../../modules/Hail_sample_QC.py $SNV_vcf $params.tmp_dir $assembly $ref $ref_index $params.filter_list
 		"""
 	else
-	 error "Invalid filter_sample parameter, must be True or False"
+	 error "Invalid filter_sample parameter, must be true or false"
 }

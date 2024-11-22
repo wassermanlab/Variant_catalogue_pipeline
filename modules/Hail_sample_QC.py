@@ -44,9 +44,11 @@ genome=sys.argv[3] #either GRCh37 or GRCh38 (params.assembly)
 ref_fasta=sys.argv[4]
 ref_fasta_index=sys.argv[5]
 pop_vcf = sys.argv[1]
+filter_samples = False #default is false (flag for filtering samples)
 
 #use filter list only when it is passed as argument
-if ((len(sys.argv)-1) == 6):
+#counts extra arg with env 
+if ((len(sys.argv)-1) == 7):
     filter_samples = True # flag for running filter step
     filter_table = sys.argv[6]
 

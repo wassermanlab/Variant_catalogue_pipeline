@@ -31,7 +31,7 @@ process bcf_to_vcf {
 	bcftools index -t ${bcf_file.simpleName}_GLnexus_output.vcf.gz
 
 	# normalize/left align and split multi-allelic variants 
-	bcftools norm -m -any -o ${bcf_file.simpleName}_norm_int.vcf -f ${ref} ${bcf_file}
+	bcftools norm -m -any -Oz -o ${bcf_file.simpleName}_norm_int.vcf -f ${ref} ${bcf_file}
 	bcftools annotate --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -O z -o ${bcf_file.simpleName}_norm.vcf.gz ${bcf_file.simpleName}_norm_int.vcf
 	"""
 }

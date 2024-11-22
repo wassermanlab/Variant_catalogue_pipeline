@@ -11,11 +11,11 @@
 process Hail_variant_QC {
         //  maxForks 1
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/SNV/", mode: 'copy', pattern : '*.html'
-        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/SNV/", mode: 'copy', pattern : 'SNV_indel_QC_report.txt'
+        publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/QC/Aggregated/Hail/Variants/SNV/reports/", mode: 'copy', pattern : '*.txt'
         publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/", mode: 'copy', pattern : 'SNV_filtered_with_geno*'
         publishDir "$params.outdir_pop/${assembly}/${run}/SNV/Vcf_pre_annotation/", mode: 'copy', pattern : 'SNV_filtered_frequ_only*'
-		publishDir "$params.outdir_pop/${assembly}/${run}/SNV/Vcf_pre_annotation/large_indels/", mode: 'copy', pattern : 'SNV_large_indels*'
-		publishDir "$params.outdir_pop/${assembly}/${run}/SNV/Vcf_pre_annotation/autosomal/", mode: 'copy', pattern : 'SNV_autosomal.vcf*'
+		publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/large_indels/", mode: 'copy', pattern : 'SNV_large_indels*'
+		publishDir "$params.outdir_ind/${assembly}/${batch}/${run}/vcf_post_hail/autosomal/", mode: 'copy', pattern : 'SNV_autosomal.vcf*'
 
 	input :
 	file vcf_sample_filtered

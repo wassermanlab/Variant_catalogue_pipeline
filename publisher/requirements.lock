@@ -9,3 +9,29 @@
 #   generate-hashes: false
 
 -e file:.
+natsort==8.4.0
+    # via publisher
+numpy==2.1.3
+    # via pandas
+    # via publisher
+pandas==2.2.3
+    # via publisher
+pymysql==1.1.1
+    # via publisher
+python-dateutil==2.9.0.post0
+    # via pandas
+python-dotenv==1.0.1
+    # via publisher
+pytz==2024.2
+    # via pandas
+six==1.16.0
+    # via python-dateutil
+sqlalchemy==2.0.36
+    # via publisher
+    # via sqlalchemy-utils
+sqlalchemy-utils==0.41.2
+    # via publisher
+typing-extensions==4.12.2
+    # via sqlalchemy
+tzdata==2024.2
+    # via pandas

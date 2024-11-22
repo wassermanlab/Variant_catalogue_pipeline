@@ -50,11 +50,11 @@ genes_table = Table(
 transcripts_table = Table(
     "transcripts",
     metadata,
-    Column("transcript_id", String(255)),
+    Column("transcript_id", String(100)),
     Column("id", Integer, primary_key=True),
     Column("gene", Integer, ForeignKey("genes.id", ondelete="CASCADE")),
     Column("transcript_type", String(1)),
-    Column("tsl", String(255)),
+    Column("tsl", String(12)),
     UniqueConstraint("transcript_id", name="transcripts_unique"),
 #    ForeignKey("gene", name="transcripts_genes_fk", ondelete="CASCADE", table="genes"),
 )
@@ -131,7 +131,7 @@ mts_table = Table(
     Column("id", Integer, primary_key=True),
     Column("pos", Integer),
     Column("ref", String(60)),
-    Column("alt", String(30)),
+    Column("alt", String(60)),
     Column("ucsc_url", String(511)),
     Column("mitomap_url", String(511)),
     Column("gnomad_url", String(511)),
@@ -151,8 +151,8 @@ snvs_table = Table(
     Column("length", Integer),
     Column("chr", String(2)),
     Column("pos", Integer),
-    Column("ref", String(255)),
-    Column("alt", String(255)),
+    Column("ref", String(60)),
+    Column("alt", String(60)),
     Column("cadd_intr", String(255)),
     Column("cadd_score", Integer),
     Column("dbsnp_id", String(30)),
@@ -227,9 +227,10 @@ svs_ctx_table = Table(
 variants_table = Table(
     "variants",
     metadata,
-    Column("variant_id", String(255)),
+    Column("variant_id", String(115)),
     Column("id", Integer, primary_key=True),
     Column("var_type", String(30)),
+    Column("assembly", Integer),
     UniqueConstraint("variant_id", name="variants_unique"),
 )
 
@@ -237,9 +238,9 @@ variants_annotations_table = Table(
     "variants_annotations",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("hgvsp", String(255)),
-    Column("polyphen", String(255)),
-    Column("sift", String(255)),
+    Column("hgvsp", String(100)),
+    Column("polyphen", String(100)),
+    Column("sift", String(100)),
     Column("variant_transcript", Integer, ForeignKey("variants_transcripts.id", ondelete="CASCADE")),
     UniqueConstraint("variant_transcript", name="variants_annotations_unique"),
 )
@@ -270,14 +271,14 @@ severities_table = Table(
     metadata,
     Column("severity_number", Integer),
     Column("id", Integer, primary_key=True),
-    Column("consequence", String(255)),
+    Column("consequence", String(40)),
     UniqueConstraint("severity_number", name="severities_unique"),
 )
 
 metadata.create_all(engine)
 
 severities_sql = "INSERT INTO `severities` (`severity_number`, `id`, `consequence`) VALUES(1, 1, 'transcript_ablation'),(2, 2, 'splice_acceptor_variant'),(3, 3, 'splice_donor_variant'),(4, 4, 'stop_gained'),(5, 5, 'frameshift_variant'),(6, 6, 'stop_lost'),(7, 7, 'start_lost'),(8, 8, 'transcript_amplification'),(9, 9, 'inframe_insertion'),(10, 10, 'inframe_deletion'),(11, 11, 'missense_variant'),(12, 12, 'protein_altering_variant'),(13, 13, 'regulatory_region_ablation'),(14, 14, 'splice_region_variant'),(15, 15, 'incomplete_terminal_codon_variant'),(16, 16, 'start_retained_variant'),(17, 17, 'stop_retained_variant'),(18, 18, 'synonymous_variant'),(19, 19, 'coding_sequence_variant'),(20, 20, 'mature_miRNA_variant'),(21, 21, '5_prime_UTR_variant'),(22, 22, '3_prime_UTR_variant'),(23, 23, 'non_coding_transcript_exon_variant'),(24, 24, 'intron_variant'),(25, 25, 'NMD_transcript_variant'),(26, 26, 'non_coding_transcript_variant'),(27, 27, 'upstream_gene_variant'),(28, 28, 'downstream_gene_variant'),(29, 29, 'TFBS_ablation'),(30, 30, 'TFBS_amplification'),(31, 31, 'TF_binding_site_variant'),(32, 32, 'regulatory_region_amplification'),(33, 33, 'feature_elongation'),(34, 34, 'regulatory_region_variant'),(35, 35, 'feature_truncation'),(36, 36, 'intergenic_variant');"
-severities_sql_oracle = "INSERT INTO "
+
 # insert into engine
 with engine.connect() as connection:
     connection.execute(text(severities_sql))

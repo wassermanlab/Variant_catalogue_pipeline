@@ -26,10 +26,10 @@ load_dotenv()
 
 # get command line arguments
 rootDir = os.environ.get("PIPELINE_OUTPUT_PATH")
-dir_containing_jobs = (
-    os.environ.get("JOBS_PATH") if os.environ.get("JOBS_PATH") != "" else "/jobs"
-)
-print(dir_containing_jobs)
+dir_containing_jobs = "jobs"
+current_dir = os.path.dirname(os.path.realpath(__file__))
+dir_containing_jobs = os.path.join(current_dir, dir_containing_jobs)
+print(f"dir containing jobs: {dir_containing_jobs}. absolute: {os.path.abspath(dir_containing_jobs)}")
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 # verbose = os.environ.get("VERBOSE") == "true"
 dbConnectionString = os.environ.get("DB")

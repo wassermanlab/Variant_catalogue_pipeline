@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
+
+# In[1]:
+
+
 import hail as hl
 from hail.plot import output_notebook, show
 from bokeh.models import Span
@@ -11,12 +15,23 @@ import sys
 from typing import Optional, Dict, List
 hl.plot.output_notebook()
 
-# temp dir setting
+
+# In[2]:
+
+
 temp_directory=sys.argv[3]
 genome=sys.argv[4] # assembly - GRCh37 or GRCh38
 ref_fasta=sys.argv[5]
 ref_fasta_index=sys.argv[6]
 chr = sys.argv[7]
+vcf_file=sys.argv[1]
+sex_table=sys.argv[2]
+
+
+# In[3]:
+
+# In[4]:
+
 
 # Hail and plot initialisation
 # Configure Spark properties
@@ -24,9 +39,16 @@ spark_conf = {
     'spark.driver.memory': '8g'  # Set the driver memory, e.g., to 8 GB
 }
 
+
+# In[5]:
+
+
 # Initialize Hail with custom Spark configuration
 hl.init(master='local[*]', spark_conf=spark_conf)
 output_notebook()
+
+
+# In[6]:
 
 
 # import vcf - sys_argv[1] is output from Hail_sample_QC.py
@@ -34,7 +56,7 @@ output_notebook()
 # import with recoding for GRCh38 data as data follows GRCh37 labelling
 # (no 'chr' prefix) and Hail requires the 'chr' prefix for GRCh38 data
 if genome == 'GRCh37':
-    mt = hl.import_vcf(sys.argv[1],
+    mt = hl.import_vcf(vcf_file,
                 array_elements_required=False,
                 force_bgz=True,
                 reference_genome=genome)
@@ -43,48 +65,108 @@ elif genome == 'GRCh38':
 
     recode = {"MT":"chrM", **{f"{i}":f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])}}
 
-    mt = hl.import_vcf(sys.argv[1],
+    mt = hl.import_vcf(vcf_file,
                 array_elements_required=False,
                 force_bgz=True,
                 reference_genome=genome,
-                contig_recoding=recode)                
-
+                contig_recoding=recode)  
 else:
     raise Exception("Must use either GRCh37 or GRCh38!")
 
- 
-#hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=genome).write('filtered_samples_vcf.mt', overwrite=True)
 
-# Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here
-#chromosome_interval = hl.parse_locus_interval(chr)
-#try:
-#    mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True, 
-#    reference_genome=genome)
-#.write('filtered_samples_vcf.mt', overwrite=True)
-#except:
-    # Phil add 2023-09-07, define reference genome off the input fasta file, which we can pass here, on the off-chance that the GRCh38 has contigs 1,2,3..X,Y,MT
-    # PAR taken for GRCh38 from http://useast.ensembl.org/info/genome/genebuild/human_PARS.html
-#    referenceGenome = hl.genetics.ReferenceGenome.from_fasta_file("referenceGenome",
-#    ref_fasta,ref_fasta_index,x_contigs=['X'], y_contigs=['Y'],mt_contigs=['MT'],
-#    par=[('Y',10001,2781479),('X',10001,2781479),('Y',56887903,57217415),('X',155701383,156030895)])
-#    mt = hl.import_vcf(sys.argv[1], array_elements_required=False, force_bgz=True,
-#    reference_genome=referenceGenome)
-
-    #.write('filtered_samples_vcf.mt', overwrite=True)
+# In[7]:
 
 
 # Sex table (sys_argv[2] is the sample sex table created in Hail_sample_QC.py)
-mt = mt.filter_rows(mt.locus.contig == chr)
-sex_table = (hl.import_table(sys.argv[2], impute=True).key_by('s'))
+sex_table = (hl.import_table(sex_table, impute=True).key_by('s'))
 
-#**Import file**
-#Inport a vcf file and read it as a matrix table (mt, hail specific file type)
 
-#**Graph functions**
-#In order to create the graph, 3 functions were needed
-#- stat : To calcualte the mean, standard deviation and other metrics for each parameter
-#- plot_histo : To create the histogram as expected
-#- plot_sp : To create the scatter plots as expected
+# In[8]:
+
+
+#Handle interval
+if (chr == "autosomal"):
+    #recode for hail functions to use hail GRCh38, select chromosomes 1-22
+    if genome == "GRCh37":
+        contigs = [f"{i}" for i in (list(range(1, 23)))]
+    elif genome =="GRCh38":
+        contigs = [f"chr{i}" for i in (list(range(1, 23)))]
+    else:
+        raise ValueError("must use a valid assembly - GRCh37 or GRCh38")
+
+    intervals = [hl.parse_locus_interval(x, reference_genome=genome) for x in contigs]
+    mt = hl.filter_intervals(mt, intervals, keep=True)
+    
+elif ((chr == "X") | (chr == "x") |(chr == "chrX") | (chr == "chrx")):
+    if genome == "GRCh37":
+        contigs = 'X'
+    elif genome =="GRCh38":
+        contigs = 'chrX'
+        
+    mt = hl.filter_intervals(mt, [hl.parse_locus_interval(contigs, reference_genome=genome)], keep=True)
+
+elif ((chr == "Y") | (chr == "y") | (chr == "chrY") | (chr == "chry")):
+    if genome == "GRCh37":
+        contigs = 'Y'
+    elif genome =="GRCh38":
+        contigs = 'chrY'
+        
+    mt = hl.filter_intervals(mt, [hl.parse_locus_interval(contigs, reference_genome=genome)], keep=True)
+
+else: 
+    raise Exception("Invalid chromosome interval/contig in hail_variant_qc.py:" + str(chr))
+    
+
+
+# hl.import_vcf(sys.argv[1],array_elements_required=False, force_bgz=True, reference_genome=genome).write('filtered_samples_vcf.mt', overwrite=True)
+
+# In[9]:
+
+
+#-----------------XX Samples -------------------------------------------------------
+# set genotypes on the Y chromosome to missing for all XX samples
+# do prior to filtering samples for interval, so both X and Y are present
+# done for Y chromosome QC only
+#-----------------------------------------------------------------------------------
+#make a Y contig
+if((chr == "Y") | (chr == "y") | (chr == "chrY") | (chr == "chry")):
+    if(genome == "GRCh37"):
+        y_locus = hl.locus("Y", 1, reference_genome=genome)
+    if(genome == "GRCh38"):
+        y_locus = hl.locus("chrY", 1, reference_genome=genome)
+        
+    GT_count_before_XX = mt.aggregate_entries(hl.agg.count_where(hl.is_defined(mt.GT)))
+    XX_filter_count = mt.aggregate_entries(hl.agg.count_where((sex_table[mt.s].sex == "XX") & (mt.locus.contig == y_locus.contig) & hl.is_defined(mt.GT)))
+   
+    mt = mt.transmute_entries(GT = hl.if_else(((sex_table[mt.s].sex == "XX") & (mt.locus.contig == y_locus.contig)), hl.missing(hl.tcall), mt.GT))
+   
+    GT_count_after_XX = mt.aggregate_entries(hl.agg.count_where(hl.is_defined(mt.GT)))
+else: 
+    XX_filter_count = 0
+    GT_count_before_XX = 0
+    GT_count_after_XX = 0
+
+
+# In[10]:
+
+
+#------------------variant QC (hail) & caching on disk--------------------------------------
+mt = hl.variant_qc(mt)
+mt.write(f"SNV_variant_QC_{chr}.mt", overwrite=True) 
+mt = hl.read_matrix_table(f"SNV_variant_QC_{chr}.mt")
+
+
+# **Import file**
+# Inport a vcf file and read it as a matrix table (mt, hail specific file type)
+
+# **Graph functions**
+# In order to create the graph, 3 functions were needed
+# - stat : To calcualte the mean, standard deviation and other metrics for each parameter
+# - plot_histo : To create the histogram as expected
+# - plot_sp : To create the scatter plots as expected
+
+# In[11]:
+
 
 def stat(table):
     Mean = table[table.columns[2]]. mean()  
@@ -95,8 +177,12 @@ def stat(table):
     max_graph = table[table.columns[2]]. max() + 3*StdDev
     return Mean, StdDev, Low_threashold, High_threashold, min_graph, max_graph
 
+
+# In[12]:
+
+
 def plot_histo (table_plot, mt_plot, variable) :
-    output_file(filename=os.path.join(("variant_QC_"+variable+".html")), title="Variant QC HTML file")
+    output_file(filename=os.path.join(("variant_QC_"+variable+".html")), title=f"Variant QC HTML file {chr}")
     p = hl.plot.histogram(mt_plot,
                       range = (stat(table_plot) [4], stat(table_plot) [5]),
                       bins = 60,
@@ -109,8 +195,12 @@ def plot_histo (table_plot, mt_plot, variable) :
     p.yaxis.axis_label = 'Count'
     return save(p)
 
+
+# In[13]:
+
+
 def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_variable) :
-    output_file(filename=os.path.join(("variant_QC_"+x_variable+"_"+y_variable+".html")), title="Variant QC HTML file")
+    output_file(filename=os.path.join(("variant_QC_"+x_variable+"_"+y_variable+".html")), title=f"Variant QC HTML file {chr}")
     p = hl.plot.scatter(x=mt_x_axis,
                    y=mt_y_axis,
                   xlabel=x_variable,
@@ -130,189 +220,15 @@ def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_var
     return save(p)
 
 
-# **Variant QC**
-
-mt = hl.variant_qc(mt)
-
-# List of variables for which we will create a table, calculate the standard deviation (StdDev) and the mean (Mean) for sample QC:
-# - DP (mt_sample_qc.variant_qc.dp_stats.mean)
-# - QG (mt_sample_qc.vaiant_qc.gq_stats.mean)
-# - call_rate (mt_sample_qc.variant_qc.call_rate)
-# - AN (mt_sample_qc.variant_qc.AN)
-# - n_not_called (mt_sample_qc.variant_qc.n_not_called)
-# - p_value_hwe (mt_sample_qc.variant_qc.p_value_hwe)
-# - het_freq_hwe (mt_sample_qc.variant_qc.het_freq_hwe)
-# - n_het (mt_sample_qc.variant_qc.n_het)
-
-mt.variant_qc.dp_stats.mean.export('DP_SNV.tsv')
-mt.variant_qc.gq_stats.mean.export('GQ_SNV.tsv')
-mt.variant_qc.call_rate.export('call_rate_SNV.tsv')
-mt.variant_qc.AN.export('AN_SNV.tsv')
-mt.variant_qc.n_not_called.export('n_not_called_SNV.tsv')
-mt.variant_qc.p_value_hwe.export('p_value_hwe_SNV.tsv')
-mt.variant_qc.het_freq_hwe.export('het_freq_hwe_SNV.tsv')
-mt.variant_qc.n_het.export('n_het_SNV.tsv')
-
-DP_SNV_table=pd.read_table('DP_SNV.tsv')
-GQ_SNV_table=pd.read_table('GQ_SNV.tsv')
-call_rate_SNV_table=pd.read_table('call_rate_SNV.tsv')
-AN_SNV_table=pd.read_table('AN_SNV.tsv')
-n_not_called_SNV_table=pd.read_table('n_not_called_SNV.tsv')
-p_value_hwe_SNV_table=pd.read_table('p_value_hwe_SNV.tsv')
-het_freq_hwe_SNV_table=pd.read_table('het_freq_hwe_SNV.tsv')
-n_het_SNV_table=pd.read_table('n_het_SNV.tsv')
-
-DP_SNV_table.rename(columns = {DP_SNV_table.columns[2]:'DP'}, inplace = True)
-GQ_SNV_table.rename(columns = {GQ_SNV_table.columns[2]:'GQ'}, inplace = True)
-call_rate_SNV_table.rename(columns = {call_rate_SNV_table.columns[2]:'call_rate'}, inplace = True)
-AN_SNV_table.rename(columns = {AN_SNV_table.columns[2]:"AN"}, inplace = True)
-n_not_called_SNV_table.rename(columns = {n_not_called_SNV_table.columns[2]:"n_not_called"}, inplace = True)
-p_value_hwe_SNV_table.rename(columns = {p_value_hwe_SNV_table.columns[2]:"p_value_hwe"}, inplace = True)
-het_freq_hwe_SNV_table.rename(columns = {het_freq_hwe_SNV_table.columns[2]:"het_freq_hwe"}, inplace = True)
-n_het_SNV_table.rename(columns = {n_het_SNV_table.columns[2]:"n_het"}, inplace = True)
+# In[14]:
 
 
-plot_histo(DP_SNV_table,
-           mt.variant_qc.dp_stats.mean,
-           'Mean Depth per variant - Unfiltered SNV')
-
-plot_histo(GQ_SNV_table,
-           mt.variant_qc.gq_stats.mean,
-           'Mean Genotype Quality per variant - Unfiltered SNV')
-
-plot_histo(call_rate_SNV_table,
-           mt.variant_qc.call_rate,
-           'Call rate per variant - Unfiltered SNV')
-
-plot_histo(AN_SNV_table,
-           mt.variant_qc.AN,
-           'Allele number per variant - Unfiltered SNV')
-
-plot_histo(n_not_called_SNV_table,
-           mt.variant_qc.n_not_called,
-           'Number of samples with a missing genotype per variant - Unfiltered SNV')
-
-plot_histo(p_value_hwe_SNV_table,
-           mt.variant_qc.p_value_hwe,
-           'p-value from two-sided test of Hardy-Weinberg equilibrium per variant - Unfiltered SNV')
-
-plot_sp (het_freq_hwe_SNV_table,
-         mt.variant_qc.het_freq_hwe,
-         n_het_SNV_table,
-         mt.variant_qc.n_het,
-         'Expected frequency of heterozygous samples under Hardy-Weinberg equilibrium',
-         'Number of heterozygous samples per variant - Unfiltered SNV')
-
-
-#**Variant filtering**
-
-#1. Autosome and sexual chromosomes only
-#Keep only variants on chr 1-22 + X, Y (remove MT and GL)
-
-#2. Length
-#Remove small insertions / deletions (indel) of length > 50bp 
-#Goal : Avoid overlap with the SV pipeline
-
-#3. Variant quality
-#Filter the variants based on the threasholds repersented on the figures 
-#Low_threashold = Mean - 3*StdDev = stat(table) [2]
-#High_threashold = Mean + 3*StdDev = stat(table) [3]
-
-#Filters :
-#- Mean DP per variant lower than the low threshoold
-#- Mean Genotype Quality per variant lower than the low threshoold
-#- Call rate per variant lower than the low threshoold
-#- Allele Number (AN) per variant lower than the low threshoold
-#- Number of samples with missing genotype per variant lower than the low threshoold
-#Not implemented :  Hardy–Weinberg values
-
-#intervals = [hl.parse_locus_interval(x,reference_genome=genome) for x in ['X','Y', '1-22']]
-#intervals = ['X','Y','1-22']
-#contigs = [list(range(1,23)),"X","Y"]
-#if genome == "GRCh37":
-#    intervals = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-#elif genome =="GRCh38":
-#    intervals = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-#else:
-#    raise ValueError("please enter a valid human genome assemebly value,eg GRCh37")
-
-if genome == "GRCh37":
-    contigs = [f"{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-elif genome =="GRCh38":
-    contigs = [f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])]
-else:
-    raise ValueError("must use a valid assembly - GRCh37 or GRCh38")
-
-intervals = [hl.parse_locus_interval(x, reference_genome=genome) for x in contigs]
-
-
-SNV_mt_var_filtered = hl.filter_intervals(mt, intervals, keep=True)
-
-SNV_mt_var_filtered = SNV_mt_var_filtered.filter_rows(
-    (SNV_mt_var_filtered.variant_qc.dp_stats.mean > stat(DP_SNV_table) [2]) &
-    (SNV_mt_var_filtered.variant_qc.gq_stats.mean > stat(GQ_SNV_table) [2]) &
-    (SNV_mt_var_filtered.variant_qc.call_rate > stat(call_rate_SNV_table) [2]) &
-    (SNV_mt_var_filtered.variant_qc.AN > stat(AN_SNV_table) [2]) &
-    (SNV_mt_var_filtered.variant_qc.n_not_called > stat(n_not_called_SNV_table) [2]) &
-    (hl.len(SNV_mt_var_filtered.alleles[0]) < 50) &
-    (hl.len(SNV_mt_var_filtered.alleles[1]) < 50)
-)
-
-#**QC Report**
-#Write the report of the number of filtered out variants and the reason they were filtered out
-
-def calc_removed_variant(mt, mt_var, stat_table) :
-    input_mt = mt.annotate_rows(
-        keep=(mt_var > stat_table [2]))
-    n_removed = input_mt.aggregate_rows(hl.agg.count_where(~input_mt.keep))
-    
-    return n_removed
-
-def report_stats():
-    """
-    Generate output report with basic stats.
-    """
-    out_stats = hl.hadoop_open(f"SNV_indel_QC_report.txt", "w")
-    # Report numbers of filtered SNV/indels
-    out_stats.write(
-        # f"Number of SNV/indels not located on autosomes or sexual chromosomes : {n_non_chr}\n"
-        f"Number of SNV/indels removed because of deletion superior to 50bp: {n_large_del}\n"
-        f"Number of SNV/indels removed because of insertion superior to 50bp: {n_large_ins}\n"
-        f"Number of SNV/indels removed because of depth metrics: {DP_var_removed}\n"
-        f"Number of SNV/indels removed because of genotype quality metrics: {GQ_var_removed}\n"
-        f"Number of SNV/indels removed because of call rate metrics: {CR_var_removed}\n"
-        f"Number of SNV/indels removed because of allele number (AN): {n_AN_removed}\n"
-        f"Number of SNV/indels removed because of number of not called: {n_not_called_removed}\n"
-        f"Total number of SNV/indels removed : {n_var_removed}\n"
-        f"Percentage of the SNV/indels filtered out: {perc_removed_variants}\n"
-    )
-    out_stats.close()
-    
-#n_non_chr = mt.count()[0] - hl.filter_intervals(mt, [hl.parse_locus_interval(x,reference_genome=genome) for x in intervals], keep=True).count()[0]
-
-# n_non_chr = mt.count()[0] - hl.filter_intervals(mt, intervals, keep=True).count()[0]
-
-n_large_del = mt.filter_rows(hl.len(mt.alleles[0]) > 50).count()[0]
-n_large_ins = mt.filter_rows(hl.len(mt.alleles[1]) > 50).count()[0]
-
-DP_var_removed = calc_removed_variant(mt, mt.variant_qc.dp_stats.mean, stat(DP_SNV_table))
-GQ_var_removed = calc_removed_variant(mt, mt.variant_qc.gq_stats.mean, stat(GQ_SNV_table))
-CR_var_removed = calc_removed_variant(mt, mt.variant_qc.call_rate, stat(call_rate_SNV_table))
-n_AN_removed = calc_removed_variant(mt, mt.variant_qc.AN, stat(AN_SNV_table))
-n_not_called_removed = calc_removed_variant(mt, mt.variant_qc.n_not_called, stat(n_not_called_SNV_table))
-n_var_removed = (mt.count()[0]-SNV_mt_var_filtered.count()[0])
-perc_removed_variants = (mt.count()[0]-SNV_mt_var_filtered.count()[0])/mt.count()[0] * 100
-
-
-report_stats()
-
-
-#**Calculate sex specific frequencies**
-#Sex is defined using F-stat in Hail_sample_QC or file with sample sex can be loaded by user
 #Calculate AF, AC, AN and number of homozygotes
 #Code adapted from gnomAD : https://github.com/broadinstitute/gnomad_qc/blob/main/gnomad_qc/v3/annotations/generate_freq_data.py
 
-SNV_mt_var_filtered = SNV_mt_var_filtered.annotate_cols(**sex_table[SNV_mt_var_filtered.s])
+
+# In[15]:
+
 
 def annotate_freq(
     mt: hl.MatrixTable,
@@ -465,10 +381,214 @@ def annotate_freq(
     return mt.annotate_rows(freq=freq_expr).drop("_freq_meta")
 
 
+# **Variant QC**
+
+# List of variables for which we will create a table, calculate the standard deviation (StdDev) and the mean (Mean) for sample QC:
+# - DP (mt_sample_qc.variant_qc.dp_stats.mean)
+# - QG (mt_sample_qc.vaiant_qc.gq_stats.mean)
+# - call_rate (mt_sample_qc.variant_qc.call_rate)
+# - AN (mt_sample_qc.variant_qc.AN)
+# - n_not_called (mt_sample_qc.variant_qc.n_not_called)
+# - p_value_hwe (mt_sample_qc.variant_qc.p_value_hwe)
+# - het_freq_hwe (mt_sample_qc.variant_qc.het_freq_hwe)
+# - n_het (mt_sample_qc.variant_qc.n_het)
+
+# In[16]:
+
+
+mt.variant_qc.dp_stats.mean.export(f"DP_SNV_{chr}.tsv")
+mt.variant_qc.gq_stats.mean.export(f"GQ_SNV_{chr}.tsv")
+mt.variant_qc.call_rate.export(f"Call_Rate_SNV_{chr}.tsv")
+mt.variant_qc.AN.export(f"AN_SNV_{chr}.tsv")
+mt.variant_qc.n_not_called.export(f"n_notcalled_SNV_{chr}.tsv")
+mt.variant_qc.p_value_hwe.export(f"p_value_HWE_SNV_{chr}.tsv")
+mt.variant_qc.het_freq_hwe.export(f"het_freq_HWE_SNV_{chr}.tsv")
+mt.variant_qc.n_het.export(f"n_het_SNV_{chr}.tsv")
+
+
+# In[17]:
+
+
+DP_SNV_table=pd.read_table(f"DP_SNV_{chr}.tsv")
+GQ_SNV_table=pd.read_table(f"GQ_SNV_{chr}.tsv")
+call_rate_SNV_table=pd.read_table(f"Call_Rate_SNV_{chr}.tsv")
+AN_SNV_table=pd.read_table(f"AN_SNV_{chr}.tsv")
+n_not_called_SNV_table=pd.read_table(f"n_notcalled_SNV_{chr}.tsv")
+p_value_hwe_SNV_table=pd.read_table(f"p_value_HWE_SNV_{chr}.tsv")
+het_freq_hwe_SNV_table=pd.read_table(f"het_freq_HWE_SNV_{chr}.tsv")
+n_het_SNV_table=pd.read_table(f"n_het_SNV_{chr}.tsv")
+
+
+# In[18]:
+
+
+DP_SNV_table.rename(columns = {DP_SNV_table.columns[2]:'DP'}, inplace = True)
+GQ_SNV_table.rename(columns = {GQ_SNV_table.columns[2]:'GQ'}, inplace = True)
+call_rate_SNV_table.rename(columns = {call_rate_SNV_table.columns[2]:'call_rate'}, inplace = True)
+AN_SNV_table.rename(columns = {AN_SNV_table.columns[2]:"AN"}, inplace = True)
+n_not_called_SNV_table.rename(columns = {n_not_called_SNV_table.columns[2]:"n_not_called"}, inplace = True)
+p_value_hwe_SNV_table.rename(columns = {p_value_hwe_SNV_table.columns[2]:"p_value_hwe"}, inplace = True)
+het_freq_hwe_SNV_table.rename(columns = {het_freq_hwe_SNV_table.columns[2]:"het_freq_hwe"}, inplace = True)
+n_het_SNV_table.rename(columns = {n_het_SNV_table.columns[2]:"n_het"}, inplace = True)
+
+
+# In[19]:
+
+
+plot_histo(DP_SNV_table,
+           mt.variant_qc.dp_stats.mean,
+           f"Mean Depth per variant {chr} - Unfiltered SNV")
+
+
+# In[20]:
+
+
+plot_histo(GQ_SNV_table,
+           mt.variant_qc.gq_stats.mean,
+           f"Mean Genotype Quality per variant {chr} - Unfiltered SNV")
+
+
+# In[21]:
+
+
+plot_histo(call_rate_SNV_table,
+           mt.variant_qc.call_rate,
+           f"Call rate per variant {chr} - Unfiltered SNV")
+
+
+# In[22]:
+
+
+plot_histo(AN_SNV_table,
+           mt.variant_qc.AN,
+           f"Allele number per variant {chr}- Unfiltered SNV")
+
+
+# In[23]:
+
+
+plot_histo(n_not_called_SNV_table,
+           mt.variant_qc.n_not_called,
+           f"Number of samples with a missing genotype per variant {chr} - Unfiltered SNV")
+
+
+# In[24]:
+
+
+plot_histo(p_value_hwe_SNV_table,
+           mt.variant_qc.p_value_hwe,
+           f"p-value from two-sided test of Hardy-Weinberg equilibrium per variant {chr}- Unfiltered SNV")
+
+
+# In[25]:
+
+
+plot_sp (het_freq_hwe_SNV_table,
+         mt.variant_qc.het_freq_hwe,
+         n_het_SNV_table,
+         mt.variant_qc.n_het,
+         f"Expected frequency of heterozygous samples under Hardy-Weinberg equilibrium {chr}",
+         f"Number of heterozygous samples per variant {chr} - Unfiltered SNV")
+
+
+# In[26]:
+
+
+#---------------------- Variant Metrics and Filtering -----------------------------------------
+# The previous method was deprecated and removed. It used 3-standard deviations for 
+# hard filtering variants based on all of the hail variant_qc() metrics which was 
+# arbitrary and not aligned with the actual quality of the sites. The plotting and 
+# distributions has been kept, and the only filtering is for indels > 50bp, which
+# are now also saved in their own vcf file for easy reference.
+#
+# The following will be reported: GQ within certain bands (10, 15, 20)
+#
+# The following will be filtered:
+#  - AC0 : any site where no genotype is of high quality (GQ>=20, DP>=10 and allele balance > 0.2 for heterozygous)
+#  - no variant: any site with an allele count (AC) of 0 - a result from sample filtering
+#  - XX genotypes : any XX sample's genotypes on the Y chromosome
+#
+
+
+# In[27]:
+
+
+# Large indels (> 50BP)
+
+#make mt to export to vcf
+large_indels_mt = mt.filter_rows((hl.len(mt.alleles[0]) > 50 ) | (hl.len(mt.alleles[1]) > 50), keep=True)
+
+# note this 50 bp is the interval of the indel, rather than the size of the 
+# number of bases inserted or deleted
+n_large_del = mt.aggregate_rows(hl.agg.count_where((hl.len(mt.alleles[0]) > 50)))
+n_large_ins = mt.aggregate_rows(hl.agg.count_where((hl.len(mt.alleles[1]) > 50)))
+
+#count before
+count_GT_before_indel_filter = mt.aggregate_entries(hl.agg.count_where(hl.is_defined(mt.GT)))
+count_rows_before_indel_filter =  mt.aggregate_rows(hl.agg.count())
+
+#FILTER LARGE INDELS
+mt = mt.filter_rows(((hl.len(mt.alleles[1]) > 50) | (hl.len(mt.alleles[0]) > 50)), keep=False)
+
+#count after
+total_GTs_after_indel = mt.aggregate_entries(hl.agg.count_where(hl.is_defined(mt.GT)))
+total_rows_after_indel = mt.aggregate_rows(hl.agg.count())
+
+#count removed
+count_indels_removed = count_rows_before_indel_filter - total_rows_after_indel
+percent_indels_removed = (count_indels_removed / count_rows_before_indel_filter) * 100
+count_indels_GT_removed = count_GT_before_indel_filter - total_GTs_after_indel
+
+
+# In[28]:
+
+
+#-------------- AC0 FILTER ----------------------------------------------------------
+# No sample had a high quality genotype at this variant site  
+# high quality definition: (GQ>=20, DP>=10 and allele balance > 0.2 for heterozygous)
+# mark as "AC0" in filter, which will be filtered out in file for downstream processing
+#---------------------------------------------------------------------------------------
+
+#count before
+total_GTs_before_AC0 = mt.aggregate_entries(hl.agg.count_where(hl.is_defined(mt.GT)))
+total_rows_before_AC0 = mt.aggregate_rows(hl.agg.count())
+
+#FILTER
+#mt = mt.filter_rows(mt.filters.contains("AC0"), keep=False)
+mt = mt.filter_rows(~(hl.agg.any((mt.GQ>=20) & (mt.DP>=10) 
+                              & (hl.if_else(mt.GT.is_het(),
+                                (hl.if_else(((((mt.AD[1])/mt.DP) > 0.2) & (((mt.AD[1])/mt.DP) < 0.8)) ,True, False)),
+                                True)))), keep=False)
+
+#count after
+total_GTs_after_AC0 = mt.aggregate_entries(hl.agg.count_where(hl.is_defined(mt.GT)))
+total_rows_after_AC0 = mt.aggregate_rows(hl.agg.count())
+
+AC0_count = total_rows_before_AC0 - total_rows_after_AC0
+AC0_percent = (AC0_count/count_rows_before_indel_filter)  * 100
+AC0_GT_count = total_GTs_before_AC0 - total_GTs_after_AC0
+
+
+# **---------------Calculate sex strata and stratified AC, AN, AF---------------------------------**
+# #Sex is defined using F-stat in Hail_sample_QC or file with sample sex can be loaded by user
+
+# In[29]:
+
+
+SNV_mt_var_filtered = mt.annotate_cols(**sex_table[mt.s]).checkpoint(f"SNV_sex_annotation_{chr}.mt")
+
+
+# In[30]:
+
+
 SNV_mt_var_filtered = annotate_freq(
                 SNV_mt_var_filtered,
                 sex_expr=SNV_mt_var_filtered.sex,
             )
+
+
+# In[31]:
+
 
 SNV_mt_var_filtered = SNV_mt_var_filtered.annotate_rows(
     info = SNV_mt_var_filtered.info.annotate(AC_tot_XX_XY=SNV_mt_var_filtered.freq.AC,
@@ -477,19 +597,201 @@ SNV_mt_var_filtered = SNV_mt_var_filtered.annotate_rows(
                                              hom_tot_XX_XY=SNV_mt_var_filtered.freq.homozygote_count)
                      )
 
+
+# In[32]:
+
+
 SNV_mt_var_filtered = SNV_mt_var_filtered.annotate_rows(info=SNV_mt_var_filtered.info.drop('AF', "AC", "AN", "AQ"))
+
+
+# In[33]:
+
+
+#----------------NO VARIANT----------------------------------------------------------------
+# This is caused by the filtering of samples (previous script) and genotypes.
+# Remove any variants where the AC count became 0
+#---------------------------------------------------------------------------------------
+
+total_GTs_before_novariant = SNV_mt_var_filtered.aggregate_entries(hl.agg.count_where(hl.is_defined(SNV_mt_var_filtered.GT)))
+total_rows_before_novariant = SNV_mt_var_filtered.aggregate_rows(hl.agg.count())
+
+#filter the sites with no alt call (after stratification step, index 0 is alt allele for whole population)
+SNV_mt_var_filtered = SNV_mt_var_filtered.filter_rows(SNV_mt_var_filtered.info.AC_tot_XX_XY[0] == 0, keep=False)
+
+total_GTs_after_novariant = SNV_mt_var_filtered.aggregate_entries(hl.agg.count_where(hl.is_defined(SNV_mt_var_filtered.GT)))
+total_rows_after_novariant = SNV_mt_var_filtered.aggregate_rows(hl.agg.count())
+
+novar_count = total_rows_before_novariant - total_rows_after_novariant
+novar_percent = (novar_count/count_rows_before_indel_filter * 100)
+novar_GT_count = total_GTs_before_novariant - total_GTs_after_novariant
+
+
+# In[34]:
+
+
+#---------------GENOTYPE QUALITY METRICS -------------------------------------------
+# --> Output metrics on genotype quality.
+# Currently there is no filtering being done at the GT level.
+# Only the AC0 filter accounts for it at the SITE level
+#-------------------------------------------------------------------------------------
+total_GTs = SNV_mt_var_filtered.aggregate_entries(hl.agg.count_where(hl.is_defined(SNV_mt_var_filtered.GT)))
+
+GQ_10= mt.aggregate_entries(hl.agg.count_where((hl.is_defined(mt.GT)) & (mt.GQ < 10 )))
+GQ_15= mt.aggregate_entries(hl.agg.count_where((hl.is_defined(mt.GT)) & (mt.GQ < 15 )))
+GQ_20= mt.aggregate_entries(hl.agg.count_where((hl.is_defined(mt.GT)) & (mt.GQ < 20 )))
+
+
+p20 = (GQ_20/total_GTs) * 100
+p15 = (GQ_15/total_GTs) * 100
+p10 = (GQ_10/total_GTs) * 100
+
+
+# In[35]:
+
 
 SNV_mt_var_filtered_no_geno = SNV_mt_var_filtered.rows()
 
 
-#**Export files of interest**
-#- Variants passing QC, with variant frequencies per sex (total, XX, XY) and individual genotypes
+# In[36]:
+
+
+total_filtered = novar_count + AC0_count + count_indels_removed 
+percent_filtered = (total_filtered/count_rows_before_indel_filter) * 100
+total_after_strata = SNV_mt_var_filtered.aggregate_rows(hl.agg.count())
+
+#----------------------REPORT-------------------------------------------------
+out_stats = hl.hadoop_open(f"SNV_variant_QC_report_{chr}.txt", "w")
+out_stats.write(
+       
+        f"\n\n-----------------------VARIANT QC REPORT--------------------\n"
+         f"------------------------------------------------------------\n\n\n"
+
+
+        f"\n------------------------------------------------------------\n"
+        f"\nSUMMARY\n"
+        f"\n (whole dataset)\n"
+        f"------------------------------------------------------------\n"
+        f"\nTotal sites before filtering: {count_rows_before_indel_filter}\n"
+        f"\nTotal called genotypes (before filters): {count_GT_before_indel_filter}\n\n\n"
+
+    
+        f"\n------------------------------------------------------------\n"
+        f"Indels > 50 bp\n"
+        f"Indels > 50bp are filtered (but saved in a separate vcf) to"
+        f"\navoid overlap with the results of the SV pipeline\n"
+        f"------------------------------------------------------------\n"
+        f"Number of indels filtered because of deletion larger than 50bp: {n_large_del}\n"
+        f"Number of indels filtered because of insertion larger than 50bp: {n_large_ins}\n\n"
+
+        f"Combined large indels sites filtered: {count_indels_removed}\n"
+        f"Combined percent large indels sites filtered: {percent_indels_removed}\n"
+        f"Number of large indels genotypes filtered: {count_indels_GT_removed}\n\n"
+
+        f"Number of rows before indel filter: {count_rows_before_indel_filter }\n"
+        f"Number of GTs before indel filter: {count_GT_before_indel_filter}\n"
+        f"Number of rows after indel filter: {total_rows_after_indel}\n"
+        f"Number of GTs after indel filter: {total_GTs_after_indel}\n\n\n"
+
+
+
+        f"\n------------------------------------------------------------\n"
+        f"\n\nGENOTYPE QUALITIES\n" 
+        f"------------------------------------------------------------\n"
+        f"Number of genotypes with GQ < 20: {GQ_20},  percent: {p20} \n"
+        f"Number of genotypes with GQ < 15: {GQ_15},  percent: {p15} \n"
+        f"Number of genotypes with GQ < 10: {GQ_10},  percent: {p10}\n\n\n"
+
+
+        f"\n------------------------------------------------------------\n"
+        f"Sites with AC0\n"
+        f"-No sample had a high quality genotype at this variant site\n"
+        f"-High quality definition: (GQ>=20, DP>=10 and allele balance > 0.2 for heterozygotes)\n"
+        f"------------------------------------------------------------\n"
+        f"\nAC0 sites (filtered): {AC0_count}\n"
+        f"\nAC0 percentage of sites (filtered): {AC0_percent}\n"
+        f"\nAC0 genotypes filtered: {AC0_GT_count}\n\n\n"
+
+        f"Number of genotypes before AC0 filter: {total_GTs_before_AC0}\n"
+        f"Number of rows before AC0 filter: {total_rows_before_AC0}\n\n"
+
+        f"Number of genotypes after AC0 filter: {total_GTs_after_AC0}\n"
+        f"Number of rows after AC0 filter: {total_rows_after_AC0}\n\n\n"
+
+        f"------------------------------------------------------------\n"
+        f"Sites with No Variant\n"
+        f"Mostly from rare variants that belonged only to filtered samples,"
+        f"so AC becomes 0\n"
+        f"------------------------------------------------------------\n"
+        f"\nSites filtered with no variant: {novar_count}\n"
+        f"\nPercentage of sites with no variant: {novar_percent}\n"
+        f"\nNumber of genotypes filtered with no variant: {novar_GT_count}\n\n"
+
+        
+        f"Number of genotypes before no-variant filter: {total_GTs_before_novariant}\n"
+        f"Number of rows before no-variant filter: {total_rows_before_novariant}\n\n\n"
+
+
+        f"Number of genotypes after no-variant filter: {total_GTs_after_novariant}\n"
+        f"Number of rows after no-variant filter: {total_rows_after_novariant}\n\n\n"
+
+        f"\n------------------------------------------------------------\n"
+        f"\nXX Filtering (Y-chromosome only)\n"
+        f"------------------------------------------------------------\n"
+
+        f"\nGenotypes on Y chromosome before XX filtering: {GT_count_before_XX}\n"
+        f"\nGenotypes filtered for XX samples on Y chromosome: {XX_filter_count}\n"
+        f"\nGenotypes on Y chromosome after XX filtering: {GT_count_after_XX}\n"
+
+        f"\n------------------------------------------------------------\n"
+        f"FILTERING SUMMARY (combined)\n"
+        f"Combined number of variants filered for: no variant, indel > 50bp, or for AC0\n"
+        f"------------------------------------------------------------\n"
+        f"\nTotal variants (sites) filtered: {total_filtered}\n"
+        f"\nTotal sites before filtering: {count_rows_before_indel_filter}\n"
+        f"\nTotal stratified sites after filtering: {total_after_strata}\n"
+        f"\nPercentage filtered: {percent_filtered}\n\n\n"
+
+    )
+out_stats.close()
+
+
+# **Export files of interest**
+# - Variants passing QC, with variant frequencies per sex (total, XX, XY) and individual genotypes
 #        File name : SNV_filtered_with_geno.vcf.bgz
-#- Variants passing QC, with variant frequencies per sex (total, XX, XY), without individual genotypes
+# - Variants passing QC, with variant frequencies per sex (total, XX, XY), without individual genotypes
 #        File name : SNV_filtered_frequ_only.vcf.bgz
+# - A VCF with all the indels > 50bp that pass QC
+# 
+# - ** There will be one autosomal file (with genotypes)
+
+# In[37]:
 
 
-hl.export_vcf(SNV_mt_var_filtered, f'SNV_filtered_with_geno_{chr}.vcf.bgz', tabix=True)
+#create an autosome file for autosomal variants (mostly for analysis, does not get used downstream in pipeline)
+if(chr == "autosomal"):
+    hl.export_vcf(SNV_mt_var_filtered, f'SNV_autosomal.vcf.bgz', tabix=True)
 
-hl.export_vcf(SNV_mt_var_filtered_no_geno, f'SNV_filtered_frequ_only_{chr}.vcf.bgz',
- tabix=True)
+#split by chromosome for downstream use in pipeline, if autosomal, otherwise it will be 
+#already split for chrX and chrY
+    for c in contigs :
+        interval = [hl.parse_locus_interval(c, reference_genome=genome)]
+        contig_mt = hl.filter_intervals(SNV_mt_var_filtered, interval, keep=True)
+        contig_mt_no_geno = hl.filter_intervals(SNV_mt_var_filtered_no_geno, interval, keep=True)
+        hl.export_vcf(contig_mt, f'SNV_filtered_with_geno_{c}.vcf.bgz', tabix=True)
+        hl.export_vcf(contig_mt_no_geno, f'SNV_filtered_frequ_only_{c}.vcf.bgz',tabix=True)
+
+else:
+    hl.export_vcf(SNV_mt_var_filtered, f'SNV_filtered_with_geno_{chr}.vcf.bgz', tabix=True)
+    hl.export_vcf(SNV_mt_var_filtered_no_geno, f'SNV_filtered_frequ_only_{chr}.vcf.bgz',
+     tabix=True)
+
+
+# In[38]:
+
+
+#save file with indels >50 bp that passed quality control
+hl.export_vcf(large_indels_mt, f'SNV_large_indels_{chr}.vcf.bgz', tabix=True)
+
+
+# In[ ]:
+

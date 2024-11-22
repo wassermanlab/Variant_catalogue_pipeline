@@ -18,14 +18,20 @@ process bcf_to_vcf {
 	val assembly
 	val batch
 	val run
+	file ref
 
 	output :
-	path '*.vcf.gz', emit : vcf	
+	path '*_norm.vcf.gz', emit : vcf	
+	path '*GLnexus_output.vcf.gz'
 
 	script :
 	"""
-##	bcftools view ${bcf_file} | bgzip -c > ${bcf_file.simpleName}.vcf.gz
-	bcftools norm -m -any -o ${bcf_file.simpleName}_norm.vcf ${bcf_file}
-	bcftools annotate --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -O z -o ${bcf_file.simpleName}.vcf.gz ${bcf_file.simpleName}_norm.vcf
+	# output an unmodified population vcf in compressed format
+	bcftools view ${bcf_file} -Oz -o ${bcf_file.simpleName}_GLnexus_output.vcf.gz
+	bcftools index -t ${bcf_file.simpleName}_GLnexus_output.vcf.gz
+
+	# normalize/left align and split multi-allelic variants 
+	bcftools norm -m -any -o ${bcf_file.simpleName}_norm_int.vcf -f ${ref} ${bcf_file}
+	bcftools annotate --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -O z -o ${bcf_file.simpleName}_norm.vcf.gz ${bcf_file.simpleName}_norm_int.vcf
 	"""
 }

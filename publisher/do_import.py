@@ -46,11 +46,9 @@ start_at_file = (
 jobs_dir = os.path.abspath(dir_containing_jobs)
 
 if rootDir == None:
-    print("No root directory specified")
-    exit()
-
-data_issue_logger = None
-output_logger = None
+    rootDir = os.path.join(current_dir, "fixtures")
+    print("No root directory specified. default ", rootDir)
+#    exit()
 
 print("importing", rootDir)
 
@@ -64,7 +62,7 @@ maps_load_dir = ""
 
 
 pk_maps = {}
-next_id_maps = {}
+next_id_maps = {"severities":1}
 tables = {}
 
 
@@ -124,16 +122,16 @@ def resolve_PK(referencedModel, name):
 
 def get_table(model):
     global tables
-    table_name = model_import_actions[model]["table"]
-    if table_name in tables:
-        return tables[table_name]
+    
+    if model not in model_import_actions:
+        table_name = model
     else:
-        if isinstance(schema, str) and len(schema) > 0:
-            table = Table(table_name, metadata, schema=schema)
-        else:
-            table = Table(table_name, metadata, autoload_with=engine)
-        tables[table_name] = table
-        return table
+        table_name = model_import_actions[model]["table"]
+        
+    if isinstance(schema, str) and len(schema) > 0:
+        return Table(table_name, metadata, schema=schema)
+    else:
+        return Table(table_name, metadata, autoload_with=engine)
 
 
 def inject(model, data, map_key):
@@ -149,15 +147,15 @@ def inject(model, data, map_key):
             #            pk = result.inserted_primary_key[0]
             append_to_map(model, map_key, id)
             next_id_maps[model] = id + 1
-            log_data_issue(f"dynamically added to {model}: {data}")
+            log_data_issue(f"dynamically added {data}", model)
             pk = id
         except IntegrityError as e:
-            log_data_issue("a dynamically injected obj had an integrity error.")
-            log_data_issue(e)
+            log_data_issue("a dynamically injected obj had an integrity error.", model)
+            log_data_issue(e, model)
         #                                quit() # LATER: comment this out
         except Exception as e:
-            log_data_issue("a dynamically injected obj had an error.")
-            log_data_issue(e)
+            log_data_issue("a dynamically injected obj had an error.", model)
+            log_data_issue(e, model)
     #                                quit() # LATER: comment this out?
     return pk
 
@@ -263,12 +261,13 @@ def import_file(file, file_info, action_info):
                             if name is not None
                             else "None"
                         )
-                    )
+                    ),
+                    name,
                 )
                 if debug_row is not None:
-                    log_data_issue(debug_row)
+                    log_data_issue(debug_row, name)
                 else:
-                    log_data_issue(data)
+                    log_data_issue(data, name)
                 missingRefCount += 1
                 skip = True
         if skip:
@@ -323,7 +322,7 @@ def import_file(file, file_info, action_info):
                         did_succeed = True
 
                     except DataError as e:
-                        log_data_issue(e)
+                        log_data_issue(e, name)
                         failCount += 1
                     #                        quit()
                     except IntegrityError as e:
@@ -333,11 +332,11 @@ def import_file(file, file_info, action_info):
                             successCount += 1
                         else:
                             failCount += 1
-                            log_data_issue(e)
+                            log_data_issue(e, name)
                     #                            quit()
                     except Exception as e:
 
-                        log_data_issue(e)
+                        log_data_issue(e, name)
                         failCount += 1
                     ####### added in v2
                     if not did_succeed:
@@ -372,13 +371,13 @@ def import_file(file, file_info, action_info):
         "duplicate": duplicateCount,
         "successful_chunks": successful_chunks,
         "fail_chunks": fail_chunks,
+        "rowcount": file_info["total_rows"],
     }
 
 
 def cleanup(sig, frame):
-    global engine, pk_maps, next_id_maps, tables, metadata, data_issue_logger, output_logger
-    log_output("terminating, cleaning up ...")
-    log_data_issue("terminating, cleaning up ...")
+    global engine, pk_maps, next_id_maps, tables, metadata
+    print("terminating, cleaning up ...")
     persist_and_unload_maps()
     engine.dispose()
     # garbage collect
@@ -386,8 +385,6 @@ def cleanup(sig, frame):
     del next_id_maps
     del tables
     del metadata
-    del data_issue_logger
-    del output_logger
     print("done")
     sys.exit(0)
 
@@ -435,6 +432,29 @@ def start(db_engine):
     counts["duplicate"] = 0
     counts["successful_chunks"] = 0
     counts["fail_chunks"] = 0
+    counts["rowcount"] = 0
+    
+    
+    severitiesFile = os.path.join(current_dir, "severities.tsv")
+    
+    file_info = inspectTSV(severitiesFile)
+    log_output(
+        "\nimporting severities "
+        + " ("
+        + severitiesFile.split("/")[-1]
+        + "). Expecting "
+        + str(file_info["total_rows"])
+        + " rows..."
+    )
+    # log_output(targetFile)
+    if file_info["total_rows"] == 0:
+        log_output("Skipping empty file")
+    import_file(
+        severitiesFile,
+        file_info,
+        {"name":"severities", "fk_map":{}, "pk_lookup_col":None},
+    )
+
 
     for modelName, action_info in model_import_actions.items():
         model_counts = {}
@@ -444,6 +464,7 @@ def start(db_engine):
         model_counts["duplicate"] = 0
         model_counts["successful_chunks"] = 0
         model_counts["fail_chunks"] = 0
+        model_counts["rowcount"] = 0
         model_directory = os.path.join(rootDir, modelName)
 
         if (
@@ -537,6 +558,7 @@ def start(db_engine):
                     "duplicate",
                     "successful_chunks",
                     "fail_chunks",
+                    "rowcount"
                 ]:
                     model_counts[key] += results[key]
                     counts[key] += results[key]
@@ -556,6 +578,6 @@ def start(db_engine):
             log_output("\nmodels left still: " + str(leftover_models) + "\n")
 
         persist_and_unload_maps()
-    log_output("finished importing IBVL. Time Taken: " + str(datetime.now() - now))
+    print("finished importing IBVL. Time Taken: " + str(datetime.now() - now))
     report_counts(counts)
     cleanup(None, None)

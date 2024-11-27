@@ -59,7 +59,10 @@ model_import_actions = {
         "table": "snvs",
         "pk_lookup_col": None,
         "fk_map": {"variant": "variants"},
-        "filters": {"dbsnp_id": lambda x: x.split("&")[0] if x is not None else None},
+        "filters": {
+            "dbsnp_id": lambda x: x.split("&")[0] if x is not None else None,
+            "chr": lambda x: x.replace("chr", "") if x is not None else None,
+            },
     },
     "svs": {
         "name": "svs",

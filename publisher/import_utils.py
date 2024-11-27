@@ -2,9 +2,14 @@
 import logging
 from datetime import datetime
 import pandas as pd
+from model_import_actions import model_import_actions
+from sys import stderr
 
 from dotenv import load_dotenv
 import os
+
+data_issue_logger = {}
+output_logger = None
 
 load_dotenv()
 
@@ -46,17 +51,20 @@ def readTSV(file, info, dtype={}):
     return df
 
 def setup_loggers(job_dir):
-    global data_issue_logger, output_logger  # Add global keyword
-    data_issue_logger = logging.getLogger("data_issues")
-    data_issue_logger.setLevel(logging.WARNING)
-    data_issue_logger.propagate = False
+    global data_issue_logger,output_logger
+    model_names = list(model_import_actions.keys())
+    model_names.append("severities")
+    for model_name in model_names:
+        a_logger = logging.getLogger(model_name)
+        a_logger.setLevel(logging.WARNING)
+        a_logger.propagate = False        
+        a_logger_handler = logging.FileHandler(os.path.join(job_dir,f"warnings-{model_name}.log"))
+        a_logger_handler.setLevel(logging.WARNING)
+        a_logger.addHandler(a_logger_handler)
+        data_issue_logger[model_name] = a_logger
     output_logger = logging.getLogger("output")
     output_logger.setLevel(logging.INFO)
     output_logger.propagate = False
-
-    data_issue_handler = logging.FileHandler(os.path.join(job_dir,"data_issues.log"))
-    data_issue_handler.setLevel(logging.WARNING)
-    data_issue_logger.addHandler(data_issue_handler)
 
     output_logger_handler = logging.FileHandler(os.path.join("./",job_dir,"output.log"))
     output_logger_handler.setLevel(logging.INFO)
@@ -65,8 +73,9 @@ def setup_loggers(job_dir):
     output_logger.info(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
     print("logging to", os.path.join(job_dir,"data_issues.log"), os.path.join(job_dir,"output.log"))
 
-def log_data_issue(s):
-    data_issue_logger.warning(s)
+def log_data_issue(s, model=None):
+    if model is not None:
+        data_issue_logger[model].warning(s)
     if (verbose):
         print(s)
 def log_output(s):
@@ -80,22 +89,24 @@ def report_counts(counts):
     if counts["success"] + counts["fail"] > 0:
         percent_success = (
             100
-            * counts["success"]
-            / (counts["success"] + counts["fail"])
+            * (counts["success"])
+            / (counts["rowcount"])
         )
     log_output(
         str(percent_success)
-        + "% success. Count: "
+        + "% published. success:"
         + str(counts["success"])
-        + ", Total fail: "
+        + " fail:"
         + str(counts["fail"])
-        + ". Total missing refs: "
+        + " rowcount:"
+        + str(counts["rowcount"])
+        + " missingrefs:"
         + str(counts["missingRef"])
-        + ". Total duplicates: "
+        + " duplicates:"
         + str(counts["duplicate"])
-        + ". Total successful chunks: "
+        + " successfulchunks:"
         + str(counts["successful_chunks"])
-        + ". Total fail chunks: "
+        + " failchunks:"
         + str(counts["fail_chunks"])
     )
 

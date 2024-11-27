@@ -16,4 +16,5 @@ env/
 !.env-sample
 !.python-version
 !fixtures/**/*.tsv
+!severities.tsv
 jobs

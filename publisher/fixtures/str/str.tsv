@@ -1,8 +1,0 @@
-variant repeat_unit min_n_repeat max_n_repeat allele_distrib
-VAR1 GCA 10 16 10:1,11:1,16:8
-VAR2 GCA 8 16 13:1,16:4,8:4,9:1
-VAR3 GCA 14 16 14:1,15:1,16:8
-VAR4 GCA 8 10 10:9,8:1
-VAR5 GCA 7 10 10:9,7:1
-VAR6 GCA 10 13 10:9,13:1
-VAR7 GCC 4 5 4:9,5:1

@@ -1,16 +1,49 @@
 
+
+#todo add key expression
+#todo add depends_on models 
+#todo add cache_by_chromosome boolean
+
+
 model_import_actions = {
+    
     "genes": {
         "name": "genes",
         "table": "genes",
-        "pk_lookup_col": "short_name",
+        "map_key_expression": lambda row: row.short_name.upper(),
+        "pk_lookup_col": ["short_name"],
+        "cache_by_chromosome": False,
         "fk_map": {},
         "filters": {"short_name": lambda x: x.upper() if x is not None else None},
     },
     "transcripts": {
         "name": "transcripts",
         "table": "transcripts",
-        "pk_lookup_col": "transcript_id",
+        "map_key_expression": lambda row: row["transcript_id"],
+        "depends_on": ["genes"],
+        "pk_lookup_col": ["transcript_id"],
+        "cache_by_chromosome": False,
+        "fk_map": {"gene": "genes"},
+        "filters": {
+            "transcript_type": lambda x: x.replace("RefSeq", "R") if x is not None else None,
+        }
+    }
+}
+
+
+model_import_actions_full = {
+    
+    "genes": {
+        "name": "genes",
+        "table": "genes",
+        "pk_lookup_col": ["short_name"],
+        "fk_map": {},
+        "filters": {"short_name": lambda x: x.upper() if x is not None else None},
+    },
+    "transcripts": {
+        "name": "transcripts",
+        "table": "transcripts",
+        "pk_lookup_col": ["transcript_id"],
         "fk_map": {"gene": "genes"},
         "filters": {
             "transcript_type": lambda x: x.replace("RefSeq", "R") if x is not None else None,
@@ -19,11 +52,12 @@ model_import_actions = {
     "variants": {
         "name": "variants",
         "table": "variants",
-        "pk_lookup_col": "variant_id",
+        "pk_lookup_col": ["variant_id"],
         "fk_map": {},
     },
     "variants_transcripts": {
         "name": "variants_transcripts",
+        "map_key_expression": lambda row: (row["transcript"], row["variant"]),
         "table": "variants_transcripts",
         "pk_lookup_col": ["transcript", "variant"],
         "fk_map": {"transcript": "transcripts", "variant": "variants"},
@@ -37,11 +71,6 @@ model_import_actions = {
             "hgvsp": lambda x: x.replace("%3D", "=") if x is not None else None
         },
     },
-    #    "severities":{
-    #        "name":"severities",
-    #        "pk_lookup_col": None,
-    #        "fk_map": {},
-    #        },
     "variants_consequences": {
         "name": "variants_consequences",
         "table": "variants_consequences",

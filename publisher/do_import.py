@@ -5,6 +5,7 @@ from sqlalchemy import (
     Table,
     Integer,
     String,
+    select,
     func,
     Float,
 )
@@ -36,6 +37,8 @@ dbConnectionString = os.environ.get("DB")
 copy_maps_from_job = os.environ.get("COPY_MAPS_FROM_JOB")
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 schema = os.environ.get("SCHEMA_NAME")
+dry_run = os.environ.get("DRY_RUN") == "true"
+
 start_at_model = (
     os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None
 )
@@ -60,68 +63,73 @@ job_dir = ""
 maps_load_dir = ""
 # map of import functions
 
+depends_on_maps = {}
+current_model_existing_map = {}
 
-pk_maps = {}
-next_id_maps = {"severities":1}
-tables = {}
+def populate_maps(action, chromosome=None):
+    
+    table = get_table(action["name"])
+    
+    if action["cache_by_chromosome"] is False:
+        with engine.connect() as connection:
+            result = connection.execute(select(table.c["id"] + [action["pk_lookup_col"]]))
+            current_model_existing_map = {
+                action["map_key_expression"](row): row.id for row in result
+            }
+    # ELSE IF TRUE, will be called later for each chromosome
+    
+    #todo look at actions's depends_on models. call each model's key expression to make maps, set to depends_on_maps
+    
+    referenced_models = action.get("fk_map").values()
+    if "DO_COMPOUND_FK" in action.get("fk_map"):
+        referenced_models = ["variants_transcripts", "variants", "transcripts"]
+        
+    for modelName in referenced_models:
+
+        depends_on_maps[modelName] = {}
+        table = get_table(modelName)
+        with engine.connect() as connection:
+            result = connection.execute(select(table.c["id"] + [model_import_actions[modelName]["pk_lookup_col"]]))
+            for row in result:
+                
+                depends_on_maps[modelName][row[0]] = row[1]
+
+        log_output(
+            "loaded map for "
+            + modelName
+            + ". number of records: "
+            + str(len(depends_on_maps[modelName]))
+        )
+
+#    except FileNotFoundError:
+#        pk_maps[modelName] = {}
+#        pass
 
 
-def load_maps(models=[]):
-    try:
-        # Load from files
-        for modelName in models:
-            with open(maps_load_dir + "/" + modelName + "_pk_map.json", "r") as f:
-                pk_maps[modelName] = json.load(f)
-            with open(maps_load_dir + "/" + modelName + "_next_id.json", "r") as f:
-                next_id_maps[modelName] = json.load(f)
-            log_output(
-                "loaded map for "
-                + modelName
-                + ". number of records: "
-                + str(len(pk_maps[modelName]))
-            )
-
-    except FileNotFoundError:
-        pk_maps[modelName] = {}
-        pass
-
-
-def append_to_map(modelName, key, value):
-    if modelName not in pk_maps:
+def append_to_map(modelName, chr, key, value):
+    if modelName not in depends_on_maps:
         log_output("")
-        load_maps(models=[modelName])
-    if key not in pk_maps[modelName]:
-        pk_maps[modelName][key] = value
+        populate_maps(model=modelName, cache_group=None)
+    if key not in depends_on_maps[modelName]:
+        depends_on_maps[modelName][key] = value
 
 
 def persist_and_unload_maps():
-    try:
-        for modelName, pk_map in pk_maps.items():
-            log_output("saving pk map for " + modelName)
-            with open(os.path.join(job_dir, modelName + "_pk_map.json"), "w") as f:
-                json.dump(pk_map, f)
-        for modelName, next_id in next_id_maps.items():
-            with open(os.path.join(job_dir, modelName + "_next_id.json"), "w") as f:
-                json.dump(next_id, f)
-    except Exception as e:
-        log_data_issue("Error saving maps")
-        quit()
-    pk_maps.clear()
+    depends_on_maps.clear()
     log_output("cleared the pk maps")
 
 
-def resolve_PK(referencedModel, name):
+def resolve_PK(referencedModel, name, cache_group):
     if name is None:
         return None
     try:
-        result = pk_maps[referencedModel][name.upper()]
+        result = depends_on_maps[referencedModel][cache_group][name.upper()]
         return result
     except KeyError:
         return None
 
 
 def get_table(model):
-    global tables
     
     if model not in model_import_actions:
         table_name = model
@@ -134,19 +142,17 @@ def get_table(model):
         return Table(table_name, metadata, autoload_with=engine)
 
 
+#todo add cache group to this and to append_to_map
 def inject(model, data, map_key):
     # need to dynamically inject the single obj that was missing from original data
     pk = None
     table = get_table(model)
     with engine.connect() as connection:
         try:
-            id = next_id_maps[model]
-            data["id"] = id
             connection.execute(table.insert(), data)
             connection.commit()
             #            pk = result.inserted_primary_key[0]
             append_to_map(model, map_key, id)
-            next_id_maps[model] = id + 1
             log_data_issue(f"dynamically added {data}", model)
             pk = id
         except IntegrityError as e:
@@ -159,12 +165,14 @@ def inject(model, data, map_key):
     #                                quit() # LATER: comment this out?
     return pk
 
-
 def import_file(file, file_info, action_info):
     name = action_info.get("name")
     fk_map = action_info.get("fk_map")
     pk_lookup_col = action_info.get("pk_lookup_col")
     filters = action_info.get("filters") or {}
+    
+#    cache_group = file_info('cache_group')
+#    print(f"cache group is {file_info['cache_group']}")
 
     missingRefCount = 0
     table = get_table(name)
@@ -181,13 +189,18 @@ def import_file(file, file_info, action_info):
             pass
 
     df = readTSV(file, file_info, dtype=types_dict)
+    
+    # TEMP DON'T KEEP THIS
+    if name == "transcripts":
+        df.replace(np.nan, "CICP3", inplace=True)
+    # delete above    
+
+    
     df.replace(np.nan, None, inplace=True)
 
     data_list = []
     for index, row in df.iterrows():
         data = row.to_dict()
-        pk = next_id_maps[name] + index
-        data["id"] = pk
 
         skip = False
         for col, filter in filters.items():
@@ -196,57 +209,39 @@ def import_file(file, file_info, action_info):
             map_key = None
             resolved_pk = None
             debug_row = None
-            if fk_col == "DO_COMPOUND_FK":
 
-                debug_row = data.copy()
-                v_id = resolve_PK("variants", data["variant"])
-                t_id = resolve_PK("transcripts", data["transcript"])
-                map_key = "-".join([str(t_id), str(v_id)])
-                del data["variant"]
-                del data["transcript"]
-                resolved_pk = resolve_PK("variants_transcripts", map_key)
-                fk_col = "variant_transcript"
+            if isinstance(data[fk_col], str):
+                map_key = data[fk_col].upper()
+            if map_key == "NA":
+                data[fk_col] = None
             else:
-                if isinstance(data[fk_col], str):
-                    map_key = data[fk_col].upper()
-                if map_key == "NA":
-                    data[fk_col] = None
-                else:
-                    resolved_pk = resolve_PK(fk_model, map_key)
-                    ## resolved PK was not found from maps, so.. if it's a gene, we could dynamically inject
-                    if (
-                        resolved_pk == None
-                        and fk_col == "gene"
-                        and name == "transcripts"
-                    ):
-                        resolved_pk = inject("genes", {"short_name": map_key}, map_key)
-                    elif (
-                    ## resolved PK was not found from maps, so.. if it's a variant, we could dynamically inject
-                        resolved_pk == None
-                        and fk_col == "variant"
-                        and name in ["sv_consequences", "svs", "snvs", "mts"]
-                    ):
+                resolved_pk = resolve_PK(fk_model, map_key, cache_group)
+                ## resolved PK was not found from maps, so.. if it's a gene, we could dynamically inject
+                if (
+                    resolved_pk == None
+                    and fk_col == "gene"
+                    and name == "transcripts"
+                    and map_key != None
+                ):
+                    resolved_pk = inject("genes", {"short_name": map_key}, map_key)
+                elif (
+                ## resolved PK was not found from maps, so.. if it's a variant, we could dynamically inject
+                    resolved_pk == None
+                    and fk_col == "variant"
+                    and name in ["sv_consequences", "svs", "snvs", "mts"]
+                ):
 
-                        if name == "sv_consequences" or name == "svs":
-                            var_type = "SV"
-                        elif name == "snvs":
-                            var_type = "SNV"
-                        elif name == "mts":
-                            var_type = "MT"
-                        resolved_pk = inject(
-                            "variants",
-                            {"variant_id": map_key, "var_type": var_type},
-                            map_key,
-                        )
-            if map_key is not None and False:
-                log_output(
-                    "resolved "
-                    + fk_model
-                    + "."
-                    + data[fk_col]
-                    + " to "
-                    + str(resolved_pk)
-                )
+                    if name == "sv_consequences" or name == "svs":
+                        var_type = "SV"
+                    elif name == "snvs":
+                        var_type = "SNV"
+                    elif name == "mts":
+                        var_type = "MT"
+                    resolved_pk = inject(
+                        "variants",
+                        {"variant_id": map_key, "var_type": var_type},
+                        map_key,
+                    )
             if resolved_pk is not None:
                 data[fk_col] = resolved_pk
             else:
@@ -302,6 +297,9 @@ def import_file(file, file_info, action_info):
         fail_chunks = 0
 
         for chunk in chunks(data_list, chunk_size):
+            if dry_run:
+                successCount += len(chunk)
+                continue
             try:
                 connection.execute(table.insert(), chunk)
                 # commit
@@ -342,28 +340,6 @@ def import_file(file, file_info, action_info):
                     if not did_succeed:
                         connection.rollback()
 
-            if pk_lookup_col is not None:
-                pk_map = {}
-                for data in chunk:
-                    # record the PKS for each row that was added
-                    if isinstance(pk_lookup_col, list):
-                        #                        log_output(pk_lookup_col)
-                        #                        log_output(data)
-                        map_key = "-".join([str(data[col]) for col in pk_lookup_col])
-                    elif isinstance(pk_lookup_col, str) and isinstance(
-                        data[pk_lookup_col], str
-                    ):
-                        map_key = data[pk_lookup_col]
-
-                    if map_key not in pk_map:
-                        pk_map[map_key] = data["id"]
-                    if False:
-                        log_output("added " + name + "." + map_key + " to pk map")
-                for key in pk_map:
-                    append_to_map(name, key.upper(), pk_map[key])
-
-    next_id_maps[name] += file_info["total_rows"]
-
     return {
         "success": successCount,
         "fail": failCount,
@@ -376,14 +352,12 @@ def import_file(file, file_info, action_info):
 
 
 def cleanup(sig, frame):
-    global engine, pk_maps, next_id_maps, tables, metadata
+    global engine, depends_on_maps, metadata
     print("terminating, cleaning up ...")
     persist_and_unload_maps()
     engine.dispose()
     # garbage collect
-    del pk_maps
-    del next_id_maps
-    del tables
+    del depends_on_maps
     del metadata
     print("done")
     sys.exit(0)
@@ -492,17 +466,9 @@ def start(db_engine):
                     "Skipping " + modelName + " (expected dir: " + model_directory + ")"
                 )
                 continue
-
-        referenced_models = action_info.get("fk_map").values()
-        if "DO_COMPOUND_FK" in action_info.get("fk_map"):
-            referenced_models = ["variants_transcripts", "variants", "transcripts"]
-        load_maps(models=referenced_models)
+            
+        populate_maps(action_info)
         modelNow = datetime.now()
-
-        # if modelName not in pk_maps:
-        #     pk_maps[modelName] = {}
-        if modelName not in next_id_maps:
-            next_id_maps[modelName] = 1
 
         if large_model_file_tsv_exists:
             sorted_files = [modelName + ".tsv"]
@@ -529,6 +495,7 @@ def start(db_engine):
                     targetFile = large_model_file_tsv
                 else:
                     targetFile = model_directory + "/" + file
+                
                 file_info = inspectTSV(targetFile)
                 log_output(
                     "\nimporting "

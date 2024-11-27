@@ -40,7 +40,8 @@ def inspectTSV(file):
         "num_columns": num_columns,
         "columns": columns,
         "types": {},
-        "separator": separator,
+        "separator": separator
+#        "chromosome"
     }
 
 def readTSV(file, info, dtype={}):
@@ -82,6 +83,8 @@ def log_output(s):
     output_logger.info(s)
     if (verbose):
         print(s)
+def log_error(s):
+    stderr.write(s)
 
 
 def report_counts(counts):

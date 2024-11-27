@@ -17,8 +17,10 @@ process SNV_data_organization {
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants_transcripts/", mode: 'copy', pattern: "variants_transcripts_*"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants_consequences/", mode: 'copy', pattern: "variants_consequences_*"
         publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants_annotations/", mode: 'copy', pattern: "variants_annotations_*"
-        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_[A-Z0-9].tsv"
-	publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_[A-Z0-9][A-Z0-9].tsv"
+        publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_chr[A-Z0-9].tsv"
+		publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_chr[A-Z0-9][A-Z0-9].tsv"
+		publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_[A-Z0-9].tsv"
+		publishDir "$params.outdir_pop/${assembly}/${run}/Oracle_table/variants/", mode: 'copy', pattern: "variants_[A-Z0-9][A-Z0-9].tsv"
 
 	input :
 	path gnomad_SNV_frequ

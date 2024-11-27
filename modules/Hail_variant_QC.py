@@ -672,7 +672,7 @@ out_stats.write(
 
         f"\n------------------------------------------------------------\n"
         f"\nSUMMARY\n"
-        f"\n (whole dataset)\n"
+        f"\n\n"
         f"------------------------------------------------------------\n"
         f"\nTotal sites before filtering: {count_rows_before_indel_filter}\n"
         f"\nTotal called genotypes (before filters): {count_GT_before_indel_filter}\n\n\n"

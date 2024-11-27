@@ -19,31 +19,9 @@ model_import_actions = {
     "transcripts": {
         "name": "transcripts",
         "table": "transcripts",
-        "map_key_expression": lambda row: row["transcript_id"],
-        "depends_on": ["genes"],
+        "map_key_expression": lambda row: row.transcript_id,
         "pk_lookup_col": ["transcript_id"],
         "cache_by_chromosome": False,
-        "fk_map": {"gene": "genes"},
-        "filters": {
-            "transcript_type": lambda x: x.replace("RefSeq", "R") if x is not None else None,
-        }
-    }
-}
-
-
-model_import_actions_full = {
-    
-    "genes": {
-        "name": "genes",
-        "table": "genes",
-        "pk_lookup_col": ["short_name"],
-        "fk_map": {},
-        "filters": {"short_name": lambda x: x.upper() if x is not None else None},
-    },
-    "transcripts": {
-        "name": "transcripts",
-        "table": "transcripts",
-        "pk_lookup_col": ["transcript_id"],
         "fk_map": {"gene": "genes"},
         "filters": {
             "transcript_type": lambda x: x.replace("RefSeq", "R") if x is not None else None,
@@ -52,21 +30,23 @@ model_import_actions_full = {
     "variants": {
         "name": "variants",
         "table": "variants",
+        "map_key_expression": lambda row: row.variant_id,
         "pk_lookup_col": ["variant_id"],
         "fk_map": {},
     },
     "variants_transcripts": {
         "name": "variants_transcripts",
-        "map_key_expression": lambda row: (row["transcript"], row["variant"]),
         "table": "variants_transcripts",
-        "pk_lookup_col": ["transcript", "variant"],
+        "map_key_expression": lambda row: (row.variant_id, row.transcript_id),
+        "pk_lookup_col": [],
         "fk_map": {"transcript": "transcripts", "variant": "variants"},
     },
     "variants_annotations": {
         "name": "variants_annotations",
         "table": "variants_annotations",
-        "pk_lookup_col": None,
-        "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
+        "map_key_expression": lambda row: (row.variant_transcript),
+        "pk_lookup_col": ["variant_transcript"],
+        "fk_map": {"variant_transcript": "variants_transcripts"},
         "filters": {
             "hgvsp": lambda x: x.replace("%3D", "=") if x is not None else None
         },
@@ -74,71 +54,89 @@ model_import_actions_full = {
     "variants_consequences": {
         "name": "variants_consequences",
         "table": "variants_consequences",
-        "pk_lookup_col": None,
-        "fk_map": {"DO_COMPOUND_FK": "for variants_transcripts"},
-    },
-    "sv_consequences": {
-        "name": "sv_consequences",
-        "table": "sv_consequences",
-        "pk_lookup_col": None,
-        "fk_map": {"gene": "genes", "variant": "variants"},
-    },
-    "snvs": {
-        "name": "snvs",
-        "table": "snvs",
-        "pk_lookup_col": None,
-        "fk_map": {"variant": "variants"},
-        "filters": {
-            "dbsnp_id": lambda x: x.split("&")[0] if x is not None else None,
-            "chr": lambda x: x.replace("chr", "") if x is not None else None,
-            },
-    },
-    "svs": {
-        "name": "svs",
-        "table": "svs",
-        "pk_lookup_col": None,
-        "fk_map": {"variant": "variants"},
-    },
-    "svs_ctx": {
-        "name": "svs_ctx",
-        "table": "svs_ctx",
-        "pk_lookup_col": None,
-        "fk_map": {"variant": "variants"},
-    },
-    "str": {
-        "name": "str",
-        "table": "str",
-        "pk_lookup_col": None,
-        "fk_map": {"variant": "variants"},
+        "map_key_expression": lambda row: (row.variant_id, row.transcript_id),
+        "pk_lookup_col": [],
+        "fk_map": {"variant_transcript": "variants_transcripts"},
     },
     "mts": {
         "name": "mts",
         "table": "mts",
-        "pk_lookup_col": None,
+        "map_key_expression": lambda row: row.variant,
+        "pk_lookup_col": [],
         "fk_map": {"variant": "variants"},
     },
     "genomic_ibvl_frequencies": {
         "name": "genomic_ibvl_frequencies",
         "table": "genomic_ibvl_frequencies",
-        "pk_lookup_col": None,
+        "map_key_expression": lambda row: row.variant,
+        "pk_lookup_col": [],
         "fk_map": {"variant": "variants"},
     },
     "genomic_gnomad_frequencies": {
         "name": "genomic_gnomad_frequencies",
         "table": "genomic_gnomad_frequencies",
-        "pk_lookup_col": None,
+        "map_key_expression": lambda row: row.variant,
+        "pk_lookup_col": [],
         "fk_map": {"variant": "variants"},
     },
     "mt_ibvl_frequencies": {
         "name": "mt_ibvl_frequencies",
         "table": "mt_ibvl_frequencies",
-        "pk_lookup_col": None,
+        "map_key_expression": lambda row: row.variant,
+        "pk_lookup_col": [],
         "fk_map": {"variant": "variants"},
     },
     "mt_gnomad_frequencies": {
         "name": "mt_gnomad_frequencies",
         "table": "mt_gnomad_frequencies",
-        "pk_lookup_col": None,
+        "map_key_expression": lambda row: row.variant,
+        "pk_lookup_col": [],
         "fk_map": {"variant": "variants"},
     },
+    
+    
+    
+    
+    
+    
+    
+#   "snvs": {
+#       "name": "snvs",
+#       "table": "snvs",
+#       "pk_lookup_col": None,
+#       "fk_map": {"variant": "variants"},
+#       "filters": {
+#           "dbsnp_id": lambda x: x.split("&")[0] if x is not None else None,
+#           "chr": lambda x: x.replace("chr", "") if x is not None else None,
+#           },
+#   },
+#   "svs": {
+#       "name": "svs",
+#       "table": "svs",
+#       "pk_lookup_col": None,
+#       "fk_map": {"variant": "variants"},
+#   },
+#    "sv_consequences": {
+#        "name": "sv_consequences",
+#        "table": "sv_consequences",
+#        "pk_lookup_col": None,
+#        "fk_map": {"gene": "genes", "variant": "variants"},
+#    },
+#   "svs_ctx": {
+#       "name": "svs_ctx",
+#       "table": "svs_ctx",
+#       "pk_lookup_col": None,
+#       "fk_map": {"variant": "variants"},
+#   },
+#   "str": {
+#       "name": "str",
+#       "table": "str",
+#       "pk_lookup_col": None,
+#       "fk_map": {"variant": "variants"},
+#   },
+    
+    
+    
+    
+    
 }

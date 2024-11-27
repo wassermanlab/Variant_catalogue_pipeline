@@ -10,6 +10,7 @@ import os
 
 data_issue_logger = {}
 output_logger = None
+error_logger = None
 
 load_dotenv()
 
@@ -71,7 +72,15 @@ def setup_loggers(job_dir):
     output_logger.addHandler(output_logger_handler)
 
     output_logger.info(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-    print("logging to", os.path.join(job_dir,"data_issues.log"), os.path.join(job_dir,"output.log"))
+    
+    error_logger = logging.getLogger("error")
+    error_logger.setLevel(logging.ERROR)
+    error_logger.propagate = False
+    error_logger_handler = logging.FileHandler(os.path.join(job_dir,"error.log"))
+    error_logger_handler.setLevel(logging.ERROR)
+    error_logger.addHandler(error_logger_handler)
+    
+    print("logging to", os.path.join(job_dir,"error.log"), os.path.join(job_dir,"output.log"))
 
 def log_data_issue(s, model=None):
     if model is not None:
@@ -82,7 +91,10 @@ def log_output(s):
     output_logger.info(s)
     if (verbose):
         print(s)
-
+def log_error(s):
+    error_logger.error(s)
+    if (verbose):
+        print(s)
 
 def report_counts(counts):
     percent_success = "N/A"

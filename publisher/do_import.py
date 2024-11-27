@@ -104,7 +104,7 @@ def persist_and_unload_maps():
             with open(os.path.join(job_dir, modelName + "_next_id.json"), "w") as f:
                 json.dump(next_id, f)
     except Exception as e:
-        log_data_issue("Error saving maps")
+        log_error("Error saving maps")
         quit()
     pk_maps.clear()
     log_output("cleared the pk maps")

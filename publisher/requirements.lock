@@ -9,6 +9,8 @@
 #   generate-hashes: false
 
 -e file:.
+cx-oracle==8.3.0
+    # via publisher
 natsort==8.4.0
     # via publisher
 numpy==2.1.3

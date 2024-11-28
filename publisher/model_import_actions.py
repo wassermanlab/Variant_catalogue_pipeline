@@ -54,9 +54,20 @@ model_import_actions = {
     "variants_consequences": {
         "name": "variants_consequences",
         "table": "variants_consequences",
-        "map_key_expression": lambda row: (row.variant_id, row.transcript_id),
-        "pk_lookup_col": [],
+        "map_key_expression": lambda row: (row.variant_transcript), 
+        "pk_lookup_col": ["variant_transcript"],
         "fk_map": {"variant_transcript": "variants_transcripts"},
+    },
+    "snvs": {
+        "name": "snvs",
+        "table": "snvs",
+        "map_key_expression": lambda row: row.variant,
+        "pk_lookup_col": [],
+        "fk_map": {"variant": "variants"},
+        "filters": {
+            "dbsnp_id": lambda x: x.split("&")[0] if x is not None else None,
+            "chr": lambda x: x.replace("chr", "") if x is not None else None,
+            },
     },
     "mts": {
         "name": "mts",
@@ -100,16 +111,6 @@ model_import_actions = {
     
     
     
-#   "snvs": {
-#       "name": "snvs",
-#       "table": "snvs",
-#       "pk_lookup_col": None,
-#       "fk_map": {"variant": "variants"},
-#       "filters": {
-#           "dbsnp_id": lambda x: x.split("&")[0] if x is not None else None,
-#           "chr": lambda x: x.replace("chr", "") if x is not None else None,
-#           },
-#   },
 #   "svs": {
 #       "name": "svs",
 #       "table": "svs",

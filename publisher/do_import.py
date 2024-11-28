@@ -38,6 +38,7 @@ copy_maps_from_job = os.environ.get("COPY_MAPS_FROM_JOB")
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 schema = os.environ.get("SCHEMA_NAME")
 dry_run = os.environ.get("DRY_RUN") == "true"
+update = os.environ.get("UPDATE") == "true"
 
 start_at_model = (
     os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None
@@ -86,21 +87,17 @@ def populate_maps(action, chromosome=None):
                     model_action["map_key_expression"](row): row.id for row in result
                 }
             else:
-                cols = [table.c[col] for col in ["id"] + model_action["pk_lookup_col"]]
+                cols = [table.c[col] for col in ["id"] + model_action["pk_lookup_col"] + list(model_action["fk_map"].keys())]
                 result = connection.execute(select(*cols))
                 return {
                     model_action["map_key_expression"](row): row.id for row in result
                 }
-    
-    
-    #todo look at actions's depends_on models. call each model's key expression to make maps, set to depends_on_maps
-    
+        
     if model in ["variants_annotations", "variants_consequences"]:
         depends_on_maps["variants_transcripts"] = make_existing_map("variants_transcripts")
         reversed = {v: k for k, v in depends_on_maps["variants_transcripts"].items()}
         tenative_existing_map = make_existing_map(model)
         current_model_existing_map = {reversed[k]: v for k, v in tenative_existing_map.items()}
-        print("is tenative")
         
     else:
         referenced_models = action.get("fk_map").values()
@@ -123,10 +120,12 @@ def populate_maps(action, chromosome=None):
 #        pass
 
 
-def append_to_map(modelName, chr, key, value):
+def append_to_map(modelName, key, value):
+    global depends_on_maps
     if modelName not in depends_on_maps:
-        log_output("")
-        populate_maps(model=modelName, cache_group=None)
+        log_error(f"trying to append to map but was not populated ({modelName} {key} {value})")
+        
+#        populate_maps(model=modelName, cache_group=None)
     if key not in depends_on_maps[modelName]:
         depends_on_maps[modelName][key] = value
 
@@ -134,15 +133,6 @@ def append_to_map(modelName, chr, key, value):
 def persist_and_unload_maps():
     depends_on_maps.clear()
     log_output("cleared the pk maps")
-
-
-def resolve_PK(dependentModel, map_key):
-    if map_key is None:
-        return None
-    try:
-        return depends_on_maps[dependentModel][map_key]
-    except KeyError:
-        return None
 
 
 def get_table(model):
@@ -161,16 +151,16 @@ def get_table(model):
 #todo add cache group to this and to append_to_map
 def inject(model, data, map_key):
     # need to dynamically inject the single obj that was missing from original data
-    pk = None
+    id = None
     table = get_table(model)
     with engine.connect() as connection:
         try:
-            connection.execute(table.insert(), data)
+            result = connection.execute(table.insert(), data)
             connection.commit()
-            #            pk = result.inserted_primary_key[0]
+            id = result.inserted_primary_key[0]
+            
             append_to_map(model, map_key, id)
             log_data_issue(f"dynamically added {data}", model)
-            pk = id
         except IntegrityError as e:
             log_data_issue("a dynamically injected obj had an integrity error.", model)
             log_data_issue(e, model)
@@ -179,10 +169,10 @@ def inject(model, data, map_key):
             log_data_issue("a dynamically injected obj had an error.", model)
             log_data_issue(e, model)
     #                                quit() # LATER: comment this out?
-    return pk
+    return id
 
 def import_file(file, file_info, action):
-    name = action.get("name")
+    model = action.get("name")
     fk_map = action.get("fk_map")
     pk_lookup_col = action.get("pk_lookup_col")
     filters = action.get("filters") or {}
@@ -191,7 +181,7 @@ def import_file(file, file_info, action):
 #    print(f"cache group is {file_info['cache_group']}")
 
     missingRefCount = 0
-    table = get_table(name)
+    table = get_table(model)
     types_dict = {}
     for column in table.columns:
         # convert sql types to pandas types
@@ -206,12 +196,6 @@ def import_file(file, file_info, action):
 
     df = readTSV(file, file_info, dtype=types_dict)
     
-    # TEMP DON'T KEEP THIS
-    if name == "transcripts":
-        df.replace(np.nan, "CICP3", inplace=True)
-    # delete above    
-
-    
     df.replace(np.nan, None, inplace=True)
 
     data_list = []
@@ -225,18 +209,22 @@ def import_file(file, file_info, action):
             map_key = None
             resolved_pk = None
             debug_row = None
-
-            if isinstance(data[fk_col], str):
-                map_key = data[fk_col].upper()
-            if map_key == "NA":
-                data[fk_col] = None
+            
+            if model in ["variants_annotations", "variants_consequences"]:
+                map_key = (data["variant"], data["transcript"])
             else:
-                resolved_pk = resolve_PK(fk_model, map_key)
+                
+                if isinstance(data[fk_col], str):
+                    map_key = data[fk_col].upper()
+            if map_key == "NA":
+                    data[fk_col] = None
+            else:
+                resolved_pk = depends_on_maps.get(fk_model).get( map_key)
                 ## resolved PK was not found from maps, so.. if it's a gene, we could dynamically inject
                 if (
                     resolved_pk == None
                     and fk_col == "gene"
-                    and name == "transcripts"
+                    and model == "transcripts"
                     and map_key != None
                 ):
                     resolved_pk = inject("genes", {"short_name": map_key}, map_key)
@@ -244,14 +232,14 @@ def import_file(file, file_info, action):
                 ## resolved PK was not found from maps, so.. if it's a variant, we could dynamically inject
                     resolved_pk == None
                     and fk_col == "variant"
-                    and name in ["sv_consequences", "svs", "snvs", "mts"]
+                    and model in ["sv_consequences", "svs", "snvs", "mts"]
                 ):
 
-                    if name == "sv_consequences" or name == "svs":
+                    if model == "sv_consequences" or model == "svs":
                         var_type = "SV"
-                    elif name == "snvs":
+                    elif model == "snvs":
                         var_type = "SNV"
-                    elif name == "mts":
+                    elif model == "mts":
                         var_type = "MT"
                     resolved_pk = inject(
                         "variants",
@@ -268,38 +256,38 @@ def import_file(file, file_info, action):
                         "None" + " " + map_key
                         if map_key is not None
                         else (
-                            "None" + " referenced from " + name
-                            if name is not None
+                            "None" + " referenced from " + model
+                            if model is not None
                             else "None"
                         )
                     ),
-                    name,
+                    model,
                 )
                 if debug_row is not None:
-                    log_data_issue(debug_row, name)
+                    log_data_issue(debug_row, model)
                 else:
-                    log_data_issue(data, name)
+                    log_data_issue(data, model)
                 missingRefCount += 1
                 skip = True
         if skip:
             continue
-        # this block replaces None with empty string for string columns (good for django)
-        for col in data:
-            if (
-                col in table.columns
-                and isinstance(table.columns[col].type, String)
-                and data[col] is None
-            ):
-                data[col] = ""
-        # this block fills missing columns with None or empty string, depending on the column type
-        for table_col in table.columns:
-            if table_col.name not in data:
-                if isinstance(table_col.type, String):
-                    data[table_col.name] = ""
-                    log_data_issue("filled missing col " + table_col.name + " with empty string", name)
-                else:
-                    data[table_col.name] = None
-                    log_data_issue("filled missing col " + table_col.name + " with None", name)
+#        # this block replaces None with empty string for string columns (good for django)
+#        for col in data:
+#            if (
+#                col in table.columns
+#                and isinstance(table.columns[col].type, String)
+#                and data[col] is None
+#            ):
+#                data[col] = ""
+#        # this block fills missing columns with None or empty string, depending on the column type
+#        for table_col in table.columns:
+#            if table_col.name not in data:
+#                if isinstance(table_col.type, String):
+#                    data[table_col.name] = ""
+#                    log_data_issue("filled missing col " + table_col.name + " with empty string", name)
+#                else:
+#                    data[table_col.name] = None
+#                    log_data_issue("filled missing col " + table_col.name + " with None", name)
 
         data_list.append(data)
 
@@ -336,7 +324,7 @@ def import_file(file, file_info, action):
                         did_succeed = True
 
                     except DataError as e:
-                        log_data_issue(e, name)
+                        log_data_issue(e, model)
                         failCount += 1
                     #                        quit()
                     except IntegrityError as e:
@@ -346,11 +334,11 @@ def import_file(file, file_info, action):
                             successCount += 1
                         else:
                             failCount += 1
-                            log_data_issue(e, name)
+                            log_data_issue(e, model)
                     #                            quit()
                     except Exception as e:
 
-                        log_data_issue(e, name)
+                        log_data_issue(e, model)
                         failCount += 1
                     ####### added in v2
                     if not did_succeed:
@@ -444,6 +432,7 @@ def start(db_engine):
         file_info,
         {"name":"severities", "fk_map":{}, "pk_lookup_col":None},
     )
+    log_output("done importing severities")
 
 
     for modelName, action_info in model_import_actions.items():

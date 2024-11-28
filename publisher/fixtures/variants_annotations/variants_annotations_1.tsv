@@ -1,5 +1,7 @@
 hgvsp	sift	polyphen	transcript	variant
 ENSP00000334393.3:p.Thr141Ala	tolerated(0.82)	benign(0)	TRANS1	VAR4
+ENSP00000334393.3:p.Thr141Ala	tolerated(0.82)	benign(0)	TRANS1	VAR3
+ENSP00000334393.3:p.Thr141Ala	tolerated(0.82)	benign(0)	TRANS1	VAR1
 NP_001005484.2:p.Thr162Ala	tolerated(0.85)	benign(0)	TRANS2	VAR5
 ENSP00000334393.3:p.Cys182Ser	deleterious(0)	probably_damaging(0.987)	TRANS3	VAR6
 NP_001005484.2:p.Cys203Ser	deleterious(0)	probably_damaging(0.999)	TRANS4	VAR4

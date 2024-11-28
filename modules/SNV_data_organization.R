@@ -43,7 +43,7 @@ if (assembly == "GRCh37" && chr == "Y") {
   	gnomad_file = fread(gfile)
 
 }
-if (length(gnomad_file)>11)gnomad_file[,12]=NULL
+if (length(gnomad_file)>14)gnomad_file[,15]=NULL
 #names(gnomad_file)
 #head(gnomad_file)
 #Create the variant ID (chr-Pos_ref_alt)
@@ -297,10 +297,16 @@ show("variant ok")
 #Extract only the variant that are present in the IBVL
 #gnomad_intersect = gnomad_file[gnomad_file$ID_db_gnomad  %in%  SNV_vcf@fix[,c("ID")], ]
 gnomad_intersect = gnomad_file[gnomad_file$ID_db_gnomad  %in%  All_info$variant, ]
-#Keep only the wanted info
-gnomad_intersect_mini=gnomad_intersect[,c("ID_db_gnomad", "AF", "AC", "AN", "nhomalt")]
-#rename the columns as expected in the SQL
-colnames(gnomad_intersect_mini)=c("variant", "af_tot", "ac_tot", "an_tot", "hom_tot")
+#Keep only the wanted info, #incorporate additional filter columns in newer gnomad versions
+if (assembly == "GRCh37") {
+	gnomad_intersect_mini=gnomad_intersect[,c("ID_db_gnomad", "AF", "AC", "AN", "nhomalt", "FILTER")]
+	#rename the columns as expected in the SQL
+	colnames(gnomad_intersect_mini)=c("variant", "af_tot", "ac_tot", "an_tot", "hom_tot", "FILTER")
+} else if (assembly =="GRCh38") {
+	gnomad_intersect_mini=gnomad_intersect[,c("ID_db_gnomad", "AF", "AC", "AN", "nhomalt", "FILTER", "exomes_filters", "genomes_filters")]
+	#rename the columns as expected in the SQL
+	colnames(gnomad_intersect_mini)=c("variant", "af_tot", "ac_tot", "an_tot", "hom_tot", "FILTER", "exomes_filters", "genomes_filters")
+}
 gnomad_intersect_mini = unique(gnomad_intersect_mini)
 write.table(gnomad_intersect_mini, file=paste0("genomic_gnomad_frequencies_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 

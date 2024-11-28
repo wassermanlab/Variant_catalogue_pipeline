@@ -72,7 +72,7 @@ last_chromosome = None
 current_chromosome = None
 
 def separate_cache_by_chromosome(action):
-    return action["name"] in ["variants_transcripts", "variants_annotations", "variants_consequences"]
+    return action["name"] in ["variants","variants_transcripts", "variants_annotations", "variants_consequences"]
 
 
 def populate_maps(action, chromosome=None):
@@ -82,42 +82,46 @@ def populate_maps(action, chromosome=None):
     def make_existing_map(modelName, chromosome=None):
         table = get_table(modelName)
         model_action = model_import_actions[modelName]
+
         with engine.connect() as connection:
             if (modelName == "variants_transcripts"):
                 variants = get_table("variants")
                 transcripts = get_table("transcripts")
                 statement = select(table.c["id"],variants.c["variant_id"], transcripts.c["transcript_id"]).join(variants).join(transcripts)
-                result = connection.execute(statement)
+                if chromosome is not None:
+                    statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
                 
-                return {
-                    model_action["map_key_expression"](row): row.id for row in result
-                }
             else:
                 cols = [table.c[col] for col in ["id"] + model_action["pk_lookup_col"] ]
                 
                 if "variant" in model_action["fk_map"]:
                     variants = get_table("variants")
                     cols.append(variants.c["variant_id"])
-                    result = connection.execute(select(*cols).join(variants))
+                    statement = select(*cols).join(variants)
+                    if chromosome is not None:
+                        statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
+                elif modelName == "variants" and chromosome is not None:
+                    statement = select(*cols).where(table.c.variant_id.startswith(f"{chromosome}_"))
                 else:
-                    result = connection.execute(select(*cols))
-                return {
-                    model_action["map_key_expression"](row): row.id for row in result
-                }
+                    statement = select(*cols)
+                    
+            result = connection.execute(statement)
+            return {
+                model_action["map_key_expression"](row): row.id for row in result
+            }
         
     if model in ["variants_annotations", "variants_consequences"]:
         depends_on_maps["variants_transcripts"] = make_existing_map("variants_transcripts", chromosome)
         reversed = {v: k for k, v in depends_on_maps["variants_transcripts"].items()}
-        tenative_existing_map = make_existing_map(model)
-        current_model_existing_map = {reversed[k]: v for k, v in tenative_existing_map.items()}
+        tenative_existing_map = make_existing_map(model, chromosome)
+        current_model_existing_map = {reversed.get(k): v for k, v in tenative_existing_map.items() if reversed.get(k) is not None }
         
     else:
         referenced_models = action.get("fk_map").values()
         current_model_existing_map = make_existing_map(action["name"], chromosome)
-        # ELSE IF TRUE, will be called later for each chromosome
         for model in referenced_models:
 
-            depends_on_maps[model] = make_existing_map(model)
+            depends_on_maps[model] = make_existing_map(model,chromosome)
 
             log_output(
                 "loaded map for "
@@ -125,7 +129,11 @@ def populate_maps(action, chromosome=None):
                 + ". number of records: "
                 + str(len(depends_on_maps[model]))
             )
-    log_output(f"done populating maps for {action['name']}")
+    log_output(f"done populating maps for {action['name']} chromosome {chromosome}")
+#    existing_json = json.dumps(current_model_existing_map)
+#    existing_dependson_json = json.dumps(depends_on_maps)
+#    log_output(f"existing map for {action['name']} chromosome {chromosome}: {existing_json}")
+#    log_output(f"depends on maps for {action['name']} chromosome {chromosome}: {existing_dependson_json}")
 
 #    except FileNotFoundError:
 #        pk_maps[modelName] = {}
@@ -182,6 +190,7 @@ def inject(model, data, map_key):
     return id
 
 def import_file(file, file_info, action):
+    global current_chromosome,last_chromosome
     model = action.get("name")
     fk_map = action.get("fk_map")
     pk_lookup_col = action.get("pk_lookup_col")
@@ -213,10 +222,11 @@ def import_file(file, file_info, action):
         data = row.to_dict()
         
         if separate_cache_by_chromosome(action):
-            if current_chromosome is None:
-                current_chromosome = data.get("variant").split("_")[0]
+        
+            current_chromosome = data.get("variant",data.get("variant_id")).split("_")[0]
             if current_chromosome != last_chromosome:
                 last_chromosome = current_chromosome
+                persist_and_unload_maps()
                 populate_maps(action, current_chromosome)
         
         
@@ -393,7 +403,7 @@ def start(db_engine):
 
     arrived_at_start_model = False
     arrived_at_start_file = False
-    global job_dir, maps_load_dir, engine, schema
+    global job_dir, maps_load_dir, engine, schema, current_chromosome, last_chromosome
     engine = db_engine
 
     if isinstance(schema, str) and len(schema) > 0:
@@ -492,7 +502,7 @@ def start(db_engine):
                 continue
         
         if separate_cache_by_chromosome(action_info):
-            continue #populate maps instead happens per 1 chromosome
+            pass #populate maps instead happens per 1 chromosome
         else:
             populate_maps(action_info)
         modelNow = datetime.now()
@@ -565,6 +575,8 @@ def start(db_engine):
             + ". Took this much time: "
             + str(datetime.now() - modelNow)
         )
+        current_chromosome = None
+        last_chromosome = None
         report_counts(model_counts)
         this_model_index = list(model_import_actions.keys()).index(modelName)
         if this_model_index + 1 < len(model_import_actions.keys()):

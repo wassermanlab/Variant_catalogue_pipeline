@@ -34,7 +34,6 @@ print(f"dir containing jobs: {dir_containing_jobs}. absolute: {os.path.abspath(d
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 # verbose = os.environ.get("VERBOSE") == "true"
 dbConnectionString = os.environ.get("DB")
-copy_maps_from_job = os.environ.get("COPY_MAPS_FROM_JOB")
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 schema = os.environ.get("SCHEMA_NAME")
 dry_run = os.environ.get("DRY_RUN") == "true"
@@ -62,7 +61,6 @@ engine = None
 metadata = MetaData()
 
 job_dir = ""
-maps_load_dir = ""
 # map of import functions
 
 depends_on_maps = {}
@@ -438,7 +436,7 @@ def start(db_engine):
 
     arrived_at_start_model = False
     arrived_at_start_file = False
-    global job_dir, maps_load_dir, engine, schema, current_chromosome, last_chromosome
+    global job_dir, engine, schema, current_chromosome, last_chromosome
     engine = db_engine
 
     if isinstance(schema, str) and len(schema) > 0:
@@ -459,12 +457,6 @@ def start(db_engine):
     os.makedirs(job_dir, exist_ok=True)
     os.chmod(job_dir, 0o777)  # Set read and write permissions for the directory
     setup_loggers(job_dir)
-
-    if copy_maps_from_job is not None and copy_maps_from_job != "":
-        maps_load_dir = os.path.join(jobs_dir, copy_maps_from_job)
-    else:
-        maps_load_dir = job_dir
-    print("using job dir " + maps_load_dir)
 
     now = datetime.now()
     counts = {}

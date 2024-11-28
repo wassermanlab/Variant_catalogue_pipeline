@@ -199,7 +199,14 @@ def import_file(file, file_info, action):
 #    cache_group = file_info('cache_group')
 #    print(f"cache group is {file_info['cache_group']}")
 
+    successCount = 0
+    failCount = 0
+    duplicateCount = 0
     missingRefCount = 0
+    updatedCount = 0
+    successful_chunks = 0
+    fail_chunks = 0
+    
     table = get_table(model)
     types_dict = {}
     for column in table.columns:
@@ -217,9 +224,11 @@ def import_file(file, file_info, action):
     
     df.replace(np.nan, None, inplace=True)
 
-    data_list = []
+    data_insert_list = []
+    data_update_list = []
     for _, row in df.iterrows():
         data = row.to_dict()
+        
         
         if separate_cache_by_chromosome(action):
         
@@ -317,29 +326,46 @@ def import_file(file, file_info, action):
 #                else:
 #                    data[table_col.name] = None
 #                    log_data_issue("filled missing col " + table_col.name + " with None", name)
-
-        data_list.append(data)
+        record_map_key = action.get("tsv_map_key_expression")(data)
+        if (model == "variants_consequences"):
+            print("Whats going on")
+        if record_map_key is None:
+            print(f"record_map_key is None for {model} {data}")
+            quit()
+        existing_id = current_model_existing_map.get(record_map_key)
+        if existing_id is not None:
+            # record is already in the DB
+            if update:
+                data["id"] = existing_id
+                data_update_list.append(data)
+            else:
+                duplicateCount += 1
+                successCount += 1
+                log_data_issue("Duplicate " + str(record_map_key), model)
+                continue
+        else:
+            # the record is NOT in the db, so add it
+            data_insert_list.append(data)
+#        data_list.append(data)
 
     # dispose of df to save ram
     del df
     with engine.connect() as connection:
-        successCount = 0
-        failCount = 0
-        duplicateCount = 0
-        successful_chunks = 0
-        fail_chunks = 0
 
-        for chunk in chunks(data_list, chunk_size):
+        def chunkOperation(chunk, method, logUpdate=False):
+            nonlocal successCount, failCount, duplicateCount, updatedCount, successful_chunks, fail_chunks
             if dry_run:
                 successCount += len(chunk)
-                break
+                return
             try:
-                connection.execute(table.insert(), chunk)
+                connection.execute(method(), chunk)
                 # commit
                 connection.commit()
                 # chunk worked
                 successful_chunks += 1
                 successCount += len(chunk)
+                if logUpdate:
+                    updatedCount += len(chunk)
             except Exception as e:
                 #                print(e)
                 connection.rollback()
@@ -347,7 +373,7 @@ def import_file(file, file_info, action):
                 for row in chunk:
                     did_succeed = False
                     try:
-                        connection.execute(table.insert(), row)
+                        connection.execute(method(), row)
                         connection.commit()
                         successCount += 1
                         did_succeed = True
@@ -361,6 +387,8 @@ def import_file(file, file_info, action):
                         if "Duplicate" in msg or "ORA-00001" in msg:
                             duplicateCount += 1
                             successCount += 1
+                            if logUpdate:
+                                updatedCount += 1
                         else:
                             failCount += 1
                             log_data_issue(e, model)
@@ -372,12 +400,19 @@ def import_file(file, file_info, action):
                     ####### added in v2
                     if not did_succeed:
                         connection.rollback()
+                        
+        for chunk in chunks(data_insert_list, chunk_size):
+            chunkOperation(chunk, table.insert)
+        for chunk in chunks(data_update_list, chunk_size):
+            chunkOperation(chunk, table.update, logUpdate=True)
+        
 
     return {
         "success": successCount,
         "fail": failCount,
         "missingRef": missingRefCount,
         "duplicate": duplicateCount,
+        "updated": updatedCount,
         "successful_chunks": successful_chunks,
         "fail_chunks": fail_chunks,
         "rowcount": file_info["total_rows"],
@@ -437,6 +472,7 @@ def start(db_engine):
     counts["fail"] = 0
     counts["missingRef"] = 0
     counts["duplicate"] = 0
+    counts["updated"] = 0
     counts["successful_chunks"] = 0
     counts["fail_chunks"] = 0
     counts["rowcount"] = 0
@@ -459,7 +495,7 @@ def start(db_engine):
     import_file(
         severitiesFile,
         file_info,
-        {"name":"severities", "fk_map":{}, "pk_lookup_col":None},
+        {"name":"severities", "fk_map":{}, "pk_lookup_col":None, "tsv_map_key_expression": lambda row: row["severity_number"], "filters":{}},
     )
     log_output("done importing severities")
 
@@ -470,6 +506,7 @@ def start(db_engine):
         model_counts["fail"] = 0
         model_counts["missingRef"] = 0
         model_counts["duplicate"] = 0
+        model_counts["updated"] = 0
         model_counts["successful_chunks"] = 0
         model_counts["fail_chunks"] = 0
         model_counts["rowcount"] = 0
@@ -560,6 +597,7 @@ def start(db_engine):
                     "fail",
                     "missingRef",
                     "duplicate",
+                    "updated",
                     "successful_chunks",
                     "fail_chunks",
                     "rowcount"
@@ -584,6 +622,6 @@ def start(db_engine):
             log_output("\nmodels left still: " + str(leftover_models) + "\n")
 
         persist_and_unload_maps()
-    print("finished importing IBVL. Time Taken: " + str(datetime.now() - now))
+    print(f"finished importing IBVL. Time Taken: {str(datetime.now() - now)}. was job {job_dir}")
     report_counts(counts)
     cleanup(None, None)

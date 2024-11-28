@@ -106,21 +106,15 @@ def report_counts(counts):
             / (counts["rowcount"])
         )
     log_output(
-        str(percent_success)
-        + "% published. success:"
-        + str(counts["success"])
-        + " fail:"
-        + str(counts["fail"])
-        + " rowcount:"
-        + str(counts["rowcount"])
-        + " missingrefs:"
-        + str(counts["missingRef"])
-        + " duplicates:"
-        + str(counts["duplicate"])
-        + " successfulchunks:"
-        + str(counts["successful_chunks"])
-        + " failchunks:"
-        + str(counts["fail_chunks"])
+        f"{percent_success}% published. "+
+        f"success={counts['success']} "+
+        f"fail={counts['fail']} "+
+        f"rowcount={counts['rowcount']} "+
+        f"missingrefs={counts['missingRef']} "+
+        f"duplicates={counts['duplicate']} "+
+        f"updates={counts['updated']} "+
+        f"successfulchunks={counts['successful_chunks']} "+
+        f"failchunks={counts['fail_chunks']}"  
     )
 
 

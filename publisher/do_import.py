@@ -39,6 +39,7 @@ isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 schema = os.environ.get("SCHEMA_NAME")
 dry_run = os.environ.get("DRY_RUN") == "true"
 update = os.environ.get("UPDATE") == "true"
+set_var_assembly = os.environ.get("SET_VAR_ASSEMBLY", None)
 
 start_at_model = (
     os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None
@@ -67,6 +68,13 @@ maps_load_dir = ""
 depends_on_maps = {}
 current_model_existing_map = {}
 
+last_chromosome = None
+current_chromosome = None
+
+def separate_cache_by_chromosome(action):
+    return action["name"] in ["variants_transcripts", "variants_annotations", "variants_consequences"]
+
+
 def populate_maps(action, chromosome=None):
     global current_model_existing_map, depends_on_maps
     model = action["name"]
@@ -78,23 +86,27 @@ def populate_maps(action, chromosome=None):
             if (modelName == "variants_transcripts"):
                 variants = get_table("variants")
                 transcripts = get_table("transcripts")
-                result = connection.execute(select(
-                    table.c["id"],variants.c["variant_id"], transcripts.c["transcript_id"])
-                        .join(variants)
-                        .join(transcripts))
+                statement = select(table.c["id"],variants.c["variant_id"], transcripts.c["transcript_id"]).join(variants).join(transcripts)
+                result = connection.execute(statement)
                 
                 return {
                     model_action["map_key_expression"](row): row.id for row in result
                 }
             else:
-                cols = [table.c[col] for col in ["id"] + model_action["pk_lookup_col"] + list(model_action["fk_map"].keys())]
-                result = connection.execute(select(*cols))
+                cols = [table.c[col] for col in ["id"] + model_action["pk_lookup_col"] ]
+                
+                if "variant" in model_action["fk_map"]:
+                    variants = get_table("variants")
+                    cols.append(variants.c["variant_id"])
+                    result = connection.execute(select(*cols).join(variants))
+                else:
+                    result = connection.execute(select(*cols))
                 return {
                     model_action["map_key_expression"](row): row.id for row in result
                 }
         
     if model in ["variants_annotations", "variants_consequences"]:
-        depends_on_maps["variants_transcripts"] = make_existing_map("variants_transcripts")
+        depends_on_maps["variants_transcripts"] = make_existing_map("variants_transcripts", chromosome)
         reversed = {v: k for k, v in depends_on_maps["variants_transcripts"].items()}
         tenative_existing_map = make_existing_map(model)
         current_model_existing_map = {reversed[k]: v for k, v in tenative_existing_map.items()}
@@ -124,8 +136,6 @@ def append_to_map(modelName, key, value):
     global depends_on_maps
     if modelName not in depends_on_maps:
         log_error(f"trying to append to map but was not populated ({modelName} {key} {value})")
-        
-#        populate_maps(model=modelName, cache_group=None)
     if key not in depends_on_maps[modelName]:
         depends_on_maps[modelName][key] = value
 
@@ -201,6 +211,15 @@ def import_file(file, file_info, action):
     data_list = []
     for _, row in df.iterrows():
         data = row.to_dict()
+        
+        if separate_cache_by_chromosome(action):
+            if current_chromosome is None:
+                current_chromosome = data.get("variant").split("_")[0]
+            if current_chromosome != last_chromosome:
+                last_chromosome = current_chromosome
+                populate_maps(action, current_chromosome)
+        
+        
 
         skip = False
         for col, filter in filters.items():
@@ -471,8 +490,11 @@ def start(db_engine):
                     "Skipping " + modelName + " (expected dir: " + model_directory + ")"
                 )
                 continue
-            
-        populate_maps(action_info)
+        
+        if separate_cache_by_chromosome(action_info):
+            continue #populate maps instead happens per 1 chromosome
+        else:
+            populate_maps(action_info)
         modelNow = datetime.now()
 
         if large_model_file_tsv_exists:

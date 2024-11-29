@@ -2,6 +2,7 @@
 import logging
 from datetime import datetime
 import pandas as pd
+import numpy as np
 from model_import_actions import model_import_actions
 from sys import stderr
 
@@ -50,10 +51,14 @@ def readTSV(file, info, dtype={}):
     df = pd.read_csv(file, sep=info["separator"])
     df.rename(columns={"All_info$variant": "variant"}, inplace=True)
     df.columns = [col.lower() for col in df.columns]
+    
+    df.replace(np.nan, None, inplace=True)
+    df.replace(".", None, inplace=True)
+    
     return df
 
 def setup_loggers(job_dir):
-    global data_issue_logger,output_logger
+    global data_issue_logger,output_logger, error_logger
     model_names = list(model_import_actions.keys())
     model_names.append("severities")
     for model_name in model_names:
@@ -64,6 +69,7 @@ def setup_loggers(job_dir):
         a_logger_handler.setLevel(logging.WARNING)
         a_logger.addHandler(a_logger_handler)
         data_issue_logger[model_name] = a_logger
+        
     output_logger = logging.getLogger("output")
     output_logger.setLevel(logging.INFO)
     output_logger.propagate = False

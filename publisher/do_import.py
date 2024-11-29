@@ -1,4 +1,6 @@
 import json
+import math
+from decimal import Decimal
 from natsort import natsorted
 from sqlalchemy import (
     MetaData,
@@ -48,6 +50,8 @@ start_at_file = (
 )
 
 jobs_dir = os.path.abspath(dir_containing_jobs)
+
+db_row_counts = {"before": {}, "after": {}}
 
 if rootDir == None:
     rootDir = os.path.join(current_dir, "fixtures")
@@ -200,8 +204,6 @@ def import_file(file, file_info, action):
 
     df = readTSV(file, file_info, dtype=types_dict)
     
-    df.replace(np.nan, None, inplace=True)
-    df.replace(".", None, inplace=True)
 
     data_insert_list = []
     data_update_list = []
@@ -456,6 +458,11 @@ def start(db_engine):
         model_counts["fail_chunks"] = 0
         model_counts["rowcount"] = 0
         model_directory = os.path.join(rootDir, modelName)
+        
+        with engine.connect() as connection:
+            table = get_table(modelName)
+            num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
+            db_row_counts["before"][modelName] = num_rows
 
         if (
             isinstance(start_at_model, str)
@@ -567,6 +574,180 @@ def start(db_engine):
             log_output("\nmodels left still: " + str(leftover_models) + "\n")
 
         persist_and_unload_maps()
+        
+        
+        with engine.connect() as connection:
+            table = get_table(modelName)
+            num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
+            db_row_counts["after"][modelName] = num_rows
+            
     log_output(f"finished importing IBVL. Time Taken: {str(datetime.now() - now)}. was job {job_dir}")
     report_counts(counts)
+    
+    delta = {}
+    for beforeafter, counts in db_row_counts.items():
+        for modelName, count in counts.items():
+            if beforeafter == "before":
+                delta[modelName] = count
+            else:
+                delta[modelName] = count - delta[modelName]
+                log_output(f"DB row count {modelName} {count} ( grew by {delta[modelName]})")
+    
+    log_output("testing...")
+    
+    did_pass = True
+    def fail(msg):
+        did_pass = False
+        log_error(F"❌❌❌\n{msg} \n❌❌❌\n\n")
+#        cleanup(None, None)
+#        exit()
+        
+    def get_random_tsv_file(model_folder):
+        path = os.path.join(rootDir, model_folder)
+        files = natsorted(
+            [os.path.join(path,f) for f in os.listdir(path) if not f.startswith(".")],
+        )
+        file = np.random.choice(files, 1)[0]
+        return inspectTSV(file), file
+        
+    def get_random_tsv_rows(model_folder, n):
+        random_file_info, random_file = get_random_tsv_file(model_folder)
+        df = readTSV(random_file, random_file_info)
+        df_rowcount = len(df)
+        if df_rowcount < n:
+            n = df_rowcount
+        return df.sample(n)
+    
+    
+    
+
+    
+    def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[]):
+        with engine.connect() as connection:
+            table = get_table(model)
+            tsv_rows = get_random_tsv_rows(model, 10)
+            for _, row in tsv_rows.iterrows():
+                tsv_row = row.to_dict()
+                
+                tsv_row_filters = model_import_actions[model].get("filters") or {}
+                for col, filter in tsv_row_filters.items():
+                    tsv_row[col] = filter(tsv_row[col])
+                    
+                statement = select(*select_tables)
+                statement = join_fn(statement)
+                statement = where_fn(statement, tsv_row)
+                
+                db_rows = connection.execute(statement).fetchall()
+                if len(db_rows) == 0:
+                    fail(f"Row not found in db: {tsv_row}")
+                if len(db_rows) > 1:
+                    fail(f"Multiple rows found in db: {tsv_row}")
+                row_dict = db_rows[0]._mapping
+                for col in data_cols:
+                    if isinstance(row_dict[col], Decimal) or isinstance(row_dict[col], float):
+                        if math.isclose(row_dict[col], tsv_row[col], rel_tol=1e-7, abs_tol=1e-7):
+                            continue
+                        else:
+                            fail(f"{model} column {col} numerical mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
+                    elif isinstance(row_dict[col], str) or isinstance(row_dict[col], int):
+                        if row_dict[col] == tsv_row[col]:
+                            continue
+                        else:
+                            fail(f"{model} column {col} string mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
+                    elif row_dict[col] is None and tsv_row[col] is None:
+                        continue
+                    else:
+                        print(f"unhandled type {type(row_dict[col])}")
+                        quit()
+                for check in checks:
+                    checkFailMsg = check(row_dict, tsv_row)
+                    if checkFailMsg is not None:
+                        fail(checkFailMsg)
+        
+    genes = get_table("genes")
+    
+    variants = get_table("variants")      
+    variants_transcripts = get_table("variants_transcripts")
+    transcripts = get_table("transcripts")
+    genomic_ibvl_frequencies = get_table("genomic_ibvl_frequencies")
+    mt_ibvl_frequencies = get_table("mt_ibvl_frequencies")
+    genomic_gnomad_frequencies = get_table("genomic_gnomad_frequencies")
+    mt_gnomad_frequencies = get_table("mt_gnomad_frequencies")
+    mts = get_table("mts")
+    snvs = get_table("snvs")
+    variants_annotations = get_table("variants_annotations")
+    variants_consequences = get_table("variants_consequences")
+    
+    testmodel("variants", 
+            [variants], 
+            join_fn=lambda stmt: stmt, 
+            where_fn=lambda stmt, tsv_r: stmt.where(
+                variants.c.variant_id == tsv_r["variant_id"], 
+                variants.c.assembly == set_var_assembly), 
+            data_cols=['var_type']
+            )
+
+    testmodel("transcripts", 
+            [transcripts, genes], 
+            join_fn=lambda stmt: stmt.join(genes), 
+            where_fn=lambda stmt, tsv: stmt.where(transcripts.c.transcript_id == tsv["transcript_id"]),
+            data_cols = ['transcript_type', 'tsl'],
+            checks = [
+                lambda db_row, tsv_row: None if db_row["short_name"] == tsv_row["gene"].upper() else f"Gene_id mismatch: {db_row['short_name']} != {tsv_row['gene'].upper()}"
+            ]
+            )
+    testmodel("variants_transcripts", 
+            [variants_transcripts, variants, transcripts], 
+            join_fn=lambda stmt: stmt.join(variants).join(transcripts), 
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
+                                                    variants.c.assembly == set_var_assembly, 
+                                                    transcripts.c.transcript_id == tsv_r["transcript"]), 
+            data_cols=['hgvsc']
+            )
+    
+    testmodel("snvs", 
+            [snvs, variants], 
+            join_fn=lambda stmt: stmt.join(variants), 
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
+                                                    variants.c.assembly == set_var_assembly), 
+            data_cols=['type', 'length', 'chr', 'pos', 'ref', 'alt', 'cadd_score', 'cadd_intr', 'dbsnp_id', 'dbsnp_url', 'ucsc_url', 'ensembl_url', 'clinvar_url', 'gnomad_url', 'clinvar_vcv', 'splice_ai'],
+            )
+    
+    testmodel("mts",
+            [mts, variants],
+            join_fn=lambda stmt: stmt.join(variants),
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
+                                                    variants.c.assembly == set_var_assembly),
+            data_cols=['pos', 'ref', 'alt', 'ucsc_url', 'mitomap_url', 'gnomad_url', 'dbsnp_id', 'dbsnp_url', 'clinvar_url', 'clinvar_vcv'],
+            )
+    
+    testmodel("genomic_ibvl_frequencies", 
+            [genomic_ibvl_frequencies, variants], 
+            join_fn=lambda stmt: stmt.join(variants), 
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
+                                                    variants.c.assembly == set_var_assembly), 
+            data_cols=['af_tot', 'af_xx', 'af_xy', 'ac_tot', 'ac_xx', 'ac_xy', 'an_tot', 'an_xx', 'an_xy', 'hom_tot', 'hom_xx', 'hom_xy', 'quality']
+            )
+    
+    
+    testmodel("genomic_gnomad_frequencies",
+            [genomic_gnomad_frequencies, variants],
+            join_fn=lambda stmt: stmt.join(variants),
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
+                                                    variants.c.assembly == set_var_assembly),
+            data_cols=['af_tot', 'ac_tot', 'an_tot', 'hom_tot']
+            )
+    
+    testmodel("mt_gnomad_frequencies",
+            [mt_gnomad_frequencies, variants],
+            join_fn=lambda stmt: stmt.join(variants),
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
+                                                    variants.c.assembly == set_var_assembly),
+            # an	ac_hom	ac_het	af_hom	af_het	max_hl
+            data_cols = ['an', 'ac_hom', 'ac_het', 'af_hom', 'af_het', 'max_hl']
+            )
+
+    if (did_pass):
+        log_output("✅✅✅ \n all tests passed\n✅✅✅\n")
+        
     cleanup(None, None)

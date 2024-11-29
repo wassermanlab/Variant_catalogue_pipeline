@@ -1,5 +1,4 @@
-# helper for local environment
-# TODO add position, remove uniqueness on variant
+# helper for local environment dev 
 
 from sqlalchemy import (
     create_engine,
@@ -9,6 +8,7 @@ from sqlalchemy import (
     Integer,
     String,
     Float,
+    Numeric,
     UniqueConstraint,
     ForeignKey,
     text
@@ -28,13 +28,19 @@ rootDir = os.environ.get("PIPELINE_OUTPUT_PATH")
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 verbose = os.environ.get("VERBOSE") == "true"
 dbConnectionString = os.environ.get("DB")
-# Replace 'sqlite:///:memory:' with your actual database connection string
 
-if (False and verbose):
-    engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600, connect_args={'autocommit': True})
-else:
-    engine = create_engine(dbConnectionString, pool_pre_ping=True, pool_recycle=3600, connect_args={'autocommit': True})
+# create the database if it doesn't exist
 
+
+try:
+    if (False and verbose):
+        engine = create_engine(dbConnectionString, echo=True, pool_pre_ping=True, pool_recycle=3600, connect_args={'autocommit': True})
+    else:
+        engine = create_engine(dbConnectionString, pool_pre_ping=True, pool_recycle=3600, connect_args={'autocommit': True})
+except Exception as e:
+    print("Error creating engine", e)
+    sys.exit(1)
+    
 metadata = MetaData()
 
 # Define the "genes" table
@@ -65,7 +71,7 @@ genomic_gnomad_frequencies_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
-    Column("af_tot", Float),
+    Column("af_tot", Numeric(10, 9)),
     Column("ac_tot", Integer),
     Column("an_tot", Integer),
     Column("hom_tot", Integer),
@@ -81,9 +87,9 @@ genomic_ibvl_frequencies_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
-    Column("af_tot", Float),
-    Column("af_xx", Float),
-    Column("af_xy", Float),
+    Column("af_tot", Numeric(10, 9)),
+    Column("af_xx", Numeric(10, 9)),
+    Column("af_xy", Numeric(10, 9)),
     Column("ac_tot", Integer),
     Column("ac_xx", Integer),
     Column("ac_xy", Integer),
@@ -105,8 +111,8 @@ mt_gnomad_frequencies_table = Table(
     Column("an", Integer),
     Column("ac_hom", Integer),
     Column("ac_het", Integer),
-    Column("af_hom", Float),
-    Column("af_het", Float),
+    Column("af_hom", Numeric(10, 9)),
+    Column("af_het", Numeric(10, 9)),
     Column("max_hl", Integer),
     UniqueConstraint("variant", name="mt_gnomad_freq_unique")
 )
@@ -157,7 +163,7 @@ snvs_table = Table(
     Column("ref", String(60)),
     Column("alt", String(60)),
     Column("cadd_intr", String(255)),
-    Column("cadd_score", Integer),
+    Column("cadd_score", Float),
     Column("dbsnp_id", String(30)),
     Column("dbsnp_url", String(511)),
     Column("ucsc_url", String(511)),
@@ -233,8 +239,7 @@ variants_table = Table(
     Column("variant_id", String(115)),
     Column("id", Integer, primary_key=True),
     Column("var_type", String(30)),
-    Column("assembly", Integer),
-    UniqueConstraint("variant_id", name="variants_unique"),
+    Column("assembly", Integer)
 )
 
 variants_annotations_table = Table(
@@ -278,7 +283,11 @@ severities_table = Table(
     UniqueConstraint("severity_number", name="severities_unique"),
 )
 
-metadata.create_all(engine)
+try:
+    metadata.create_all(engine)
+except Exception as e:
+    print("Error creating tables", e)
+sys.exit(1)
 
 severities_sql = "INSERT INTO `severities` (`severity_number`, `id`, `consequence`) VALUES(1, 1, 'transcript_ablation'),(2, 2, 'splice_acceptor_variant'),(3, 3, 'splice_donor_variant'),(4, 4, 'stop_gained'),(5, 5, 'frameshift_variant'),(6, 6, 'stop_lost'),(7, 7, 'start_lost'),(8, 8, 'transcript_amplification'),(9, 9, 'inframe_insertion'),(10, 10, 'inframe_deletion'),(11, 11, 'missense_variant'),(12, 12, 'protein_altering_variant'),(13, 13, 'regulatory_region_ablation'),(14, 14, 'splice_region_variant'),(15, 15, 'incomplete_terminal_codon_variant'),(16, 16, 'start_retained_variant'),(17, 17, 'stop_retained_variant'),(18, 18, 'synonymous_variant'),(19, 19, 'coding_sequence_variant'),(20, 20, 'mature_miRNA_variant'),(21, 21, '5_prime_UTR_variant'),(22, 22, '3_prime_UTR_variant'),(23, 23, 'non_coding_transcript_exon_variant'),(24, 24, 'intron_variant'),(25, 25, 'NMD_transcript_variant'),(26, 26, 'non_coding_transcript_variant'),(27, 27, 'upstream_gene_variant'),(28, 28, 'downstream_gene_variant'),(29, 29, 'TFBS_ablation'),(30, 30, 'TFBS_amplification'),(31, 31, 'TF_binding_site_variant'),(32, 32, 'regulatory_region_amplification'),(33, 33, 'feature_elongation'),(34, 34, 'regulatory_region_variant'),(35, 35, 'feature_truncation'),(36, 36, 'intergenic_variant');"
 

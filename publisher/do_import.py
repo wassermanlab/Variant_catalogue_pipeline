@@ -228,6 +228,7 @@ def import_file(file, file_info, action):
     df = readTSV(file, file_info, dtype=types_dict)
     
     df.replace(np.nan, None, inplace=True)
+    df.replace(".", None, inplace=True)
 
     data_insert_list = []
     data_update_list = []
@@ -623,6 +624,6 @@ def start(db_engine):
             log_output("\nmodels left still: " + str(leftover_models) + "\n")
 
         persist_and_unload_maps()
-    print(f"finished importing IBVL. Time Taken: {str(datetime.now() - now)}. was job {job_dir}")
+    log_output(f"finished importing IBVL. Time Taken: {str(datetime.now() - now)}. was job {job_dir}")
     report_counts(counts)
     cleanup(None, None)

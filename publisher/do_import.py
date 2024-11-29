@@ -224,32 +224,31 @@ def import_file(file, file_info, action):
         skip = False
         for col, filter in filters.items():
             data[col] = filter(data[col])
-        for fk_col, fk_model in fk_map.items():
-            map_key = None
+        for depended_model_col, depended_model in fk_map.items():
+            depended_map_key = None
             resolved_pk = None
-            debug_row = None
             
             if model in ["variants_annotations", "variants_consequences"]:
-                map_key = (data["variant"], data["transcript"])
+                depended_map_key = (data["variant"], data["transcript"])
             else:
                 
-                if isinstance(data[fk_col], str):
-                    map_key = data[fk_col]
-                if model == "genes":
-                    map_key = map_key.upper()
-            if map_key == "NA":
-                    data[fk_col] = None
+                if isinstance(data[depended_model_col], str):
+                    depended_map_key = data[depended_model_col]
+                if depended_model == "genes":
+                    depended_map_key = depended_map_key.upper()
+            if depended_map_key == "NA":
+                    data[depended_model_col] = None
             else:
-                resolved_pk = depends_on_maps.get(fk_model).get( map_key)
+                resolved_pk = depends_on_maps.get(depended_model).get( depended_map_key)
             if resolved_pk is not None:
-                data[fk_col] = resolved_pk
+                data[depended_model_col] = resolved_pk
             else:
                 log_data_issue(
-                    "Missing " + fk_col
-                    if fk_col is not None
+                    "Missing " + depended_model_col
+                    if depended_model_col is not None
                     else (
-                        "None" + " " + map_key
-                        if map_key is not None
+                        "None" + " " + depended_map_key
+                        if depended_map_key is not None
                         else (
                             "None" + " referenced from " + model
                             if model is not None
@@ -258,10 +257,7 @@ def import_file(file, file_info, action):
                     ),
                     model,
                 )
-                if debug_row is not None:
-                    log_data_issue(debug_row, model)
-                else:
-                    log_data_issue(data, model)
+                log_data_issue(data, model)
                 missingRefCount += 1
                 skip = True
         if skip:

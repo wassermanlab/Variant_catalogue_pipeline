@@ -1,8 +1,3 @@
 All_info$variant	pos	ref	alt	ucsc_url	mitomap_url	gnomad_url	dbsnp_id	dbsnp_url	clinvar_url	clinvar_vcv
-1_1001_A_C	22	T	G	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A22-22&position=chrM%3A-3-47	https://mitomap.org/cgi-bin/search_allele?variant=22T%3EG	NA	NA	NA	NA	NA
-1_1004_A_C	23	T	G	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A23-23&position=chrM%3A-2-48	https://mitomap.org/cgi-bin/search_allele?variant=23T%3EG	NA	NA	NA	NA	NA
-2_1090_G_C	24	A	C	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A24-24&position=chrM%3A-1-49	https://mitomap.org/cgi-bin/search_allele?variant=24A%3EC	NA	NA	NA	NA	NA
-2_1091_G_A	25	A	C	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A25-25&position=chrM%3A0-50	https://mitomap.org/cgi-bin/search_allele?variant=25A%3EC	NA	NA	NA	NA	NA
-7_2500_A_AAwoof	28	A	C	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A28-28&position=chrM%3A3-53	https://mitomap.org/cgi-bin/search_allele?variant=28A%3EC	https://gnomad.broadinstitute.org/variant/M-28-A-C?dataset=gnomad_r3	NA	NA	NA	NA
-7_2500_A_GG	30	T	A	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A30-30&position=chrM%3A5-55	https://mitomap.org/cgi-bin/search_allele?variant=30T%3EA	NA	NA	NA	NA	NA
-7_2510_AC_A	30	T	G	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A30-30&position=chrM%3A5-55	https://mitomap.org/cgi-bin/search_allele?variant=30T%3EG	NA	NA	NA	NA	NA
+chrM_88_C_T	22	T	G	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A22-22&position=chrM%3A-3-47	https://mitomap.org/cgi-bin/search_allele?variant=22T%3EG	NA	NA	NA	NA	NA
+chrM_99_GG_-	23	T	G	https://genome.ucsc.edu/cgi-bin/hgTracks?db=GRCh37&highlight=GRCh37.chrM%3A23-23&position=chrM%3A-2-48	https://mitomap.org/cgi-bin/search_allele?variant=23T%3EG	NA	NA	NA	NA	NA

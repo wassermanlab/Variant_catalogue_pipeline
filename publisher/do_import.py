@@ -305,59 +305,73 @@ def import_file(file, file_info, action):
     del df
     with engine.connect() as connection:
 
-        def chunkOperation(chunk, method, logUpdate=False):
+        def rowOperation(row, updating=False):
+            nonlocal successCount, failCount, duplicateCount, updatedCount, successful_chunks, fail_chunks
+            
+            did_succeed = False
+            try:
+                if updating:
+                    connection.execute(
+                        table.update().where(table.c.id == row["id"]), row
+                    )
+                    connection.commit()
+                    successCount += 1
+                    updatedCount += 1
+                    did_succeed = True
+                else:
+                    connection.execute(table.insert(), row)
+                    connection.commit()
+                    successCount += 1
+                    did_succeed = True
+
+            except DataError as e:
+                log_data_issue(e, model)
+                failCount += 1
+            except IntegrityError as e:
+                msg = str(e)
+                if "Duplicate" in msg or "ORA-00001" in msg:
+                    duplicateCount += 1
+                    successCount += 1
+                    if updating:
+                        updatedCount += 1
+                else:
+                    failCount += 1
+                    log_data_issue(e, model)
+            except Exception as e:
+
+                log_data_issue(e, model)
+                failCount += 1
+            
+            if not did_succeed:
+                connection.rollback()
+                
+        def chunkOperation(chunk, updating=False):
             nonlocal successCount, failCount, duplicateCount, updatedCount, successful_chunks, fail_chunks
             if dry_run:
                 successCount += len(chunk)
                 return
             try:
-                connection.execute(method(), chunk)
-                # commit
-                connection.commit()
-                # chunk worked
-                successful_chunks += 1
-                successCount += len(chunk)
-                if logUpdate:
-                    updatedCount += len(chunk)
+                if updating:
+                    for row in chunk:
+                        rowOperation(row, updating)
+                else: 
+                    connection.execute(table.insert(), chunk)
+                    # commit
+                    connection.commit()
+                    # chunk worked
+                    successful_chunks += 1
+                    successCount += len(chunk)
             except Exception as e:
                 #                print(e)
                 connection.rollback()
                 fail_chunks += 1
                 for row in chunk:
-                    did_succeed = False
-                    try:
-                        connection.execute(method(), row)
-                        connection.commit()
-                        successCount += 1
-                        did_succeed = True
-
-                    except DataError as e:
-                        log_data_issue(e, model)
-                        failCount += 1
-                    #                        quit()
-                    except IntegrityError as e:
-                        msg = str(e)
-                        if "Duplicate" in msg or "ORA-00001" in msg:
-                            duplicateCount += 1
-                            successCount += 1
-                            if logUpdate:
-                                updatedCount += 1
-                        else:
-                            failCount += 1
-                            log_data_issue(e, model)
-                    #                            quit()
-                    except Exception as e:
-
-                        log_data_issue(e, model)
-                        failCount += 1
-                    ####### added in v2
-                    if not did_succeed:
-                        connection.rollback()
+                    rowOperation(row, updating)
                         
         for chunk in chunks(data_insert_list, chunk_size):
-            chunkOperation(chunk, table.insert)
+            chunkOperation(chunk)
         for chunk in chunks(data_update_list, chunk_size):
-            chunkOperation(chunk, table.update, logUpdate=True)
+            chunkOperation(chunk, updating=True)
         
 
     return {

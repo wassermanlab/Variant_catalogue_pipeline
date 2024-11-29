@@ -167,33 +167,6 @@ def get_table(model):
     else:
         return Table(table_name, metadata, autoload_with=engine)
 
-
-#todo add cache group to this and to append_to_map
-def inject(model, data, map_key):
-    # need to dynamically inject the single obj that was missing from original data
-    id = None
-    table = get_table(model)
-    
-    if model == "variants":
-        data["assembly"] = set_var_assembly
-    with engine.connect() as connection:
-        try:
-            result = connection.execute(table.insert(), data)
-            connection.commit()
-            id = result.inserted_primary_key[0]
-            
-            append_to_map(model, map_key, id)
-            log_data_issue(f"dynamically added {data}", model)
-        except IntegrityError as e:
-            log_data_issue("a dynamically injected obj had an integrity error.", model)
-            log_data_issue(e, model)
-        #                                quit() # LATER: comment this out
-        except Exception as e:
-            log_data_issue("a dynamically injected obj had an error.", model)
-            log_data_issue(e, model)
-    #                                quit() # LATER: comment this out?
-    return id
-
 def import_file(file, file_info, action):
     global current_chromosome,last_chromosome
     model = action.get("name")
@@ -268,32 +241,6 @@ def import_file(file, file_info, action):
                     data[fk_col] = None
             else:
                 resolved_pk = depends_on_maps.get(fk_model).get( map_key)
-                ## resolved PK was not found from maps, so.. if it's a gene, we could dynamically inject
-                if (
-                    resolved_pk == None
-                    and fk_col == "gene"
-                    and model == "transcripts"
-                    and map_key != None
-                ):
-                    resolved_pk = inject("genes", {"short_name": map_key}, map_key)
-                elif (
-                ## resolved PK was not found from maps, so.. if it's a variant, we could dynamically inject
-                    resolved_pk == None
-                    and fk_col == "variant"
-                    and model in ["sv_consequences", "svs", "snvs", "mts"]
-                ):
-
-                    if model == "sv_consequences" or model == "svs":
-                        var_type = "SV"
-                    elif model == "snvs":
-                        var_type = "SNV"
-                    elif model == "mts":
-                        var_type = "MT"
-                    resolved_pk = inject(
-                        "variants",
-                        {"variant_id": map_key, "var_type": var_type},
-                        map_key,
-                    )
             if resolved_pk is not None:
                 data[fk_col] = resolved_pk
             else:

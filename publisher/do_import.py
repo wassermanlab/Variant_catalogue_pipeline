@@ -85,7 +85,11 @@ def populate_maps(action, chromosome=None):
             if (modelName == "variants_transcripts"):
                 variants = get_table("variants")
                 transcripts = get_table("transcripts")
-                statement = select(table.c["id"],variants.c["variant_id"], transcripts.c["transcript_id"]).join(variants).join(transcripts)
+                statement = select(
+                    table.c["id"],
+                    variants.c["variant_id", "assembly"], 
+                    transcripts.c["transcript_id"]
+                ).join(variants).join(transcripts).where(variants.c.assembly == set_var_assembly)
                 if chromosome is not None:
                     statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
                 
@@ -94,8 +98,8 @@ def populate_maps(action, chromosome=None):
                 
                 if "variant" in model_action["fk_map"]:
                     variants = get_table("variants")
-                    cols.append(variants.c["variant_id"])
-                    statement = select(*cols).join(variants)
+                    cols.append(variants.c["variant_id", "assembly"])
+                    statement = select(*cols).join(variants).where(variants.c.assembly == set_var_assembly)
                     if chromosome is not None:
                         statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
                 elif modelName == "variants" and chromosome is not None:
@@ -169,6 +173,9 @@ def inject(model, data, map_key):
     # need to dynamically inject the single obj that was missing from original data
     id = None
     table = get_table(model)
+    
+    if model == "variants":
+        data["assembly"] = set_var_assembly
     with engine.connect() as connection:
         try:
             result = connection.execute(table.insert(), data)
@@ -253,7 +260,9 @@ def import_file(file, file_info, action):
             else:
                 
                 if isinstance(data[fk_col], str):
-                    map_key = data[fk_col].upper()
+                    map_key = data[fk_col]
+                if model == "genes":
+                    map_key = map_key.upper()
             if map_key == "NA":
                     data[fk_col] = None
             else:
@@ -327,8 +336,6 @@ def import_file(file, file_info, action):
 #                    data[table_col.name] = None
 #                    log_data_issue("filled missing col " + table_col.name + " with None", name)
         record_map_key = action.get("tsv_map_key_expression")(data)
-        if (model == "variants_consequences"):
-            print("Whats going on")
         if record_map_key is None:
             print(f"record_map_key is None for {model} {data}")
             quit()

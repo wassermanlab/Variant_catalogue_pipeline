@@ -227,6 +227,8 @@ def import_file(file, file_info, action):
     for _, row in df.iterrows():
         data = row.to_dict()
         
+        if (model == "variants" and set_var_assembly is not None):
+            data["assembly"] = set_var_assembly
         
         if separate_cache_by_chromosome(action):
         

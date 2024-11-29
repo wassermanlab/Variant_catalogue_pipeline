@@ -69,6 +69,9 @@ genomic_gnomad_frequencies_table = Table(
     Column("ac_tot", Integer),
     Column("an_tot", Integer),
     Column("hom_tot", Integer),
+    Column("filter", String(20)),
+    Column("exomes_filters", String(255)),
+    Column("genomes_filters", String(255)),
     UniqueConstraint("variant", name="geno_gnomad_freq_unique"),
 )
 

@@ -16,6 +16,7 @@ error_logger = None
 load_dotenv()
 
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
+fail_fast = os.environ.get("FAIL_FAST") == "true" or os.environ.get("FAIL_FAST") == "True"
 verbose = os.environ.get("VERBOSE") == "true" or os.environ.get("VERBOSE") == "True"
 print('verbose is', verbose)
 
@@ -92,6 +93,9 @@ def setup_loggers(job_dir):
 def log_data_issue(s, model=None):
     if model is not None:
         data_issue_logger[model].warning(s)
+    if (fail_fast):
+        print(s)
+        exit()
     if (verbose):
         print(s)
 def log_output(s):
@@ -100,6 +104,9 @@ def log_output(s):
         print(s)
 def log_error(s):
     error_logger.error(s)
+    if (fail_fast):
+        print(s)
+        exit()
     if (verbose):
         print(s)
 

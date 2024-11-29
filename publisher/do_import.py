@@ -106,8 +106,11 @@ def populate_maps(action, chromosome=None):
                     statement = select(*cols).join(variants).where(variants.c.assembly == set_var_assembly)
                     if chromosome is not None:
                         statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
-                elif modelName == "variants" and chromosome is not None:
-                    statement = select(*cols).where(table.c.variant_id.startswith(f"{chromosome}_"))
+                elif modelName == "variants":
+                    cols.append(table.c["assembly"])
+                    statement = select(*cols).where(table.c.assembly == set_var_assembly)
+                    if chromosome is not None:
+                        statement = statement.where(table.c.variant_id.startswith(f"{chromosome}_"))
                 else:
                     statement = select(*cols)
                     
@@ -156,7 +159,6 @@ def append_to_map(modelName, key, value):
 
 def persist_and_unload_maps():
     depends_on_maps.clear()
-    log_output("cleared the pk maps")
 
 
 def get_table(model):
@@ -224,6 +226,7 @@ def import_file(file, file_info, action):
         
 
         skip = False
+        record_map_key = action.get("tsv_map_key_expression")(data)
         for col, filter in filters.items():
             data[col] = filter(data[col])
         for depended_model_col, depended_model in fk_map.items():
@@ -246,13 +249,13 @@ def import_file(file, file_info, action):
                 data[depended_model_col] = resolved_pk
             else:
                 log_data_issue(
-                    "Missing " + depended_model_col
+                    f"Missing {depended_model_col} {depended_map_key} in {depended_model}"
                     if depended_model_col is not None
                     else (
-                        "None" + " " + depended_map_key
+                        f"None {depended_map_key}"
                         if depended_map_key is not None
                         else (
-                            "None" + " referenced from " + model
+                            f"None referenced from {model}"
                             if model is not None
                             else "None"
                         )
@@ -281,7 +284,7 @@ def import_file(file, file_info, action):
 #                else:
 #                    data[table_col.name] = None
 #                    log_data_issue("filled missing col " + table_col.name + " with None", name)
-        record_map_key = action.get("tsv_map_key_expression")(data)
+
         if record_map_key is None:
             print(f"record_map_key is None for {model} {data}")
             quit()
@@ -332,6 +335,7 @@ def import_file(file, file_info, action):
                 if "Duplicate" in msg or "ORA-00001" in msg:
                     duplicateCount += 1
                     successCount += 1
+#                    log_data_issue(e, model)
                     if updating:
                         updatedCount += 1
                 else:

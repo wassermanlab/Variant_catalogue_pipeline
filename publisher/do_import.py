@@ -669,9 +669,10 @@ def start(db_engine):
     log_output("testing...")
     
     did_pass = True
+    num_pass = 0
     def fail(msg):
         did_pass = False
-        log_error(F"❌❌❌\n{msg} \n❌❌❌\n\n")
+        log_output(F"❌❌❌\n{msg} \n❌❌❌\n\n")
 #        cleanup(None, None)
 #        exit()
         
@@ -713,29 +714,31 @@ def start(db_engine):
                 db_rows = connection.execute(statement).fetchall()
                 if len(db_rows) == 0:
                     fail(f"Row not found in db: {tsv_row}")
-                if len(db_rows) > 1:
+                elif len(db_rows) > 1:
                     fail(f"Multiple rows found in db: {tsv_row}")
-                row_dict = db_rows[0]._mapping
-                for col in data_cols:
-                    if isinstance(row_dict[col], Decimal) or isinstance(row_dict[col], float):
-                        if math.isclose(row_dict[col], tsv_row[col], rel_tol=1e-7, abs_tol=1e-7):
+                else:
+                    row_dict = db_rows[0]._mapping
+                    for col in data_cols:
+                        if isinstance(row_dict[col], Decimal) or isinstance(row_dict[col], float):
+                            if math.isclose(row_dict[col], tsv_row[col], rel_tol=1e-7, abs_tol=1e-7):
+                                continue
+                            else:
+                                fail(f"{model} column {col} numerical mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
+                        elif isinstance(row_dict[col], str) or isinstance(row_dict[col], int):
+                            if row_dict[col] == tsv_row[col]:
+                                continue
+                            else:
+                                fail(f"{model} column {col} string mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
+                        elif row_dict[col] is None and tsv_row[col] is None:
                             continue
                         else:
-                            fail(f"{model} column {col} numerical mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
-                    elif isinstance(row_dict[col], str) or isinstance(row_dict[col], int):
-                        if row_dict[col] == tsv_row[col]:
-                            continue
-                        else:
-                            fail(f"{model} column {col} string mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
-                    elif row_dict[col] is None and tsv_row[col] is None:
-                        continue
-                    else:
-                        print(f"unhandled type {type(row_dict[col])}")
-                        quit()
-                for check in checks:
-                    checkFailMsg = check(row_dict, tsv_row)
-                    if checkFailMsg is not None:
-                        fail(checkFailMsg)
+                            print(f"unhandled type {type(row_dict[col])}")
+                            quit()
+                    for check in checks:
+                        checkFailMsg = check(row_dict, tsv_row)
+                        if checkFailMsg is not None:
+                            fail(checkFailMsg)
+        num_pass += 1
         
     genes = get_table("genes")
     
@@ -876,14 +879,14 @@ def start(db_engine):
             db_rows = connection.execute(statement).fetchall()
             if len(db_rows) == 0:
                 fail(f"No variant annotations in db matching: {tsv_row}")
-            if len(db_rows) > 1:
+            elif len(db_rows) > 1:
                 fail(f"Multiple variant annotations found in db matching: {tsv_row}")
-            
-            db_row_dict = db_rows[0]._mapping
-            ##hgvsp	sift	polyphen
-            for col in ['hgvsp', 'sift', 'polyphen']:
-                if db_row_dict[col] != tsv_row[col]:
-                    fail(f"variant annotation mismatch: db's {db_row_dict[col]} != tsv's {tsv_row[col]}")
+            else:
+                db_row_dict = db_rows[0]._mapping
+                ##hgvsp	sift	polyphen
+                for col in ['hgvsp', 'sift', 'polyphen']:
+                    if db_row_dict[col] != tsv_row[col]:
+                        fail(f"variant annotation mismatch: db's {db_row_dict[col]} != tsv's {tsv_row[col]}")
 
     if (did_pass):
         log_output("✅✅✅ \n all tests passed\n✅✅✅\n")

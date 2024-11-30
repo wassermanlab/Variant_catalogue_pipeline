@@ -73,7 +73,7 @@ model_import_actions = {
         "fk_map": {"variant": "variants"},
         "filters": {
             "dbsnp_id": lambda x: x.split("&")[0] if x is not None else None,
-            "chr": lambda x: x.replace("chr", "") if x is not None else None,
+            "chr": lambda x: str(x).replace("chr", "") if x is not None else None,
             },
     },
     "mts": {

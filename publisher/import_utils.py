@@ -34,15 +34,21 @@ def inspectTSV(file):
             quit()
 
     columns = [col.lower() for col in small_read.values.tolist()[0]]
+# Read the first chunk to infer data types 
+    first_chunk = pd.read_csv(file, sep=separator, chunksize=chunk_size, header=0) 
+    type_dict = dict(first_chunk.get_chunk(1).dtypes) 
+    first_chunk.close()
 
     for chunk in pd.read_csv(file, sep="\t", chunksize=chunk_size):
         total_rows += len(chunk)
+        
+#    print("types", type_dict)
 
     return {
         "total_rows": total_rows,
         "num_columns": num_columns,
         "columns": columns,
-        "types": {},
+        "types": type_dict,
         "separator": separator
 #        "chromosome"
     }
@@ -124,6 +130,7 @@ def report_counts(counts):
         f"fail={counts['fail']} "+
         f"rowcount={counts['rowcount']} "+
         f"missingrefs={counts['missingRef']} "+
+        f"inserts={counts['inserted']} "+
         f"duplicates={counts['duplicate']} "+
         f"updates={counts['updated']} "+
         f"successfulchunks={counts['successful_chunks']} "+

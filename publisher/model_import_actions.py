@@ -59,9 +59,9 @@ model_import_actions = {
     "variants_consequences": {
         "name": "variants_consequences",
         "table": "variants_consequences",
-        "map_key_expression": lambda row: (row.variant_transcript), 
-        "tsv_map_key_expression": lambda row: (row["variant"], row["transcript"]),
-        "pk_lookup_col": ["variant_transcript"],
+        "map_key_expression": lambda row: (row.variant_transcript, row.severity), 
+        "tsv_map_key_expression": lambda row: (row["variant"], row["transcript"], row["severity"]),
+        "pk_lookup_col": ["variant_transcript", "severity"],
         "fk_map": {"variant_transcript": "variants_transcripts"},
     },
     "snvs": {

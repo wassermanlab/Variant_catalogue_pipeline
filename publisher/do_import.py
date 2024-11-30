@@ -692,13 +692,13 @@ def start(db_engine):
         return df.sample(n)
     
     
-    
+    NUM_TEST_ROWS = 1000
 
     
     def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[]):
         with engine.connect() as connection:
             table = get_table(model)
-            tsv_rows = get_random_tsv_rows(model, 10)
+            tsv_rows = get_random_tsv_rows(model, NUM_TEST_ROWS)
             for _, row in tsv_rows.iterrows():
                 tsv_row = row.to_dict()
                 
@@ -835,7 +835,7 @@ def start(db_engine):
                 fail(f"Multiple transcripts found in db: {tsv_row}")
             return db_rows[0]._mapping
         
-        tsv_rows = get_random_tsv_rows("variants_consequences", 10)
+        tsv_rows = get_random_tsv_rows("variants_consequences", NUM_TEST_ROWS)
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             
@@ -860,7 +860,7 @@ def start(db_engine):
             if not found:
                 fail(f"all matching variant consequences have wrong severity: {tsv_row}")
                 
-        tsv_rows = get_random_tsv_rows("variants_annotations", 10)
+        tsv_rows = get_random_tsv_rows("variants_annotations", NUM_TEST_ROWS)
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             

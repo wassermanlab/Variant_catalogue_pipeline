@@ -37,6 +37,8 @@ session.commit()
 # Truncate each table
 for table in metadata.sorted_tables:
     session.execute(text(f"TRUNCATE TABLE {table.name};"))
+    #reset autoincrement
+    session.execute(text(f"ALTER TABLE {table.name} AUTO_INCREMENT = 1;"))
     session.commit()
 
 # Re-enable foreign key checks

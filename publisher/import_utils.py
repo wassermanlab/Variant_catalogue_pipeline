@@ -2,6 +2,7 @@
 import logging
 from datetime import datetime
 import pandas as pd
+import numpy as np
 from model_import_actions import model_import_actions
 from sys import stderr
 
@@ -15,6 +16,7 @@ error_logger = None
 load_dotenv()
 
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
+fail_fast = os.environ.get("FAIL_FAST") == "true" or os.environ.get("FAIL_FAST") == "True"
 verbose = os.environ.get("VERBOSE") == "true" or os.environ.get("VERBOSE") == "True"
 print('verbose is', verbose)
 
@@ -32,16 +34,23 @@ def inspectTSV(file):
             quit()
 
     columns = [col.lower() for col in small_read.values.tolist()[0]]
+# Read the first chunk to infer data types 
+    first_chunk = pd.read_csv(file, sep=separator, chunksize=chunk_size, header=0) 
+    type_dict = dict(first_chunk.get_chunk(1).dtypes) 
+    first_chunk.close()
 
     for chunk in pd.read_csv(file, sep="\t", chunksize=chunk_size):
         total_rows += len(chunk)
+        
+#    print("types", type_dict)
 
     return {
         "total_rows": total_rows,
         "num_columns": num_columns,
         "columns": columns,
-        "types": {},
-        "separator": separator,
+        "types": type_dict,
+        "separator": separator
+#        "chromosome"
     }
 
 def readTSV(file, info, dtype={}):
@@ -49,10 +58,14 @@ def readTSV(file, info, dtype={}):
     df = pd.read_csv(file, sep=info["separator"])
     df.rename(columns={"All_info$variant": "variant"}, inplace=True)
     df.columns = [col.lower() for col in df.columns]
+    
+    df.replace(np.nan, None, inplace=True)
+    df.replace(".", None, inplace=True)
+    
     return df
 
 def setup_loggers(job_dir):
-    global data_issue_logger,output_logger
+    global data_issue_logger,output_logger, error_logger
     model_names = list(model_import_actions.keys())
     model_names.append("severities")
     for model_name in model_names:
@@ -63,6 +76,7 @@ def setup_loggers(job_dir):
         a_logger_handler.setLevel(logging.WARNING)
         a_logger.addHandler(a_logger_handler)
         data_issue_logger[model_name] = a_logger
+        
     output_logger = logging.getLogger("output")
     output_logger.setLevel(logging.INFO)
     output_logger.propagate = False
@@ -85,6 +99,9 @@ def setup_loggers(job_dir):
 def log_data_issue(s, model=None):
     if model is not None:
         data_issue_logger[model].warning(s)
+    if (fail_fast):
+        print(s)
+        exit()
     if (verbose):
         print(s)
 def log_output(s):
@@ -93,6 +110,9 @@ def log_output(s):
         print(s)
 def log_error(s):
     error_logger.error(s)
+    if (fail_fast):
+        print(s)
+        exit()
     if (verbose):
         print(s)
 
@@ -105,21 +125,16 @@ def report_counts(counts):
             / (counts["rowcount"])
         )
     log_output(
-        str(percent_success)
-        + "% published. success:"
-        + str(counts["success"])
-        + " fail:"
-        + str(counts["fail"])
-        + " rowcount:"
-        + str(counts["rowcount"])
-        + " missingrefs:"
-        + str(counts["missingRef"])
-        + " duplicates:"
-        + str(counts["duplicate"])
-        + " successfulchunks:"
-        + str(counts["successful_chunks"])
-        + " failchunks:"
-        + str(counts["fail_chunks"])
+        f"{percent_success}% published. "+
+        f"success={counts['success']} "+
+        f"fail={counts['fail']} "+
+        f"rowcount={counts['rowcount']} "+
+        f"missingrefs={counts['missingRef']} "+
+        f"inserts={counts['inserted']} "+
+        f"duplicates={counts['duplicate']} "+
+        f"updates={counts['updated']} "+
+        f"successfulchunks={counts['successful_chunks']} "+
+        f"failchunks={counts['fail_chunks']}"  
     )
 
 

@@ -1,10 +1,13 @@
 import json
+import math
+from decimal import Decimal
 from natsort import natsorted
 from sqlalchemy import (
     MetaData,
     Table,
     Integer,
     String,
+    select,
     func,
     Float,
 )
@@ -33,9 +36,13 @@ print(f"dir containing jobs: {dir_containing_jobs}. absolute: {os.path.abspath(d
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 # verbose = os.environ.get("VERBOSE") == "true"
 dbConnectionString = os.environ.get("DB")
-copy_maps_from_job = os.environ.get("COPY_MAPS_FROM_JOB")
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 schema = os.environ.get("SCHEMA_NAME")
+dry_run = os.environ.get("DRY_RUN") == "true"
+update = os.environ.get("UPDATE") == "true"
+set_var_assembly = os.environ.get("SET_VAR_ASSEMBLY", None)
+set_var_assembly = int(set_var_assembly) if set_var_assembly is not None else None
+
 start_at_model = (
     os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None
 )
@@ -44,6 +51,8 @@ start_at_file = (
 )
 
 jobs_dir = os.path.abspath(dir_containing_jobs)
+
+db_row_counts = {"before": {}, "after": {}}
 
 if rootDir == None:
     rootDir = os.path.join(current_dir, "fixtures")
@@ -57,71 +66,115 @@ engine = None
 metadata = MetaData()
 
 job_dir = ""
-maps_load_dir = ""
 # map of import functions
 
+depends_on_maps = {}
+current_model_existing_map = {}
 
-pk_maps = {}
-next_id_maps = {"severities":1}
-tables = {}
+last_chromosome = None
+current_chromosome = None
+
+def separate_cache_by_chromosome(action):
+    return action["name"] in ["variants","variants_transcripts", "variants_annotations", "variants_consequences"]
 
 
-def load_maps(models=[]):
-    try:
-        # Load from files
-        for modelName in models:
-            with open(maps_load_dir + "/" + modelName + "_pk_map.json", "r") as f:
-                pk_maps[modelName] = json.load(f)
-            with open(maps_load_dir + "/" + modelName + "_next_id.json", "r") as f:
-                next_id_maps[modelName] = json.load(f)
+def populate_maps(action, chromosome=None):
+    global current_model_existing_map, depends_on_maps
+    model = action["name"]
+    
+    def make_existing_map(modelName, chromosome=None):
+        table = get_table(modelName)
+        model_action = model_import_actions[modelName]
+
+        with engine.connect() as connection:
+            if (modelName == "variants_transcripts"):
+                variants = get_table("variants")
+                transcripts = get_table("transcripts")
+                statement = select(
+                    table.c["id"],
+                    variants.c["variant_id", "assembly"], 
+                    transcripts.c["transcript_id"]
+                ).join(variants).join(transcripts).where(variants.c.assembly == set_var_assembly)
+                if chromosome is not None:
+                    statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
+                
+            else:
+                cols = [table.c[col] for col in ["id"] + model_action["pk_lookup_col"] ]
+                
+                if "variant" in model_action["fk_map"]:
+                    variants = get_table("variants")
+                    cols.append(variants.c["variant_id", "assembly"])
+                    statement = select(*cols).join(variants).where(variants.c.assembly == set_var_assembly)
+                    if chromosome is not None:
+                        statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
+                elif modelName == "variants":
+                    cols.append(table.c["assembly"])
+                    statement = select(*cols).where(table.c.assembly == set_var_assembly)
+                    if chromosome is not None:
+                        statement = statement.where(table.c.variant_id.startswith(f"{chromosome}_"))
+                else:
+                    statement = select(*cols)
+                    
+            result = connection.execute(statement)
+            return {
+                model_action["map_key_expression"](row): row.id for row in result
+            }
+        
+    if model == "variants_annotations": # unique variant_transcript per annotation
+        depends_on_maps["variants_transcripts"] = make_existing_map("variants_transcripts", chromosome)
+        reversed = {v: k for k, v in depends_on_maps["variants_transcripts"].items()}
+        tenative_existing_map = make_existing_map(model, chromosome)
+        current_model_existing_map = {reversed.get(k): v for k, v in tenative_existing_map.items() if reversed.get(k) is not None }
+        
+    elif model == "variants_consequences": # non unique variant_transcripts per consequence
+        depends_on_maps["variants_transcripts"] = make_existing_map("variants_transcripts", chromosome)
+        reversed = {v: k for k, v in depends_on_maps["variants_transcripts"].items()}
+        tentative_existing_map = make_existing_map(model, chromosome)
+        actual_existing_map = {}
+        for vt_id_tuple, id in tentative_existing_map.items():
+            vt_id, descriminator = vt_id_tuple
+            variant_id, transcript_id = reversed.get(vt_id, (None,None))
+            if variant_id is not None and transcript_id is not None and descriminator is not None:
+                actual_existing_map[(variant_id, transcript_id, descriminator)] = id
+        current_model_existing_map = actual_existing_map #{reversed.get(k): v for k, v in tentative_existing_map.items() if reversed.get(k) is not None }
+        
+    else:
+        referenced_models = action.get("fk_map").values()
+        current_model_existing_map = make_existing_map(action["name"], chromosome)
+        for model in referenced_models:
+
+            depends_on_maps[model] = make_existing_map(model,chromosome)
+
             log_output(
                 "loaded map for "
-                + modelName
+                + model
                 + ". number of records: "
-                + str(len(pk_maps[modelName]))
+                + str(len(depends_on_maps[model]))
             )
+    log_output(f"done populating maps for {action['name']} chromosome {chromosome}")
+#    existing_json = json.dumps(current_model_existing_map)
+#    existing_dependson_json = json.dumps(depends_on_maps)
+#    log_output(f"existing map for {action['name']} chromosome {chromosome}: {existing_json}")
+#    log_output(f"depends on maps for {action['name']} chromosome {chromosome}: {existing_dependson_json}")
 
-    except FileNotFoundError:
-        pk_maps[modelName] = {}
-        pass
+#    except FileNotFoundError:
+#        pk_maps[modelName] = {}
+#        pass
 
 
 def append_to_map(modelName, key, value):
-    if modelName not in pk_maps:
-        log_output("")
-        load_maps(models=[modelName])
-    if key not in pk_maps[modelName]:
-        pk_maps[modelName][key] = value
+    global depends_on_maps
+    if modelName not in depends_on_maps:
+        log_error(f"trying to append to map but was not populated ({modelName} {key} {value})")
+    if key not in depends_on_maps[modelName]:
+        depends_on_maps[modelName][key] = value
 
 
 def persist_and_unload_maps():
-    try:
-        for modelName, pk_map in pk_maps.items():
-            log_output("saving pk map for " + modelName)
-            with open(os.path.join(job_dir, modelName + "_pk_map.json"), "w") as f:
-                json.dump(pk_map, f)
-        for modelName, next_id in next_id_maps.items():
-            with open(os.path.join(job_dir, modelName + "_next_id.json"), "w") as f:
-                json.dump(next_id, f)
-    except Exception as e:
-        log_error("Error saving maps")
-        quit()
-    pk_maps.clear()
-    log_output("cleared the pk maps")
-
-
-def resolve_PK(referencedModel, name):
-    if name is None:
-        return None
-    try:
-        result = pk_maps[referencedModel][name.upper()]
-        return result
-    except KeyError:
-        return None
+    depends_on_maps.clear()
 
 
 def get_table(model):
-    global tables
     
     if model not in model_import_actions:
         table_name = model
@@ -133,41 +186,25 @@ def get_table(model):
     else:
         return Table(table_name, metadata, autoload_with=engine)
 
+def import_file(file, file_info, action):
+    global current_chromosome,last_chromosome
+    model = action.get("name")
+    fk_map = action.get("fk_map")
+    filters = action.get("filters") or {}
+    
+#    cache_group = file_info('cache_group')
+#    print(f"cache group is {file_info['cache_group']}")
 
-def inject(model, data, map_key):
-    # need to dynamically inject the single obj that was missing from original data
-    pk = None
-    table = get_table(model)
-    with engine.connect() as connection:
-        try:
-            id = next_id_maps[model]
-            data["id"] = id
-            connection.execute(table.insert(), data)
-            connection.commit()
-            #            pk = result.inserted_primary_key[0]
-            append_to_map(model, map_key, id)
-            next_id_maps[model] = id + 1
-            log_data_issue(f"dynamically added {data}", model)
-            pk = id
-        except IntegrityError as e:
-            log_data_issue("a dynamically injected obj had an integrity error.", model)
-            log_data_issue(e, model)
-        #                                quit() # LATER: comment this out
-        except Exception as e:
-            log_data_issue("a dynamically injected obj had an error.", model)
-            log_data_issue(e, model)
-    #                                quit() # LATER: comment this out?
-    return pk
-
-
-def import_file(file, file_info, action_info):
-    name = action_info.get("name")
-    fk_map = action_info.get("fk_map")
-    pk_lookup_col = action_info.get("pk_lookup_col")
-    filters = action_info.get("filters") or {}
-
+    successCount = 0
+    failCount = 0
+    duplicateCount = 0
     missingRefCount = 0
-    table = get_table(name)
+    insertCount = 0
+    updatedCount = 0
+    successful_chunks = 0
+    fail_chunks = 0
+    
+    table = get_table(model)
     types_dict = {}
     for column in table.columns:
         # convert sql types to pandas types
@@ -181,194 +218,220 @@ def import_file(file, file_info, action_info):
             pass
 
     df = readTSV(file, file_info, dtype=types_dict)
-    df.replace(np.nan, None, inplace=True)
+    
 
-    data_list = []
-    for index, row in df.iterrows():
+    data_insert_list = []
+    data_update_list = []
+    for _, row in df.iterrows():
         data = row.to_dict()
-        pk = next_id_maps[name] + index
-        data["id"] = pk
+        
+        if (model == "variants" and set_var_assembly is not None):
+            data["assembly"] = set_var_assembly
+        
+        if separate_cache_by_chromosome(action):
+        
+            current_chromosome = data.get("variant",data.get("variant_id")).split("_")[0]
+            if current_chromosome != last_chromosome:
+                last_chromosome = current_chromosome
+                persist_and_unload_maps()
+                populate_maps(action, current_chromosome)
+        
+        
 
         skip = False
+        record_map_key = action.get("tsv_map_key_expression")(data)
         for col, filter in filters.items():
             data[col] = filter(data[col])
-        for fk_col, fk_model in fk_map.items():
-            map_key = None
+        for depended_model_col, depended_model in fk_map.items():
+            depended_map_key = None
             resolved_pk = None
-            debug_row = None
-            if fk_col == "DO_COMPOUND_FK":
-
-                debug_row = data.copy()
-                v_id = resolve_PK("variants", data["variant"])
-                t_id = resolve_PK("transcripts", data["transcript"])
-                map_key = "-".join([str(t_id), str(v_id)])
-                del data["variant"]
-                del data["transcript"]
-                resolved_pk = resolve_PK("variants_transcripts", map_key)
-                fk_col = "variant_transcript"
+            
+            if model in ["variants_annotations", "variants_consequences"]:
+                depended_map_key = (data["variant"], data["transcript"])
             else:
-                if isinstance(data[fk_col], str):
-                    map_key = data[fk_col].upper()
-                if map_key == "NA":
-                    data[fk_col] = None
-                else:
-                    resolved_pk = resolve_PK(fk_model, map_key)
-                    ## resolved PK was not found from maps, so.. if it's a gene, we could dynamically inject
-                    if (
-                        resolved_pk == None
-                        and fk_col == "gene"
-                        and name == "transcripts"
-                    ):
-                        resolved_pk = inject("genes", {"short_name": map_key}, map_key)
-                    elif (
-                    ## resolved PK was not found from maps, so.. if it's a variant, we could dynamically inject
-                        resolved_pk == None
-                        and fk_col == "variant"
-                        and name in ["sv_consequences", "svs", "snvs", "mts"]
-                    ):
-
-                        if name == "sv_consequences" or name == "svs":
-                            var_type = "SV"
-                        elif name == "snvs":
-                            var_type = "SNV"
-                        elif name == "mts":
-                            var_type = "MT"
-                        resolved_pk = inject(
-                            "variants",
-                            {"variant_id": map_key, "var_type": var_type},
-                            map_key,
-                        )
-            if map_key is not None and False:
-                log_output(
-                    "resolved "
-                    + fk_model
-                    + "."
-                    + data[fk_col]
-                    + " to "
-                    + str(resolved_pk)
-                )
+                
+                if isinstance(data[depended_model_col], str):
+                    depended_map_key = data[depended_model_col]
+                if depended_model == "genes" and depended_map_key is not None:
+                    depended_map_key = depended_map_key.upper()
+            if depended_map_key == "NA":
+                    data[depended_model_col] = None
+            elif depended_map_key is None:
+                resolved_pk = None
+            else:
+                resolved_pk = depends_on_maps.get(depended_model).get( depended_map_key)
+                
             if resolved_pk is not None:
-                data[fk_col] = resolved_pk
+                data[depended_model_col] = resolved_pk
             else:
                 log_data_issue(
-                    "Missing " + fk_col
-                    if fk_col is not None
+                    f"Missing {depended_model_col} {depended_map_key} in {depended_model}"
+                    if depended_model_col is not None
                     else (
-                        "None" + " " + map_key
-                        if map_key is not None
+                        f"None {depended_map_key}"
+                        if depended_map_key is not None
                         else (
-                            "None" + " referenced from " + name
-                            if name is not None
+                            f"None referenced from {model}"
+                            if model is not None
                             else "None"
                         )
                     ),
-                    name,
+                    model,
                 )
-                if debug_row is not None:
-                    log_data_issue(debug_row, name)
-                else:
-                    log_data_issue(data, name)
+                log_data_issue(data, model)
                 missingRefCount += 1
                 skip = True
         if skip:
             continue
-        ########### added in v2
-        for col in data:
-            if (
-                col in table.columns
-                and isinstance(table.columns[col].type, String)
-                and data[col] is None
-            ):
-                data[col] = ""
-        for table_col in table.columns:
-            if table_col.name not in data:
-                if isinstance(table_col.type, String):
-                    data[table_col.name] = ""
-#                    print("filled missing col " + table_col.name + " with empty string")
-                else:
-                    data[table_col.name] = None
-#                    print("filled missing col " + table_col.name + " with None")
-        ############ end added in v2
+#        # this block replaces None with empty string for string columns (good for django)
+#        for col in data:
+#            if (
+#                col in table.columns
+#                and isinstance(table.columns[col].type, String)
+#                and data[col] is None
+#            ):
+#                data[col] = ""
+#        # this block fills missing columns with None or empty string, depending on the column type
+#        for table_col in table.columns:
+#            if table_col.name not in data:
+#                if isinstance(table_col.type, String):
+#                    data[table_col.name] = ""
+#                    log_data_issue("filled missing col " + table_col.name + " with empty string", name)
+#                else:
+#                    data[table_col.name] = None
+#                    log_data_issue("filled missing col " + table_col.name + " with None", name)
 
-        data_list.append(data)
+        if record_map_key is None:
+            print(f"record_map_key is None for {model} {data}")
+            quit()
+        existing_id = current_model_existing_map.get(record_map_key)
+        if existing_id is not None:
+            # record is already in the DB
+            if update:
+                data["id"] = existing_id
+                data_update_list.append(data)
+            else:
+                duplicateCount += 1
+                successCount += 1
+                log_data_issue("Duplicate " + str(record_map_key), model)
+                continue
+        else:
+            # the record is NOT in the db, so add it
+            data_insert_list.append(data)
+#        data_list.append(data)
 
     # dispose of df to save ram
     del df
     with engine.connect() as connection:
-        successCount = 0
-        failCount = 0
-        duplicateCount = 0
-        successful_chunks = 0
-        fail_chunks = 0
 
-        for chunk in chunks(data_list, chunk_size):
+        def rowOperation(row, updating=False):
+            nonlocal successCount, failCount, duplicateCount, insertCount, updatedCount, successful_chunks, fail_chunks
+            
+            did_succeed = False
             try:
-                connection.execute(table.insert(), chunk)
-                # commit
-                connection.commit()
-                # chunk worked
-                successful_chunks += 1
-                successCount += len(chunk)
+                if updating:
+                    
+                    id = row["id"]
+                    del row["id"]
+                    connection.execute(
+                        table.update().where(table.c.id == id), row
+                    )
+                    connection.commit()
+                    successCount += 1
+                    updatedCount += 1
+                    did_succeed = True
+                else:
+                    connection.execute(table.insert(), row)
+                    connection.commit()
+                    successCount += 1
+                    insertCount += 1
+                    did_succeed = True
+
+            except DataError as e:
+                log_data_issue(e, model)
+                failCount += 1
+            except IntegrityError as e:
+                msg = str(e)
+                if "Duplicate" in msg or "ORA-00001" in msg:
+                    duplicateCount += 1
+                    successCount += 1
+#                    log_data_issue(e, model)
+                    if updating:
+                        updatedCount += 1
+                else:
+                    failCount += 1
+                    log_data_issue(e, model)
             except Exception as e:
-                #                print(e)
+
+                log_data_issue(e, model)
+                failCount += 1
+            
+            if not did_succeed:
                 connection.rollback()
-                fail_chunks += 1
+                
+        def chunkOperation(chunk, updating=False):
+            nonlocal successCount, failCount, duplicateCount, insertCount, updatedCount, successful_chunks, fail_chunks
+            if dry_run:
+                successCount += len(chunk)
+                return
+            if updating:
+                
+                ids = [row["id"] for row in chunk]
+                existing_full_records = connection.execute(select(table).where(table.c.id.in_(ids))).fetchall()
+                existing_map = {row.id: row._mapping for row in existing_full_records}
+                
+                filtered_update_list = []
+                
                 for row in chunk:
-                    did_succeed = False
-                    try:
-                        connection.execute(table.insert(), row)
-                        connection.commit()
-                        successCount += 1
-                        did_succeed = True
-
-                    except DataError as e:
-                        log_data_issue(e, name)
+                    existing_row = existing_map.get(row["id"])
+                    if existing_row is None:
+                        log_data_issue(f"updating, but row with id {row['id']} was removed??", model)
                         failCount += 1
-                    #                        quit()
-                    except IntegrityError as e:
-                        msg = str(e)
-                        if "Duplicate" in msg or "ORA-00001" in msg:
-                            duplicateCount += 1
-                            successCount += 1
+                        continue
+                    else:
+                        def is_equal(a, b):
+                            if a == b:
+                                return True
+                            if isinstance(a, (float, Decimal)) and isinstance(b, (float, Decimal)):
+                                return math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-9)
+                            return False
+                        
+                        if any(not is_equal(existing_row.get(col), row[col]) for col in existing_row.keys()):
+                            filtered_update_list.append(row)
                         else:
-                            failCount += 1
-                            log_data_issue(e, name)
-                    #                            quit()
-                    except Exception as e:
-
-                        log_data_issue(e, name)
-                        failCount += 1
-                    ####### added in v2
-                    if not did_succeed:
-                        connection.rollback()
-
-            if pk_lookup_col is not None:
-                pk_map = {}
-                for data in chunk:
-                    # record the PKS for each row that was added
-                    if isinstance(pk_lookup_col, list):
-                        #                        log_output(pk_lookup_col)
-                        #                        log_output(data)
-                        map_key = "-".join([str(data[col]) for col in pk_lookup_col])
-                    elif isinstance(pk_lookup_col, str) and isinstance(
-                        data[pk_lookup_col], str
-                    ):
-                        map_key = data[pk_lookup_col]
-
-                    if map_key not in pk_map:
-                        pk_map[map_key] = data["id"]
-                    if False:
-                        log_output("added " + name + "." + map_key + " to pk map")
-                for key in pk_map:
-                    append_to_map(name, key.upper(), pk_map[key])
-
-    next_id_maps[name] += file_info["total_rows"]
+                            successCount += 1
+                            
+                for row in filtered_update_list:
+                    rowOperation(row, updating)
+            else:
+                try: 
+                    connection.execute(table.insert(), chunk)
+                    # commit
+                    connection.commit()
+                    # chunk worked
+                    successful_chunks += 1
+                    successCount += len(chunk)
+                    insertCount += len(chunk)
+                except Exception as e:
+                    #                print(e)
+                    connection.rollback()
+                    fail_chunks += 1
+                    for row in chunk:
+                        rowOperation(row, updating)
+                        
+        for chunk in chunks(data_insert_list, chunk_size):
+            chunkOperation(chunk)
+        for chunk in chunks(data_update_list, chunk_size):
+            chunkOperation(chunk, updating=True)
+        
 
     return {
         "success": successCount,
         "fail": failCount,
         "missingRef": missingRefCount,
         "duplicate": duplicateCount,
+        "inserted": insertCount,
+        "updated": updatedCount,
         "successful_chunks": successful_chunks,
         "fail_chunks": fail_chunks,
         "rowcount": file_info["total_rows"],
@@ -376,14 +439,12 @@ def import_file(file, file_info, action_info):
 
 
 def cleanup(sig, frame):
-    global engine, pk_maps, next_id_maps, tables, metadata
+    global engine, depends_on_maps, metadata
     print("terminating, cleaning up ...")
     persist_and_unload_maps()
     engine.dispose()
     # garbage collect
-    del pk_maps
-    del next_id_maps
-    del tables
+    del depends_on_maps
     del metadata
     print("done")
     sys.exit(0)
@@ -396,7 +457,7 @@ def start(db_engine):
 
     arrived_at_start_model = False
     arrived_at_start_file = False
-    global job_dir, maps_load_dir, engine, schema
+    global job_dir, engine, schema, current_chromosome, last_chromosome
     engine = db_engine
 
     if isinstance(schema, str) and len(schema) > 0:
@@ -418,42 +479,42 @@ def start(db_engine):
     os.chmod(job_dir, 0o777)  # Set read and write permissions for the directory
     setup_loggers(job_dir)
 
-    if copy_maps_from_job is not None and copy_maps_from_job != "":
-        maps_load_dir = os.path.join(jobs_dir, copy_maps_from_job)
-    else:
-        maps_load_dir = job_dir
-    print("using job dir " + maps_load_dir)
-
     now = datetime.now()
     counts = {}
     counts["success"] = 0
     counts["fail"] = 0
     counts["missingRef"] = 0
     counts["duplicate"] = 0
+    counts["inserted"] = 0
+    counts["updated"] = 0
     counts["successful_chunks"] = 0
     counts["fail_chunks"] = 0
     counts["rowcount"] = 0
     
-    
-    severitiesFile = os.path.join(current_dir, "severities.tsv")
-    
-    file_info = inspectTSV(severitiesFile)
-    log_output(
-        "\nimporting severities "
-        + " ("
-        + severitiesFile.split("/")[-1]
-        + "). Expecting "
-        + str(file_info["total_rows"])
-        + " rows..."
-    )
-    # log_output(targetFile)
-    if file_info["total_rows"] == 0:
-        log_output("Skipping empty file")
-    import_file(
-        severitiesFile,
-        file_info,
-        {"name":"severities", "fk_map":{}, "pk_lookup_col":None},
-    )
+    with engine.connect() as connection:
+        table = get_table("severities")
+        num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
+        if num_rows == 0:
+            severitiesFile = os.path.join(current_dir, "severities.tsv")
+            
+            file_info = inspectTSV(severitiesFile)
+            log_output(
+                "\nimporting severities "
+                + " ("
+                + severitiesFile.split("/")[-1]
+                + "). Expecting "
+                + str(file_info["total_rows"])
+                + " rows..."
+            )
+            # log_output(targetFile)
+            if file_info["total_rows"] == 0:
+                log_output("Skipping empty file")
+            import_file(
+                severitiesFile,
+                file_info,
+                {"name":"severities", "fk_map":{}, "pk_lookup_col":None, "tsv_map_key_expression": lambda row: row["severity_number"], "filters":{}},
+            )
+            log_output("done importing severities")
 
 
     for modelName, action_info in model_import_actions.items():
@@ -462,10 +523,17 @@ def start(db_engine):
         model_counts["fail"] = 0
         model_counts["missingRef"] = 0
         model_counts["duplicate"] = 0
+        model_counts["inserted"] = 0
+        model_counts["updated"] = 0
         model_counts["successful_chunks"] = 0
         model_counts["fail_chunks"] = 0
         model_counts["rowcount"] = 0
         model_directory = os.path.join(rootDir, modelName)
+        
+        with engine.connect() as connection:
+            table = get_table(modelName)
+            num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
+            db_row_counts["before"][modelName] = num_rows
 
         if (
             isinstance(start_at_model, str)
@@ -492,17 +560,12 @@ def start(db_engine):
                     "Skipping " + modelName + " (expected dir: " + model_directory + ")"
                 )
                 continue
-
-        referenced_models = action_info.get("fk_map").values()
-        if "DO_COMPOUND_FK" in action_info.get("fk_map"):
-            referenced_models = ["variants_transcripts", "variants", "transcripts"]
-        load_maps(models=referenced_models)
+        
+        if separate_cache_by_chromosome(action_info):
+            pass #populate maps instead happens per 1 chromosome
+        else:
+            populate_maps(action_info)
         modelNow = datetime.now()
-
-        # if modelName not in pk_maps:
-        #     pk_maps[modelName] = {}
-        if modelName not in next_id_maps:
-            next_id_maps[modelName] = 1
 
         if large_model_file_tsv_exists:
             sorted_files = [modelName + ".tsv"]
@@ -529,6 +592,7 @@ def start(db_engine):
                     targetFile = large_model_file_tsv
                 else:
                     targetFile = model_directory + "/" + file
+                
                 file_info = inspectTSV(targetFile)
                 log_output(
                     "\nimporting "
@@ -556,6 +620,8 @@ def start(db_engine):
                     "fail",
                     "missingRef",
                     "duplicate",
+                    "inserted",
+                    "updated",
                     "successful_chunks",
                     "fail_chunks",
                     "rowcount"
@@ -571,6 +637,8 @@ def start(db_engine):
             + ". Took this much time: "
             + str(datetime.now() - modelNow)
         )
+        current_chromosome = None
+        last_chromosome = None
         report_counts(model_counts)
         this_model_index = list(model_import_actions.keys()).index(modelName)
         if this_model_index + 1 < len(model_import_actions.keys()):
@@ -578,6 +646,246 @@ def start(db_engine):
             log_output("\nmodels left still: " + str(leftover_models) + "\n")
 
         persist_and_unload_maps()
-    print("finished importing IBVL. Time Taken: " + str(datetime.now() - now))
+        
+        
+        with engine.connect() as connection:
+            table = get_table(modelName)
+            num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
+            db_row_counts["after"][modelName] = num_rows
+            
+    log_output(f"\n\nfinished importing IBVL. Time Taken: {str(datetime.now() - now)}. was job {job_dir}")
     report_counts(counts)
+    log_output("\n\n")
+    
+    delta = {}
+    for beforeafter, counts in db_row_counts.items():
+        for modelName, count in counts.items():
+            if beforeafter == "before":
+                delta[modelName] = count
+            else:
+                delta[modelName] = count - delta[modelName]
+                log_output(f"DB row count {modelName} {count} ( grew by {delta[modelName]})")
+    
+    log_output("testing...")
+    
+    did_pass = True
+    def fail(msg):
+        did_pass = False
+        log_error(F"❌❌❌\n{msg} \n❌❌❌\n\n")
+#        cleanup(None, None)
+#        exit()
+        
+    def get_random_tsv_file(model_folder):
+        path = os.path.join(rootDir, model_folder)
+        files = natsorted(
+            [os.path.join(path,f) for f in os.listdir(path) if not f.startswith(".")],
+        )
+        file = np.random.choice(files, 1)[0]
+        return inspectTSV(file), file
+        
+    def get_random_tsv_rows(model_folder, n):
+        random_file_info, random_file = get_random_tsv_file(model_folder)
+        df = readTSV(random_file, random_file_info)
+        df_rowcount = len(df)
+        if df_rowcount < n:
+            n = df_rowcount
+        return df.sample(n)
+    
+    
+    NUM_TEST_ROWS = 1000
+
+    
+    def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[]):
+        with engine.connect() as connection:
+            table = get_table(model)
+            tsv_rows = get_random_tsv_rows(model, NUM_TEST_ROWS)
+            for _, row in tsv_rows.iterrows():
+                tsv_row = row.to_dict()
+                
+                tsv_row_filters = model_import_actions[model].get("filters") or {}
+                for col, filter in tsv_row_filters.items():
+                    tsv_row[col] = filter(tsv_row[col])
+                    
+                statement = select(*select_tables)
+                statement = join_fn(statement)
+                statement = where_fn(statement, tsv_row)
+                
+                db_rows = connection.execute(statement).fetchall()
+                if len(db_rows) == 0:
+                    fail(f"Row not found in db: {tsv_row}")
+                if len(db_rows) > 1:
+                    fail(f"Multiple rows found in db: {tsv_row}")
+                row_dict = db_rows[0]._mapping
+                for col in data_cols:
+                    if isinstance(row_dict[col], Decimal) or isinstance(row_dict[col], float):
+                        if math.isclose(row_dict[col], tsv_row[col], rel_tol=1e-7, abs_tol=1e-7):
+                            continue
+                        else:
+                            fail(f"{model} column {col} numerical mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
+                    elif isinstance(row_dict[col], str) or isinstance(row_dict[col], int):
+                        if row_dict[col] == tsv_row[col]:
+                            continue
+                        else:
+                            fail(f"{model} column {col} string mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
+                    elif row_dict[col] is None and tsv_row[col] is None:
+                        continue
+                    else:
+                        print(f"unhandled type {type(row_dict[col])}")
+                        quit()
+                for check in checks:
+                    checkFailMsg = check(row_dict, tsv_row)
+                    if checkFailMsg is not None:
+                        fail(checkFailMsg)
+        
+    genes = get_table("genes")
+    
+    variants = get_table("variants")      
+    variants_transcripts = get_table("variants_transcripts")
+    transcripts = get_table("transcripts")
+    genomic_ibvl_frequencies = get_table("genomic_ibvl_frequencies")
+    mt_ibvl_frequencies = get_table("mt_ibvl_frequencies")
+    genomic_gnomad_frequencies = get_table("genomic_gnomad_frequencies")
+    mt_gnomad_frequencies = get_table("mt_gnomad_frequencies")
+    mts = get_table("mts")
+    snvs = get_table("snvs")
+    variants_annotations = get_table("variants_annotations")
+    variants_consequences = get_table("variants_consequences")
+    
+    testmodel("variants", 
+            [variants], 
+            join_fn=lambda stmt: stmt, 
+            where_fn=lambda stmt, tsv_r: stmt.where(
+                variants.c.variant_id == tsv_r["variant_id"], 
+                variants.c.assembly == set_var_assembly), 
+            data_cols=['var_type']
+            )
+
+    testmodel("transcripts", 
+            [transcripts, genes], 
+            join_fn=lambda stmt: stmt.join(genes), 
+            where_fn=lambda stmt, tsv: stmt.where(transcripts.c.transcript_id == tsv["transcript_id"]),
+            data_cols = ['transcript_type', 'tsl'],
+            checks = [
+                lambda db_row, tsv_row: None if db_row["short_name"] == tsv_row["gene"].upper() else f"Gene_id mismatch: {db_row['short_name']} != {tsv_row['gene'].upper()}"
+            ]
+            )
+    testmodel("variants_transcripts", 
+            [variants_transcripts, variants, transcripts], 
+            join_fn=lambda stmt: stmt.join(variants).join(transcripts), 
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
+                                                    variants.c.assembly == set_var_assembly, 
+                                                    transcripts.c.transcript_id == tsv_r["transcript"]), 
+            data_cols=['hgvsc']
+            )
+    
+    testmodel("snvs", 
+            [snvs, variants], 
+            join_fn=lambda stmt: stmt.join(variants), 
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
+                                                    variants.c.assembly == set_var_assembly), 
+            data_cols=['type', 'length', 'chr', 'pos', 'ref', 'alt', 'cadd_score', 'cadd_intr', 'dbsnp_id', 'dbsnp_url', 'ucsc_url', 'ensembl_url', 'clinvar_url', 'gnomad_url', 'clinvar_vcv', 'splice_ai'],
+            )
+    
+    testmodel("mts",
+            [mts, variants],
+            join_fn=lambda stmt: stmt.join(variants),
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
+                                                    variants.c.assembly == set_var_assembly),
+            data_cols=['pos', 'ref', 'alt', 'ucsc_url', 'mitomap_url', 'gnomad_url', 'dbsnp_id', 'dbsnp_url', 'clinvar_url', 'clinvar_vcv'],
+            )
+    
+    testmodel("genomic_ibvl_frequencies", 
+            [genomic_ibvl_frequencies, variants], 
+            join_fn=lambda stmt: stmt.join(variants), 
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
+                                                    variants.c.assembly == set_var_assembly), 
+            data_cols=['af_tot', 'af_xx', 'af_xy', 'ac_tot', 'ac_xx', 'ac_xy', 'an_tot', 'an_xx', 'an_xy', 'hom_tot', 'hom_xx', 'hom_xy', 'quality']
+            )
+    
+    
+    testmodel("genomic_gnomad_frequencies",
+            [genomic_gnomad_frequencies, variants],
+            join_fn=lambda stmt: stmt.join(variants),
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
+                                                    variants.c.assembly == set_var_assembly),
+            data_cols=['af_tot', 'ac_tot', 'an_tot', 'hom_tot']
+            )
+    
+    testmodel("mt_gnomad_frequencies",
+            [mt_gnomad_frequencies, variants],
+            join_fn=lambda stmt: stmt.join(variants),
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
+                                                    variants.c.assembly == set_var_assembly),
+            # an	ac_hom	ac_het	af_hom	af_het	max_hl
+            data_cols = ['an', 'ac_hom', 'ac_het', 'af_hom', 'af_het', 'max_hl']
+            )
+    
+        
+
+    with engine.connect() as connection:
+        def get_variant_transcript(tsv_row):
+            statement = select(variants_transcripts, variants, transcripts)
+            statement = statement.join(variants).join(transcripts)
+            statement = statement.where(variants.c.variant_id == tsv_row["variant"], variants.c.assembly == set_var_assembly, transcripts.c.transcript_id == tsv_row["transcript"])
+            db_rows = connection.execute(statement).fetchall()
+            
+            if len(db_rows) == 0:
+                fail(f"transcript not found in db: {tsv_row}")
+            if len(db_rows) > 1:
+                fail(f"Multiple transcripts found in db: {tsv_row}")
+            return db_rows[0]._mapping
+        
+        tsv_rows = get_random_tsv_rows("variants_consequences", NUM_TEST_ROWS)
+        for _, row in tsv_rows.iterrows():
+            tsv_row = row.to_dict()
+            
+            transcript = get_variant_transcript(tsv_row)
+            
+            tsv_row_filters = model_import_actions["variants_consequences"].get("filters") or {}
+            for col, filter in tsv_row_filters.items():
+                tsv_row[col] = filter(tsv_row[col])
+                
+            statement = select(variants_consequences)
+            statement = statement.where(variants_consequences.c.variant_transcript == transcript["id"])
+            
+            db_rows = connection.execute(statement).fetchall()
+            if len(db_rows) == 0:
+                fail(f"no variant consequences in db matching: {tsv_row}")
+            
+            found = False
+            for db_row in db_rows:
+                if db_row._mapping["severity"] == tsv_row["severity"]:
+                    found = True
+                    break
+            if not found:
+                fail(f"all matching variant consequences have wrong severity: {tsv_row}")
+                
+        tsv_rows = get_random_tsv_rows("variants_annotations", NUM_TEST_ROWS)
+        for _, row in tsv_rows.iterrows():
+            tsv_row = row.to_dict()
+            
+            transcript = get_variant_transcript(tsv_row)
+            
+            tsv_row_filters = model_import_actions["variants_annotations"].get("filters") or {}
+            for col, filter in tsv_row_filters.items():
+                tsv_row[col] = filter(tsv_row[col])
+                
+            statement = select(variants_annotations)
+            statement = statement.where(variants_annotations.c.variant_transcript == transcript["id"])
+            
+            db_rows = connection.execute(statement).fetchall()
+            if len(db_rows) == 0:
+                fail(f"No variant annotations in db matching: {tsv_row}")
+            if len(db_rows) > 1:
+                fail(f"Multiple variant annotations found in db matching: {tsv_row}")
+            
+            db_row_dict = db_rows[0]._mapping
+            ##hgvsp	sift	polyphen
+            for col in ['hgvsp', 'sift', 'polyphen']:
+                if db_row_dict[col] != tsv_row[col]:
+                    fail(f"variant annotation mismatch: db's {db_row_dict[col]} != tsv's {tsv_row[col]}")
+
+    if (did_pass):
+        log_output("✅✅✅ \n all tests passed\n✅✅✅\n")
+        
     cleanup(None, None)

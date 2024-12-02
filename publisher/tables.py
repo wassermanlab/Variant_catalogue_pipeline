@@ -56,8 +56,8 @@ genes_table = Table(
 transcripts_table = Table(
     "transcripts",
     metadata,
-    Column("transcript_id", String(100)),
     Column("id", Integer, primary_key=True),
+    Column("transcript_id", String(100)),
     Column("gene", Integer, ForeignKey("genes.id", ondelete="CASCADE")),
     Column("transcript_type", String(1)),
     Column("tsl", String(12)),
@@ -136,8 +136,8 @@ mt_ibvl_frequencies_table = Table(
 mts_table = Table(
     "mts",
     metadata,
-    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("pos", Integer),
     Column("ref", String(60)),
     Column("alt", String(60)),
@@ -154,23 +154,23 @@ mts_table = Table(
 snvs_table = Table(
     "snvs",
     metadata,
-    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("type", String(30)),
     Column("length", Integer),
     Column("chr", String(2)),
     Column("pos", Integer),
     Column("ref", String(60)),
     Column("alt", String(60)),
-    Column("cadd_intr", String(255)),
     Column("cadd_score", Numeric(10, 9)),
+    Column("cadd_intr", String(255)),
     Column("dbsnp_id", String(30)),
     Column("dbsnp_url", String(511)),
     Column("ucsc_url", String(511)),
     Column("ensembl_url", String(511)),
-    Column("clinvar_vcv", Numeric(10, 9)),
     Column("clinvar_url", String(511)),
     Column("gnomad_url", String(511)),
+    Column("clinvar_vcv", Numeric(10, 9)),
     Column("splice_ai", Numeric(10, 9)),
     UniqueConstraint("variant", name="snvs_unique")
 )
@@ -178,8 +178,8 @@ snvs_table = Table(
 variants_table = Table(
     "variants",
     metadata,
-    Column("variant_id", String(115)),
     Column("id", Integer, primary_key=True),
+    Column("variant_id", String(115)),
     Column("var_type", String(30)),
     Column("assembly", Integer)
 )
@@ -207,8 +207,8 @@ variants_consequences_table = Table(
 variants_transcripts_table = Table(
     "variants_transcripts",
     metadata,
-    Column("transcript", Integer, ForeignKey("transcripts.id", ondelete="CASCADE")),
     Column("id", Integer, primary_key=True),
+    Column("transcript", Integer, ForeignKey("transcripts.id", ondelete="CASCADE")),
     Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("hgvsc", String(255)),
     UniqueConstraint("transcript", "variant", name="variants_transcripts_unique"),
@@ -217,8 +217,8 @@ variants_transcripts_table = Table(
 severities_table = Table(
     "severities",
     metadata,
-    Column("severity_number", Integer),
     Column("id", Integer, primary_key=True),
+    Column("severity_number", Integer),
     Column("consequence", String(40)),
     UniqueConstraint("severity_number", name="severities_unique"),
 )
@@ -233,8 +233,8 @@ severities_table = Table(
 str_table = Table(
     "str",
     metadata,
-    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("repeat_unit", String(20)),
     Column("min_n_repeat", Integer),
     Column("max_n_repeat", Integer),
@@ -257,8 +257,8 @@ sv_consequences_table = Table(
 svs_table = Table(
     "svs",
     metadata,
-    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("chr1", String(2)),
     Column("chr1_pos1", Integer),
     Column("chr1_pos2", Integer),
@@ -275,8 +275,8 @@ svs_table = Table(
 svs_ctx_table = Table(
     "svs_ctx",
     metadata,
-    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
     Column("chr2", String(2)),
     Column("chr2_pos1", Integer),
     Column("ucsc_url2", String(511)),

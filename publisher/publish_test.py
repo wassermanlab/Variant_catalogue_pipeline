@@ -51,7 +51,9 @@ def test(engine,job_dir = None):
             n = df_rowcount
         return df.sample(n)
     
-    def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[]):
+    def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[], skip=False):
+        if skip:
+            return
         nonlocal num_pass
         with engine.connect() as connection:
             tsv_rows = get_random_tsv_rows(model, NUM_TEST_ROWS)

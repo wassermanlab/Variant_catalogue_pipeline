@@ -113,7 +113,7 @@ mt_gnomad_frequencies_table = Table(
     Column("ac_het", Integer),
     Column("af_hom", Numeric(10, 9)),
     Column("af_het", Numeric(10, 9)),
-    Column("max_hl", Integer),
+    Column("max_hl", Numeric(10, 9)),
     UniqueConstraint("variant", name="mt_gnomad_freq_unique")
 )
 
@@ -125,10 +125,10 @@ mt_ibvl_frequencies_table = Table(
     Column("an", Integer),
     Column("ac_hom", Integer),
     Column("ac_het", Integer),
-    Column("af_hom", Float),
-    Column("af_het", Float),
+    Column("af_hom", Numeric(10, 9)),
+    Column("af_het", Numeric(10, 9)),
     Column("hl_hist", String(30)),
-    Column("max_hl", Integer),
+    Column("max_hl", Numeric(10, 9)),
     UniqueConstraint("variant", name="mt_ibvl_freq_unique"),
 )
 
@@ -147,7 +147,7 @@ mts_table = Table(
     Column("dbsnp_id", String(30)),
     Column("dbsnp_url", String(511)),
     Column("clinvar_url", String(511)),
-    Column("clinvar_vcv", Integer),
+    Column("clinvar_vcv", Numeric(10, 9)),
     UniqueConstraint("variant", name="mts_unique"),
 )
 
@@ -163,17 +163,71 @@ snvs_table = Table(
     Column("ref", String(60)),
     Column("alt", String(60)),
     Column("cadd_intr", String(255)),
-    Column("cadd_score", Float),
+    Column("cadd_score", Numeric(10, 9)),
     Column("dbsnp_id", String(30)),
     Column("dbsnp_url", String(511)),
     Column("ucsc_url", String(511)),
     Column("ensembl_url", String(511)),
-    Column("clinvar_vcv", Integer),
+    Column("clinvar_vcv", Numeric(10, 9)),
     Column("clinvar_url", String(511)),
     Column("gnomad_url", String(511)),
-    Column("splice_ai", Integer),
+    Column("splice_ai", Numeric(10, 9)),
     UniqueConstraint("variant", name="snvs_unique")
 )
+
+variants_table = Table(
+    "variants",
+    metadata,
+    Column("variant_id", String(115)),
+    Column("id", Integer, primary_key=True),
+    Column("var_type", String(30)),
+    Column("assembly", Integer)
+)
+
+variants_annotations_table = Table(
+    "variants_annotations",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("hgvsp", String(100)),
+    Column("polyphen", String(100)),
+    Column("sift", String(100)),
+    Column("variant_transcript", Integer, ForeignKey("variants_transcripts.id", ondelete="CASCADE")),
+    UniqueConstraint("variant_transcript", name="variants_annotations_unique"),
+)
+
+variants_consequences_table = Table(
+    "variants_consequences",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("severity", Integer, ForeignKey("severities.id", ondelete="CASCADE")),
+    Column("variant_transcript", Integer, ForeignKey("variants_transcripts.id", ondelete="CASCADE")),
+)
+
+
+variants_transcripts_table = Table(
+    "variants_transcripts",
+    metadata,
+    Column("transcript", Integer, ForeignKey("transcripts.id", ondelete="CASCADE")),
+    Column("id", Integer, primary_key=True),
+    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
+    Column("hgvsc", String(255)),
+    UniqueConstraint("transcript", "variant", name="variants_transcripts_unique"),
+)
+
+severities_table = Table(
+    "severities",
+    metadata,
+    Column("severity_number", Integer),
+    Column("id", Integer, primary_key=True),
+    Column("consequence", String(40)),
+    UniqueConstraint("severity_number", name="severities_unique"),
+)
+
+
+
+
+# structural, etc...
+
 
 # Define the "str" table
 str_table = Table(
@@ -230,57 +284,6 @@ svs_ctx_table = Table(
     Column("gnomad_url2", String(511)),
     UniqueConstraint("variant", name="svs_ctx_unique"),
 #    ForeignKey("variant", name="svs_ctx_fk", ondelete="CASCADE", table="variants"),
-)
-
-
-variants_table = Table(
-    "variants",
-    metadata,
-    Column("variant_id", String(115)),
-    Column("id", Integer, primary_key=True),
-    Column("var_type", String(30)),
-    Column("assembly", Integer)
-)
-
-variants_annotations_table = Table(
-    "variants_annotations",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("hgvsp", String(100)),
-    Column("polyphen", String(100)),
-    Column("sift", String(100)),
-    Column("variant_transcript", Integer, ForeignKey("variants_transcripts.id", ondelete="CASCADE")),
-    UniqueConstraint("variant_transcript", name="variants_annotations_unique"),
-)
-# ... (Previous code)
-
-# Define the "variants_consequences" table
-variants_consequences_table = Table(
-    "variants_consequences",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("severity", Integer, ForeignKey("severities.id", ondelete="CASCADE")),
-    Column("variant_transcript", Integer, ForeignKey("variants_transcripts.id", ondelete="CASCADE")),
-)
-
-
-variants_transcripts_table = Table(
-    "variants_transcripts",
-    metadata,
-    Column("transcript", Integer, ForeignKey("transcripts.id", ondelete="CASCADE")),
-    Column("id", Integer, primary_key=True),
-    Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
-    Column("hgvsc", String(255)),
-    UniqueConstraint("transcript", "variant", name="variants_transcripts_unique"),
-)
-
-severities_table = Table(
-    "severities",
-    metadata,
-    Column("severity_number", Integer),
-    Column("id", Integer, primary_key=True),
-    Column("consequence", String(40)),
-    UniqueConstraint("severity_number", name="severities_unique"),
 )
 
 try:

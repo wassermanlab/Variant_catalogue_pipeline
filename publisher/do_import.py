@@ -109,6 +109,7 @@ def populate_maps(action, chromosome=None):
                     statement = select(*cols)
                     
             result = connection.execute(statement)
+            log_output(f"    caching {str(len(result.keys()))} {model} (chr:{chromosome})")
             return {
                 model_action["map_key_expression"](row): row.id for row in result
             }
@@ -138,13 +139,8 @@ def populate_maps(action, chromosome=None):
 
             depends_on_maps[model] = make_existing_map(model,chromosome)
 
-            log_output(
-                "loaded map for "
-                + model
-                + ". number of records: "
-                + str(len(depends_on_maps[model]))
-            )
-    log_output(f"done populating maps for {action['name']} chromosome {chromosome}")
+
+#    log_output(f"done populating maps for {action['name']} chromosome {chromosome}")
 #    existing_json = json.dumps(current_model_existing_map)
 #    existing_dependson_json = json.dumps(depends_on_maps)
 #    log_output(f"existing map for {action['name']} chromosome {chromosome}: {existing_json}")

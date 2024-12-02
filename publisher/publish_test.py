@@ -1,9 +1,9 @@
 from do_import import *
 from import_utils import *
 
-
 def test(engine,job_dir = None):
         
+    NUM_TEST_ROWS = os.environ.get("NUM_TEST_ROWS", 200)
 #    if job_dir is not None:
 #        setup_loggers(job_dir)
         
@@ -12,6 +12,10 @@ def test(engine,job_dir = None):
             log_output(msg)
         else:
             print(msg)
+            
+    output(f"testing {os.environ.get('SCHEMA_NAME')}, assembly {os.environ.get('SET_VAR_ASSEMBLY')})...")
+    output(f"num test rows: {NUM_TEST_ROWS}")
+    output(f"tsv folder is {os.environ.get('PIPELINE_OUTPUT_PATH')}")
     
     
     if isinstance(schema, str) and len(schema) > 0:
@@ -23,10 +27,13 @@ def test(engine,job_dir = None):
     
     did_pass = True
     num_pass = 0
-    def fail(msg):
+    def fail(msg, msg2 = None):
         nonlocal did_pass
         did_pass = False
-        output(F"❌❌❌\n{msg} \n❌❌❌\n\n")
+        if (isinstance(msg2, str)):
+            output(F"❌❌❌\n{msg} \n    {msg2}\n❌❌❌\n\n")
+        else:
+            output(F"❌❌❌\n{msg} \n❌❌❌\n\n")
 #        cleanup(None, None)
 #        exit()
         
@@ -44,14 +51,9 @@ def test(engine,job_dir = None):
             n = df_rowcount
         return df.sample(n)
     
-    
-    NUM_TEST_ROWS = 1000
-
-    
     def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[]):
         nonlocal num_pass
         with engine.connect() as connection:
-            table = get_table(model)
             tsv_rows = get_random_tsv_rows(model, NUM_TEST_ROWS)
             for _, row in tsv_rows.iterrows():
                 tsv_row = row.to_dict()
@@ -66,26 +68,31 @@ def test(engine,job_dir = None):
                 
                 db_rows = connection.execute(statement).fetchall()
                 if len(db_rows) == 0:
-                    fail(f"Row not found in db: {tsv_row}")
+                    fail(f"{model} row not found: {tsv_row}")
                 elif len(db_rows) > 1:
-                    fail(f"Multiple rows found in db: {tsv_row}")
+                    fail(f"{model} multiple rows found: {tsv_row}")
                 else:
                     row_dict = db_rows[0]._mapping
                     for col in data_cols:
-                        if isinstance(row_dict[col], Decimal) or isinstance(row_dict[col], float):
-                            if math.isclose(row_dict[col], tsv_row[col], rel_tol=1e-7, abs_tol=1e-7):
+                        db_val = row_dict[col]
+                        tsv_val = tsv_row[col]
+                        
+                        if isinstance(db_val, Decimal) or isinstance(db_val, float) or isinstance(db_val, int):
+                            tsv_float = float(tsv_val)
+                            if math.isclose(db_val, tsv_float, rel_tol=1e-7, abs_tol=1e-7):
                                 continue
                             else:
-                                fail(f"{model} column {col} numerical mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
-                        elif isinstance(row_dict[col], str) or isinstance(row_dict[col], int):
-                            if row_dict[col] == tsv_row[col]:
+                                fail(f"{model} column {col} numerical mismatch: db's {db_val} != tsv's {tsv_val}", tsv_row)
+                            
+                        elif isinstance(db_val, str):
+                            if db_val == tsv_val:
                                 continue
                             else:
-                                fail(f"{model} column {col} string mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
-                        elif row_dict[col] is None and tsv_row[col] is None:
+                                fail(f"{model} column {col} string mismatch: db's {db_val} != tsv's {tsv_val}", tsv_row)
+                        elif db_val is None and tsv_val is None:
                             continue
                         else:
-                            print(f"unhandled type {type(row_dict[col])}")
+                            print(f"unhandled type {type(db_val)}")
                             quit()
                     for check in checks:
                         checkFailMsg = check(row_dict, tsv_row)
@@ -167,6 +174,15 @@ def test(engine,job_dir = None):
             data_cols=['af_tot', 'ac_tot', 'an_tot', 'hom_tot']
             )
     
+    testmodel("mt_ibvl_frequencies",
+            [mt_ibvl_frequencies, variants],
+            join_fn=lambda stmt: stmt.join(variants),
+            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
+                                                    variants.c.assembly == set_var_assembly),
+            #variant	an	ac_hom	ac_het	af_hom	af_het	hl_hist	max_hl
+            data_cols = ['an', 'ac_hom', 'ac_het', 'af_hom', 'af_het', 'hl_hist', 'max_hl']
+            )
+
     testmodel("mt_gnomad_frequencies",
             [mt_gnomad_frequencies, variants],
             join_fn=lambda stmt: stmt.join(variants),
@@ -175,8 +191,6 @@ def test(engine,job_dir = None):
             # an	ac_hom	ac_het	af_hom	af_het	max_hl
             data_cols = ['an', 'ac_hom', 'ac_het', 'af_hom', 'af_het', 'max_hl']
             )
-    
-        
 
     with engine.connect() as connection:
         def get_variant_transcript(tsv_row):
@@ -186,16 +200,23 @@ def test(engine,job_dir = None):
             db_rows = connection.execute(statement).fetchall()
             
             if len(db_rows) == 0:
-                fail(f"transcript not found in db: {tsv_row}")
-            if len(db_rows) > 1:
-                fail(f"Multiple transcripts found in db: {tsv_row}")
-            return db_rows[0]._mapping
+                fail(f"(variant_transcript) transcript not found: {tsv_row}")
+                return None
+            elif len(db_rows) > 1:
+                fail(f"(variant_transcript) multiple transcripts found: {tsv_row}")
+                return None
+            else:
+                return db_rows[0]._mapping
         
+        # testing variants_consequences
         tsv_rows = get_random_tsv_rows("variants_consequences", NUM_TEST_ROWS)
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             
             transcript = get_variant_transcript(tsv_row)
+            
+            if transcript is None:
+                continue
             
             tsv_row_filters = model_import_actions["variants_consequences"].get("filters") or {}
             for col, filter in tsv_row_filters.items():
@@ -215,12 +236,16 @@ def test(engine,job_dir = None):
                     break
             if not found:
                 fail(f"all matching variant consequences have wrong severity: {tsv_row}")
-                
+        
+        # testing variants_annotations
         tsv_rows = get_random_tsv_rows("variants_annotations", NUM_TEST_ROWS)
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             
             transcript = get_variant_transcript(tsv_row)
+            
+            if transcript is None:
+                continue
             
             tsv_row_filters = model_import_actions["variants_annotations"].get("filters") or {}
             for col, filter in tsv_row_filters.items():

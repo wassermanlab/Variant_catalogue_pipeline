@@ -1,4 +1,5 @@
-import json
+
+
 import math
 from decimal import Decimal
 from natsort import natsorted
@@ -14,11 +15,10 @@ from sqlalchemy import (
 from sqlalchemy.exc import DataError, IntegrityError, ProgrammingError
 import pandas as pd
 import numpy as np
-import signal
 import sys
 import os
 from datetime import datetime
-from sqlalchemy.orm import sessionmaker
+
 from dotenv import load_dotenv
 
 from import_utils import *
@@ -29,14 +29,11 @@ load_dotenv()
 
 # get command line arguments
 rootDir = os.environ.get("PIPELINE_OUTPUT_PATH")
-dir_containing_jobs = "jobs"
 current_dir = os.path.dirname(os.path.realpath(__file__))
-dir_containing_jobs = os.path.join(current_dir, dir_containing_jobs)
-print(f"dir containing jobs: {dir_containing_jobs}. absolute: {os.path.abspath(dir_containing_jobs)}")
+
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 # verbose = os.environ.get("VERBOSE") == "true"
-dbConnectionString = os.environ.get("DB")
-isDevelopment = os.environ.get("ENVIRONMENT") != "production"
+
 schema = os.environ.get("SCHEMA_NAME")
 dry_run = os.environ.get("DRY_RUN") == "true"
 update = os.environ.get("UPDATE") == "true"
@@ -50,7 +47,6 @@ start_at_file = (
     os.environ.get("START_AT_FILE") if os.environ.get("START_AT_FILE") != "" else None
 )
 
-jobs_dir = os.path.abspath(dir_containing_jobs)
 
 db_row_counts = {"before": {}, "after": {}}
 
@@ -64,9 +60,6 @@ print("importing", rootDir)
 engine = None
 
 metadata = MetaData()
-
-job_dir = ""
-# map of import functions
 
 depends_on_maps = {}
 current_model_existing_map = {}
@@ -450,31 +443,21 @@ def cleanup(sig, frame):
     sys.exit(0)
 
 
-signal.signal(signal.SIGINT, cleanup)
 
 
 def start(db_engine):
 
     arrived_at_start_model = False
     arrived_at_start_file = False
-    global job_dir, engine, schema, current_chromosome, last_chromosome
+    global engine, schema, current_chromosome, last_chromosome
     engine = db_engine
 
     if isinstance(schema, str) and len(schema) > 0:
         metadata.reflect(bind=engine, schema=schema)
     else:
         metadata.reflect(bind=engine)
-    Session = sessionmaker(bind=engine)
 
-    os.makedirs(jobs_dir, exist_ok=True)
-    os.makedirs(os.path.join(jobs_dir, "1"), exist_ok=True)
-
-    without_hidden = [f for f in os.listdir(jobs_dir) if not f.startswith(".")]
-    last_job = int(natsorted(without_hidden)[-1])
-    if os.listdir(os.path.join(jobs_dir, str(last_job))) == []:
-        job_dir = os.path.join(jobs_dir, str(last_job))
-    else:
-        job_dir = os.path.join(jobs_dir, str(last_job + 1))
+    job_dir = get_job_dir()
     os.makedirs(job_dir, exist_ok=True)
     os.chmod(job_dir, 0o777)  # Set read and write permissions for the directory
     setup_loggers(job_dir)
@@ -665,230 +648,5 @@ def start(db_engine):
             else:
                 delta[modelName] = count - delta[modelName]
                 log_output(f"DB row count {modelName} {count} ( grew by {delta[modelName]})")
-    
-    log_output("testing...")
-    
-    did_pass = True
-    num_pass = 0
-    def fail(msg):
-        did_pass = False
-        log_output(F"❌❌❌\n{msg} \n❌❌❌\n\n")
-#        cleanup(None, None)
-#        exit()
-        
-    def get_random_tsv_file(model_folder):
-        path = os.path.join(rootDir, model_folder)
-        files = natsorted(
-            [os.path.join(path,f) for f in os.listdir(path) if not f.startswith(".")],
-        )
-        file = np.random.choice(files, 1)[0]
-        return inspectTSV(file), file
-        
-    def get_random_tsv_rows(model_folder, n):
-        random_file_info, random_file = get_random_tsv_file(model_folder)
-        df = readTSV(random_file, random_file_info)
-        df_rowcount = len(df)
-        if df_rowcount < n:
-            n = df_rowcount
-        return df.sample(n)
-    
-    
-    NUM_TEST_ROWS = 1000
-
-    
-    def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[]):
-        with engine.connect() as connection:
-            table = get_table(model)
-            tsv_rows = get_random_tsv_rows(model, NUM_TEST_ROWS)
-            for _, row in tsv_rows.iterrows():
-                tsv_row = row.to_dict()
-                
-                tsv_row_filters = model_import_actions[model].get("filters") or {}
-                for col, filter in tsv_row_filters.items():
-                    tsv_row[col] = filter(tsv_row[col])
-                    
-                statement = select(*select_tables)
-                statement = join_fn(statement)
-                statement = where_fn(statement, tsv_row)
-                
-                db_rows = connection.execute(statement).fetchall()
-                if len(db_rows) == 0:
-                    fail(f"Row not found in db: {tsv_row}")
-                elif len(db_rows) > 1:
-                    fail(f"Multiple rows found in db: {tsv_row}")
-                else:
-                    row_dict = db_rows[0]._mapping
-                    for col in data_cols:
-                        if isinstance(row_dict[col], Decimal) or isinstance(row_dict[col], float):
-                            if math.isclose(row_dict[col], tsv_row[col], rel_tol=1e-7, abs_tol=1e-7):
-                                continue
-                            else:
-                                fail(f"{model} column {col} numerical mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
-                        elif isinstance(row_dict[col], str) or isinstance(row_dict[col], int):
-                            if row_dict[col] == tsv_row[col]:
-                                continue
-                            else:
-                                fail(f"{model} column {col} string mismatch: db's {row_dict[col]} != tsv's {tsv_row[col]}")
-                        elif row_dict[col] is None and tsv_row[col] is None:
-                            continue
-                        else:
-                            print(f"unhandled type {type(row_dict[col])}")
-                            quit()
-                    for check in checks:
-                        checkFailMsg = check(row_dict, tsv_row)
-                        if checkFailMsg is not None:
-                            fail(checkFailMsg)
-        num_pass += 1
-        
-    genes = get_table("genes")
-    
-    variants = get_table("variants")      
-    variants_transcripts = get_table("variants_transcripts")
-    transcripts = get_table("transcripts")
-    genomic_ibvl_frequencies = get_table("genomic_ibvl_frequencies")
-    mt_ibvl_frequencies = get_table("mt_ibvl_frequencies")
-    genomic_gnomad_frequencies = get_table("genomic_gnomad_frequencies")
-    mt_gnomad_frequencies = get_table("mt_gnomad_frequencies")
-    mts = get_table("mts")
-    snvs = get_table("snvs")
-    variants_annotations = get_table("variants_annotations")
-    variants_consequences = get_table("variants_consequences")
-    
-    testmodel("variants", 
-            [variants], 
-            join_fn=lambda stmt: stmt, 
-            where_fn=lambda stmt, tsv_r: stmt.where(
-                variants.c.variant_id == tsv_r["variant_id"], 
-                variants.c.assembly == set_var_assembly), 
-            data_cols=['var_type']
-            )
-
-    testmodel("transcripts", 
-            [transcripts, genes], 
-            join_fn=lambda stmt: stmt.join(genes), 
-            where_fn=lambda stmt, tsv: stmt.where(transcripts.c.transcript_id == tsv["transcript_id"]),
-            data_cols = ['transcript_type', 'tsl'],
-            checks = [
-                lambda db_row, tsv_row: None if db_row["short_name"] == tsv_row["gene"].upper() else f"Gene_id mismatch: {db_row['short_name']} != {tsv_row['gene'].upper()}"
-            ]
-            )
-    testmodel("variants_transcripts", 
-            [variants_transcripts, variants, transcripts], 
-            join_fn=lambda stmt: stmt.join(variants).join(transcripts), 
-            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
-                                                    variants.c.assembly == set_var_assembly, 
-                                                    transcripts.c.transcript_id == tsv_r["transcript"]), 
-            data_cols=['hgvsc']
-            )
-    
-    testmodel("snvs", 
-            [snvs, variants], 
-            join_fn=lambda stmt: stmt.join(variants), 
-            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
-                                                    variants.c.assembly == set_var_assembly), 
-            data_cols=['type', 'length', 'chr', 'pos', 'ref', 'alt', 'cadd_score', 'cadd_intr', 'dbsnp_id', 'dbsnp_url', 'ucsc_url', 'ensembl_url', 'clinvar_url', 'gnomad_url', 'clinvar_vcv', 'splice_ai'],
-            )
-    
-    testmodel("mts",
-            [mts, variants],
-            join_fn=lambda stmt: stmt.join(variants),
-            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
-                                                    variants.c.assembly == set_var_assembly),
-            data_cols=['pos', 'ref', 'alt', 'ucsc_url', 'mitomap_url', 'gnomad_url', 'dbsnp_id', 'dbsnp_url', 'clinvar_url', 'clinvar_vcv'],
-            )
-    
-    testmodel("genomic_ibvl_frequencies", 
-            [genomic_ibvl_frequencies, variants], 
-            join_fn=lambda stmt: stmt.join(variants), 
-            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
-                                                    variants.c.assembly == set_var_assembly), 
-            data_cols=['af_tot', 'af_xx', 'af_xy', 'ac_tot', 'ac_xx', 'ac_xy', 'an_tot', 'an_xx', 'an_xy', 'hom_tot', 'hom_xx', 'hom_xy', 'quality']
-            )
-    
-    
-    testmodel("genomic_gnomad_frequencies",
-            [genomic_gnomad_frequencies, variants],
-            join_fn=lambda stmt: stmt.join(variants),
-            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
-                                                    variants.c.assembly == set_var_assembly),
-            data_cols=['af_tot', 'ac_tot', 'an_tot', 'hom_tot']
-            )
-    
-    testmodel("mt_gnomad_frequencies",
-            [mt_gnomad_frequencies, variants],
-            join_fn=lambda stmt: stmt.join(variants),
-            where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
-                                                    variants.c.assembly == set_var_assembly),
-            # an	ac_hom	ac_het	af_hom	af_het	max_hl
-            data_cols = ['an', 'ac_hom', 'ac_het', 'af_hom', 'af_het', 'max_hl']
-            )
-    
-        
-
-    with engine.connect() as connection:
-        def get_variant_transcript(tsv_row):
-            statement = select(variants_transcripts, variants, transcripts)
-            statement = statement.join(variants).join(transcripts)
-            statement = statement.where(variants.c.variant_id == tsv_row["variant"], variants.c.assembly == set_var_assembly, transcripts.c.transcript_id == tsv_row["transcript"])
-            db_rows = connection.execute(statement).fetchall()
-            
-            if len(db_rows) == 0:
-                fail(f"transcript not found in db: {tsv_row}")
-            if len(db_rows) > 1:
-                fail(f"Multiple transcripts found in db: {tsv_row}")
-            return db_rows[0]._mapping
-        
-        tsv_rows = get_random_tsv_rows("variants_consequences", NUM_TEST_ROWS)
-        for _, row in tsv_rows.iterrows():
-            tsv_row = row.to_dict()
-            
-            transcript = get_variant_transcript(tsv_row)
-            
-            tsv_row_filters = model_import_actions["variants_consequences"].get("filters") or {}
-            for col, filter in tsv_row_filters.items():
-                tsv_row[col] = filter(tsv_row[col])
-                
-            statement = select(variants_consequences)
-            statement = statement.where(variants_consequences.c.variant_transcript == transcript["id"])
-            
-            db_rows = connection.execute(statement).fetchall()
-            if len(db_rows) == 0:
-                fail(f"no variant consequences in db matching: {tsv_row}")
-            
-            found = False
-            for db_row in db_rows:
-                if db_row._mapping["severity"] == tsv_row["severity"]:
-                    found = True
-                    break
-            if not found:
-                fail(f"all matching variant consequences have wrong severity: {tsv_row}")
-                
-        tsv_rows = get_random_tsv_rows("variants_annotations", NUM_TEST_ROWS)
-        for _, row in tsv_rows.iterrows():
-            tsv_row = row.to_dict()
-            
-            transcript = get_variant_transcript(tsv_row)
-            
-            tsv_row_filters = model_import_actions["variants_annotations"].get("filters") or {}
-            for col, filter in tsv_row_filters.items():
-                tsv_row[col] = filter(tsv_row[col])
-                
-            statement = select(variants_annotations)
-            statement = statement.where(variants_annotations.c.variant_transcript == transcript["id"])
-            
-            db_rows = connection.execute(statement).fetchall()
-            if len(db_rows) == 0:
-                fail(f"No variant annotations in db matching: {tsv_row}")
-            elif len(db_rows) > 1:
-                fail(f"Multiple variant annotations found in db matching: {tsv_row}")
-            else:
-                db_row_dict = db_rows[0]._mapping
-                ##hgvsp	sift	polyphen
-                for col in ['hgvsp', 'sift', 'polyphen']:
-                    if db_row_dict[col] != tsv_row[col]:
-                        fail(f"variant annotation mismatch: db's {db_row_dict[col]} != tsv's {tsv_row[col]}")
-
-    if (did_pass):
-        log_output("✅✅✅ \n all tests passed\n✅✅✅\n")
-        
-    cleanup(None, None)
+    return job_dir
+#    cleanup(None, None)

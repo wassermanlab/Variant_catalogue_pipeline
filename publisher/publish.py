@@ -7,11 +7,16 @@ from sqlalchemy import (
     create_engine,
     event
 )
+import signal
+from publish_test import *
 
 load_dotenv()
 
 dbConnectionString = os.environ.get("DB")
-verbose = os.environ.get("VERBOSE") == "true" or os.environ.get("VERBOSE") == "True"
+test_only = os.environ.get("TEST","").lower() == "true"
+
+verbose = os.environ.get("VERBOSE","").lower() == "true"
+
 isDevelopment = os.environ.get("ENVIRONMENT") != "production"
 
 if isDevelopment:
@@ -29,7 +34,16 @@ if isDevelopment:
 print("connecting...")
 engine = create_engine(dbConnectionString, echo=False, pool_pre_ping=True, pool_recycle=3600)
 
-start(engine)   
+signal.signal(signal.SIGINT, cleanup)
+
+if test_only:
+    test(engine)
+    exit()
+else:
+    job_dir = start(engine)
+    test(engine, job_dir)   
+
+cleanup(None, None)
 
 exit()
 

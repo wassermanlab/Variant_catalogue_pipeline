@@ -8,6 +8,7 @@ from sys import stderr
 
 from dotenv import load_dotenv
 import os
+from natsort import natsorted
 
 data_issue_logger = {}
 output_logger = None
@@ -20,6 +21,32 @@ fail_fast = os.environ.get("FAIL_FAST") == "true" or os.environ.get("FAIL_FAST")
 verbose = os.environ.get("VERBOSE") == "true" or os.environ.get("VERBOSE") == "True"
 print('verbose is', verbose)
 
+def get_job_dir(job_number=None):
+        
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    dir_containing_jobs = os.path.join(current_dir, "jobs")
+    print(f"dir containing jobs: {dir_containing_jobs}. absolute: {os.path.abspath(dir_containing_jobs)}")
+    
+    jobs_dir = os.path.abspath(dir_containing_jobs)
+    
+    if isinstance(job_number, str):
+        job_dir = os.path.join(jobs_dir, job_number)
+    else:
+        # no job number specified
+        
+        os.makedirs(jobs_dir, exist_ok=True)
+        os.makedirs(os.path.join(jobs_dir, "1"), exist_ok=True)
+
+        without_hidden = [f for f in os.listdir(jobs_dir) if not f.startswith(".")]
+        last_job = int(natsorted(without_hidden)[-1])
+        if os.listdir(os.path.join(jobs_dir, str(last_job))) == []:
+            job_dir = os.path.join(jobs_dir, str(last_job))
+        else:
+            job_dir = os.path.join(jobs_dir, str(last_job + 1))
+    
+    return job_dir
+            
+        
 def inspectTSV(file):
     total_rows = 0
     separator = "\t"

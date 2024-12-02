@@ -3,7 +3,7 @@ from import_utils import *
 
 def test(engine,job_dir = None):
         
-    NUM_TEST_ROWS = os.environ.get("NUM_TEST_ROWS", 200)
+    NUM_TEST_ROWS = int(os.environ.get("NUM_TEST_ROWS", 200))
 #    if job_dir is not None:
 #        setup_loggers(job_dir)
         
@@ -30,10 +30,10 @@ def test(engine,job_dir = None):
     def fail(msg, msg2 = None):
         nonlocal did_pass
         did_pass = False
-        if (isinstance(msg2, str)):
-            output(F"❌❌❌\n{msg} \n    {msg2}\n❌❌❌\n\n")
+        if (msg2 is not None):
+            output(F"❌ {msg}\n    {msg2}")
         else:
-            output(F"❌❌❌\n{msg} \n❌❌❌\n\n")
+            output(F"❌ {msg}")
 #        cleanup(None, None)
 #        exit()
         
@@ -97,7 +97,7 @@ def test(engine,job_dir = None):
                     for check in checks:
                         checkFailMsg = check(row_dict, tsv_row)
                         if checkFailMsg is not None:
-                            fail(checkFailMsg)
+                            fail(checkFailMsg, tsv_row)
         num_pass += 1
         
     genes = get_table("genes")
@@ -264,7 +264,7 @@ def test(engine,job_dir = None):
                 ##hgvsp	sift	polyphen
                 for col in ['hgvsp', 'sift', 'polyphen']:
                     if db_row_dict[col] != tsv_row[col]:
-                        fail(f"variant annotation mismatch: db's {db_row_dict[col]} != tsv's {tsv_row[col]}")
+                        fail(f"variant annotation mismatch: db's {db_row_dict[col]} != tsv's {tsv_row[col]}", tsv_row)
 
     if (did_pass):
         output("✅✅✅ \n all tests passed\n✅✅✅\n")

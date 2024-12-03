@@ -48,8 +48,6 @@ def test(engine,job_dir = None):
         
         types = model_import_actions[model_folder].get("tsv_types") or {}
         
-        if types is not {}:
-            print(f"types {model_folder}", types)
         df = readTSV(random_file, random_file_info, dtype=types)
         df_rowcount = len(df)
         if df_rowcount < n:
@@ -133,7 +131,7 @@ def test(engine,job_dir = None):
 
     testmodel("transcripts", 
             [transcripts, genes], 
-            join_fn=lambda stmt: stmt.join(genes), 
+            join_fn=lambda stmt: stmt.join(genes, transcripts.c.gene == genes.c.id), 
             where_fn=lambda stmt, tsv: stmt.where(transcripts.c.transcript_id == tsv["transcript_id"]),
             data_cols = ['transcript_type', 'tsl'],
             checks = [
@@ -142,7 +140,7 @@ def test(engine,job_dir = None):
             )
     testmodel("variants_transcripts", 
             [variants_transcripts, variants, transcripts], 
-            join_fn=lambda stmt: stmt.join(variants).join(transcripts), 
+            join_fn=lambda stmt: stmt.join(variants, variants_transcripts.c.variant == variants.c.id).join(transcripts, variants_transcripts.c.transcript == transcripts.c.id), 
             where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
                                                     variants.c.assembly == set_var_assembly, 
                                                     transcripts.c.transcript_id == tsv_r["transcript"]), 
@@ -151,7 +149,7 @@ def test(engine,job_dir = None):
     
     testmodel("snvs", 
             [snvs, variants], 
-            join_fn=lambda stmt: stmt.join(variants), 
+            join_fn=lambda stmt: stmt.join(variants, snvs.c.variant == variants.c.id), 
             where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
                                                     variants.c.assembly == set_var_assembly), 
             data_cols=['type', 'length', 'chr', 'pos', 'ref', 'alt', 'cadd_score', 'cadd_intr', 'dbsnp_id', 'dbsnp_url', 'ucsc_url', 'ensembl_url', 'clinvar_url', 'gnomad_url', 'clinvar_vcv', 'splice_ai'],
@@ -159,7 +157,7 @@ def test(engine,job_dir = None):
     
     testmodel("mts",
             [mts, variants],
-            join_fn=lambda stmt: stmt.join(variants),
+            join_fn=lambda stmt: stmt.join(variants, mts.c.variant == variants.c.id),
             where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
                                                     variants.c.assembly == set_var_assembly),
             data_cols=['pos', 'ref', 'alt', 'ucsc_url', 'mitomap_url', 'gnomad_url', 'dbsnp_id', 'dbsnp_url', 'clinvar_url', 'clinvar_vcv'],
@@ -167,7 +165,7 @@ def test(engine,job_dir = None):
     
     testmodel("genomic_ibvl_frequencies", 
             [genomic_ibvl_frequencies, variants], 
-            join_fn=lambda stmt: stmt.join(variants), 
+            join_fn=lambda stmt: stmt.join(variants, genomic_ibvl_frequencies.c.variant == variants.c.id), 
             where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"], 
                                                     variants.c.assembly == set_var_assembly), 
             data_cols=['af_tot', 'af_xx', 'af_xy', 'ac_tot', 'ac_xx', 'ac_xy', 'an_tot', 'an_xx', 'an_xy', 'hom_tot', 'hom_xx', 'hom_xy', 'quality']
@@ -176,7 +174,7 @@ def test(engine,job_dir = None):
     
     testmodel("genomic_gnomad_frequencies",
             [genomic_gnomad_frequencies, variants],
-            join_fn=lambda stmt: stmt.join(variants),
+            join_fn=lambda stmt: stmt.join(variants, genomic_gnomad_frequencies.c.variant == variants.c.id),
             where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
                                                     variants.c.assembly == set_var_assembly),
             data_cols=['af_tot', 'ac_tot', 'an_tot', 'hom_tot']
@@ -184,7 +182,7 @@ def test(engine,job_dir = None):
     
     testmodel("mt_ibvl_frequencies",
             [mt_ibvl_frequencies, variants],
-            join_fn=lambda stmt: stmt.join(variants),
+            join_fn=lambda stmt: stmt.join(variants, mt_ibvl_frequencies.c.variant == variants.c.id),
             where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
                                                     variants.c.assembly == set_var_assembly),
             #variant	an	ac_hom	ac_het	af_hom	af_het	hl_hist	max_hl
@@ -193,7 +191,7 @@ def test(engine,job_dir = None):
 
     testmodel("mt_gnomad_frequencies",
             [mt_gnomad_frequencies, variants],
-            join_fn=lambda stmt: stmt.join(variants),
+            join_fn=lambda stmt: stmt.join(variants, mt_gnomad_frequencies.c.variant == variants.c.id),
             where_fn=lambda stmt, tsv_r: stmt.where(variants.c.variant_id == tsv_r["variant"],
                                                     variants.c.assembly == set_var_assembly),
             # an	ac_hom	ac_het	af_hom	af_het	max_hl
@@ -203,7 +201,7 @@ def test(engine,job_dir = None):
     with engine.connect() as connection:
         def get_variant_transcript(tsv_row):
             statement = select(variants_transcripts, variants, transcripts)
-            statement = statement.join(variants).join(transcripts)
+            statement = statement.join(variants, variants_transcripts.c.variant == variants.c.id).join(transcripts, variants_transcripts.c.transcript == transcripts.c.id)
             statement = statement.where(variants.c.variant_id == tsv_row["variant"], variants.c.assembly == set_var_assembly, transcripts.c.transcript_id == tsv_row["transcript"])
             db_rows = connection.execute(statement).fetchall()
             

@@ -15,7 +15,7 @@ def test(engine,job_dir = None):
         else:
             print(msg)
             
-    output(f"testing {os.environ.get('SCHEMA_NAME')}, assembly {os.environ.get('SET_VAR_ASSEMBLY')})...")
+    output(f"testing {os.environ.get('SCHEMA_NAME')}, assembly {os.environ.get('SET_VAR_ASSEMBLY')}")
     output(f"num test rows: {NUM_TEST_ROWS}")
     output(f"tsv folder is {os.environ.get('PIPELINE_OUTPUT_PATH')}")
     
@@ -74,9 +74,9 @@ def test(engine,job_dir = None):
                 
                 db_rows = connection.execute(statement).fetchall()
                 if len(db_rows) == 0:
-                    fail(f"{model} row not found: {tsv_row}")
+                    fail(f"{model} row not found", tsv_row)
                 elif len(db_rows) > 1:
-                    fail(f"{model} multiple rows found: {tsv_row}")
+                    fail(f"{model} multiple rows found", tsv_row)
                 else:
                     row_dict = db_rows[0]._mapping
                     for col in data_cols:
@@ -206,10 +206,10 @@ def test(engine,job_dir = None):
             db_rows = connection.execute(statement).fetchall()
             
             if len(db_rows) == 0:
-                fail(f"(variant_transcript) transcript not found: {tsv_row}")
+                fail(f"(variant_transcript) transcript not found", tsv_row)
                 return None
             elif len(db_rows) > 1:
-                fail(f"(variant_transcript) multiple transcripts found: {tsv_row}")
+                fail(f"(variant_transcript) multiple transcripts found", tsv_row)
                 return None
             else:
                 return db_rows[0]._mapping
@@ -233,7 +233,7 @@ def test(engine,job_dir = None):
             
             db_rows = connection.execute(statement).fetchall()
             if len(db_rows) == 0:
-                fail(f"no variant consequences in db matching: {tsv_row}")
+                fail(f"no variant consequences in db matching", tsv_row)
             
             found = False
             for db_row in db_rows:
@@ -241,7 +241,7 @@ def test(engine,job_dir = None):
                     found = True
                     break
             if not found:
-                fail(f"all matching variant consequences have wrong severity: {tsv_row}")
+                fail(f"all matching variant consequences have wrong severity", tsv_row)
         
         # testing variants_annotations
         tsv_rows = get_random_tsv_rows("variants_annotations", NUM_TEST_ROWS)
@@ -262,9 +262,9 @@ def test(engine,job_dir = None):
             
             db_rows = connection.execute(statement).fetchall()
             if len(db_rows) == 0:
-                fail(f"No variant annotations in db matching: {tsv_row}")
+                fail(f"No variant annotations in db matching:", tsv_row)
             elif len(db_rows) > 1:
-                fail(f"Multiple variant annotations found in db matching: {tsv_row}")
+                fail(f"Multiple variant annotations found in db matching:", tsv_row)
             else:
                 db_row_dict = db_rows[0]._mapping
                 ##hgvsp	sift	polyphen

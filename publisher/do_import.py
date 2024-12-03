@@ -55,7 +55,7 @@ if rootDir == None:
     print("No root directory specified. default ", rootDir)
 #    exit()
 
-print("importing", rootDir)
+
 
 engine = None
 
@@ -434,6 +434,7 @@ def cleanup(sig, frame):
 
 def start(db_engine):
 
+    print("importing", rootDir)
     arrived_at_start_model = False
     arrived_at_start_file = False
     global engine, schema, current_chromosome, last_chromosome

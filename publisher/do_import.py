@@ -181,6 +181,8 @@ def import_file(file, file_info, action):
     fk_map = action.get("fk_map")
     filters = action.get("filters") or {}
     
+    table = get_table(model)
+    
 #    cache_group = file_info('cache_group')
 #    print(f"cache group is {file_info['cache_group']}")
 
@@ -192,21 +194,10 @@ def import_file(file, file_info, action):
     updatedCount = 0
     successful_chunks = 0
     fail_chunks = 0
-    
-    table = get_table(model)
-    types_dict = {}
-    for column in table.columns:
-        # convert sql types to pandas types
-        if isinstance(column.type, Integer):
-            types_dict[column.name] = "Int64"
-        elif isinstance(column.type, String):
-            types_dict[column.name] = "str"
-        elif isinstance(column.type, Float):
-            types_dict[column.name] = "float64"
-        else:
-            pass
+        
+    action_types = action.get("tsv_types" ,{})
 
-    df = readTSV(file, file_info, dtype=types_dict)
+    df = readTSV(file, file_info, dtype=action_types)
     
 
     data_insert_list = []

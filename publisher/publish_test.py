@@ -1,6 +1,8 @@
 from do_import import *
 from import_utils import *
 
+from model_import_actions import model_import_actions
+
 def test(engine,job_dir = None):
         
     NUM_TEST_ROWS = int(os.environ.get("NUM_TEST_ROWS", 200))
@@ -22,9 +24,7 @@ def test(engine,job_dir = None):
         metadata.reflect(bind=engine, schema=schema)
     else:
         metadata.reflect(bind=engine)
-    
-    output("testing...")
-    
+        
     did_pass = True
     num_pass = 0
     def fail(msg, msg2 = None):
@@ -45,13 +45,19 @@ def test(engine,job_dir = None):
         
     def get_random_tsv_rows(model_folder, n):
         random_file_info, random_file = get_random_tsv_file(model_folder)
-        df = readTSV(random_file, random_file_info)
+        
+        types = model_import_actions[model_folder].get("tsv_types") or {}
+        
+        if types is not {}:
+            print(f"types {model_folder}", types)
+        df = readTSV(random_file, random_file_info, dtype=types)
         df_rowcount = len(df)
         if df_rowcount < n:
             n = df_rowcount
         return df.sample(n)
     
     def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[], skip=False):
+        output(f"testing {model}...")
         if skip:
             return
         nonlocal num_pass

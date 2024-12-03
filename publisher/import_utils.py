@@ -82,7 +82,9 @@ def inspectTSV(file):
 
 def readTSV(file, info, dtype={}):
 #    df = pd.read_csv(file, sep=info["separator"], dtype=dtype, na_values=["NA"], keep_default_na=False)
-    df = pd.read_csv(file, sep=info["separator"])
+    
+    df = pd.read_csv(file, sep=info["separator"], dtype=dtype)
+
     df.rename(columns={"All_info$variant": "variant"}, inplace=True)
     df.columns = [col.lower() for col in df.columns]
     

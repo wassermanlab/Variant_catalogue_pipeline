@@ -27,6 +27,9 @@ model_import_actions = {
         "fk_map": {"gene": "genes"},
         "filters": {
             "transcript_type": lambda x: x.replace("RefSeq", "R") if x is not None else None,
+        },
+        "tsv_types":{
+            'tsl': 'str'
         }
     },
     "variants": {
@@ -75,6 +78,10 @@ model_import_actions = {
             "dbsnp_id": lambda x: x.split("&")[0] if x is not None else None,
             "chr": lambda x: str(x).replace("chr", "") if x is not None else None,
             },
+        
+        "tsv_types":{
+            'clinvar_url': 'str'
+        }
     },
     "mts": {
         "name": "mts",

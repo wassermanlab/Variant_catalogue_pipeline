@@ -17,19 +17,6 @@ test_only = os.environ.get("TEST","").lower() == "true"
 
 verbose = os.environ.get("VERBOSE","").lower() == "true"
 
-isDevelopment = os.environ.get("ENVIRONMENT") != "production"
-
-if isDevelopment:
-    # create the database if it doesn't exist
-    engine = create_engine(dbConnectionString, echo=False)
-    if database_exists(engine.url):
-        #assume already has structure
-        pass
-    else:
-        create_database(dbConnectionString)
-        import tables
-    engine.dispose()
-
 
 print("connecting...")
 engine = create_engine(dbConnectionString, echo=False, pool_pre_ping=True, pool_recycle=3600)

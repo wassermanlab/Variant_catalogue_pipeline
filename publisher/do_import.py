@@ -52,10 +52,6 @@ db_row_counts = {"before": {}, "after": {}}
 
 if rootDir == None:
     rootDir = os.path.join(current_dir, "fixtures")
-    print("No root directory specified. default ", rootDir)
-#    exit()
-
-
 
 engine = None
 
@@ -87,7 +83,7 @@ def populate_maps(action, chromosome=None):
                     table.c["id"],
                     variants.c["variant_id", "assembly"], 
                     transcripts.c["transcript_id"]
-                ).join(variants).join(transcripts).where(variants.c.assembly == set_var_assembly)
+                ).join(variants, table.c.variant == variants.c.id).join(transcripts, table.c.transcript == transcripts.c.id).where(variants.c.assembly == set_var_assembly)
                 if chromosome is not None:
                     statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
                 
@@ -97,7 +93,7 @@ def populate_maps(action, chromosome=None):
                 if "variant" in model_action["fk_map"]:
                     variants = get_table("variants")
                     cols.append(variants.c["variant_id", "assembly"])
-                    statement = select(*cols).join(variants).where(variants.c.assembly == set_var_assembly)
+                    statement = select(*cols).join(variants, table.c.variant == variants.c.id).where(variants.c.assembly == set_var_assembly)
                     if chromosome is not None:
                         statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
                 elif modelName == "variants":

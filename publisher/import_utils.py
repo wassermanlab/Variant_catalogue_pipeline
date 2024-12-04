@@ -25,7 +25,7 @@ def get_job_dir(job_number=None):
         
     current_dir = os.path.dirname(os.path.realpath(__file__))
     dir_containing_jobs = os.path.join(current_dir, "jobs")
-    print(f"dir containing jobs: {dir_containing_jobs}. absolute: {os.path.abspath(dir_containing_jobs)}")
+#    print(f"dir containing jobs: {dir_containing_jobs}. absolute: {os.path.abspath(dir_containing_jobs)}")
     
     jobs_dir = os.path.abspath(dir_containing_jobs)
     

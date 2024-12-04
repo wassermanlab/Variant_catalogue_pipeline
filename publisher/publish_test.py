@@ -17,7 +17,7 @@ def test(engine,job_dir = None):
             
     output(f"testing {os.environ.get('SCHEMA_NAME')}, assembly {os.environ.get('SET_VAR_ASSEMBLY')}")
     output(f"num test rows: {NUM_TEST_ROWS}")
-    output(f"tsv folder is {os.environ.get('PIPELINE_OUTPUT_PATH')}")
+    output(f"tsv folder is {os.environ.get('PIPELINE_OUTPUT_PATH', '/fixtures')}")
     
     
     if isinstance(schema, str) and len(schema) > 0:
@@ -54,8 +54,9 @@ def test(engine,job_dir = None):
             n = df_rowcount
         return df.sample(n)
     
-    def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[], skip=False):
+    def testmodel(model, select_tables, join_fn, where_fn, data_cols, checks=[], skip=False, null_fk_case=None):
         output(f"testing {model}...")
+        
         if skip:
             return
         nonlocal num_pass
@@ -73,6 +74,10 @@ def test(engine,job_dir = None):
                 statement = where_fn(statement, tsv_row)
                 
                 db_rows = connection.execute(statement).fetchall()
+                
+                if len(db_rows) == 0 and null_fk_case is not None:
+                    db_rows = connection.execute(null_fk_case(tsv_row)).fetchall()
+                
                 if len(db_rows) == 0:
                     fail(f"{model} row not found", tsv_row)
                 elif len(db_rows) > 1:
@@ -128,6 +133,14 @@ def test(engine,job_dir = None):
                 variants.c.assembly == set_var_assembly), 
             data_cols=['var_type']
             )
+    
+    def checkTranscriptGene(db_row, tsv_row):
+        tsv_gene = tsv_row["gene"]
+        db_gene = db_row.get("short_name")
+        if db_gene == tsv_gene:
+            return None
+        else:
+            return f"Gene_id mismatch: db {db_gene} != tsv {tsv_gene}"
 
     testmodel("transcripts", 
             [transcripts, genes], 
@@ -135,8 +148,9 @@ def test(engine,job_dir = None):
             where_fn=lambda stmt, tsv: stmt.where(transcripts.c.transcript_id == tsv["transcript_id"]),
             data_cols = ['transcript_type', 'tsl'],
             checks = [
-                lambda db_row, tsv_row: None if db_row["short_name"] == tsv_row["gene"].upper() else f"Gene_id mismatch: {db_row['short_name']} != {tsv_row['gene'].upper()}"
-            ]
+                checkTranscriptGene
+            ],
+            null_fk_case = lambda tsv: select(transcripts).where(transcripts.c.transcript_id == tsv["transcript_id"])
             )
     testmodel("variants_transcripts", 
             [variants_transcripts, variants, transcripts], 

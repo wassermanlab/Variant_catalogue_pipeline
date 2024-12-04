@@ -10,12 +10,12 @@ model_import_actions = {
     "genes": {
         "name": "genes",
         "table": "genes",
-        "map_key_expression": lambda row: row.short_name.upper(),
-        "tsv_map_key_expression": lambda row: row["short_name"].upper(),
+        "map_key_expression": lambda row: row.short_name,
+        "tsv_map_key_expression": lambda row: row["short_name"],
         "pk_lookup_col": ["short_name"],
         "cache_by_chromosome": False,
         "fk_map": {},
-        "filters": {"short_name": lambda x: x.upper() if x is not None else None},
+        "filters": {},
     },
     "transcripts": {
         "name": "transcripts",
@@ -30,7 +30,8 @@ model_import_actions = {
         },
         "tsv_types":{
             'tsl': 'str'
-        }
+        },
+        "null_ok": ["gene"]
     },
     "variants": {
         "name": "variants",

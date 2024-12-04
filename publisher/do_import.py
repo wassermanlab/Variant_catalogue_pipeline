@@ -220,7 +220,7 @@ def import_file(file, file_info, action):
             data[col] = filter(data[col])
         for depended_model_col, depended_model in fk_map.items():
             depended_map_key = None
-            resolved_pk = None
+            fk = None
             
             if model in ["variants_annotations", "variants_consequences"]:
                 depended_map_key = (data["variant"], data["transcript"])
@@ -228,17 +228,18 @@ def import_file(file, file_info, action):
                 
                 if isinstance(data[depended_model_col], str):
                     depended_map_key = data[depended_model_col]
-                if depended_model == "genes" and depended_map_key is not None:
-                    depended_map_key = depended_map_key.upper()
             if depended_map_key == "NA":
+                
                     data[depended_model_col] = None
             elif depended_map_key is None:
-                resolved_pk = None
+                fk = None
             else:
-                resolved_pk = depends_on_maps.get(depended_model).get( depended_map_key)
+                fk = depends_on_maps.get(depended_model).get( depended_map_key)
                 
-            if resolved_pk is not None:
-                data[depended_model_col] = resolved_pk
+            if fk is not None:
+                data[depended_model_col] = fk
+            elif fk is None and depended_model_col in action.get("null_ok", []):
+                data[depended_model_col] = None
             else:
                 log_data_issue(
                     f"Missing {depended_model_col} {depended_map_key} in {depended_model}"
@@ -294,7 +295,6 @@ def import_file(file, file_info, action):
         else:
             # the record is NOT in the db, so add it
             data_insert_list.append(data)
-#        data_list.append(data)
 
     # dispose of df to save ram
     del df

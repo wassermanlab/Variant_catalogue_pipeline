@@ -57,11 +57,11 @@ transcripts_table = Table(
     "transcripts",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("transcript_id", String(100)),
+    Column("transcript_id", String(100), nullable=False),
     Column("gene", Integer, ForeignKey("genes.id", ondelete="CASCADE")),
-    Column("transcript_type", String(1)),
+    Column("transcript_type", String(1), nullable=False),
     Column("tsl", String(12)),
-    UniqueConstraint("transcript_id", name="transcripts_unique"),
+    Column("assembly", Integer)
 #    ForeignKey("gene", name="transcripts_genes_fk", ondelete="CASCADE", table="genes"),
 )
 

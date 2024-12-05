@@ -22,7 +22,7 @@ model_import_actions = {
         "table": "transcripts",
         "map_key_expression": lambda row: row.transcript_id,
         "tsv_map_key_expression": lambda row: row["transcript_id"],
-        "pk_lookup_col": ["transcript_id"],
+        "pk_lookup_col": ["transcript_id", "assembly"],
         "cache_by_chromosome": False,
         "fk_map": {"gene": "genes"},
         "filters": {
@@ -38,7 +38,7 @@ model_import_actions = {
         "table": "variants",
         "map_key_expression": lambda row: row.variant_id,
         "tsv_map_key_expression": lambda row: row["variant_id"],
-        "pk_lookup_col": ["variant_id"],
+        "pk_lookup_col": ["variant_id", "assembly"],
         "fk_map": {},
     },
     "variants_transcripts": {

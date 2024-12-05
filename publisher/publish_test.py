@@ -145,12 +145,17 @@ def test(engine,job_dir = None):
     testmodel("transcripts", 
             [transcripts, genes], 
             join_fn=lambda stmt: stmt.join(genes, transcripts.c.gene == genes.c.id), 
-            where_fn=lambda stmt, tsv: stmt.where(transcripts.c.transcript_id == tsv["transcript_id"]),
+            where_fn=lambda stmt, tsv: stmt.where(
+                transcripts.c.transcript_id == tsv["transcript_id"],
+                transcripts.c.assembly == set_var_assembly),
             data_cols = ['transcript_type', 'tsl'],
             checks = [
                 checkTranscriptGene
             ],
-            null_fk_case = lambda tsv: select(transcripts).where(transcripts.c.transcript_id == tsv["transcript_id"])
+            null_fk_case = lambda tsv: select(transcripts).where(
+                transcripts.c.transcript_id == tsv["transcript_id"],
+                transcripts.c.assembly == set_var_assembly
+                )
             )
     testmodel("variants_transcripts", 
             [variants_transcripts, variants, transcripts], 

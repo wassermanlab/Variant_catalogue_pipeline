@@ -40,6 +40,10 @@ update = os.environ.get("UPDATE") == "true"
 set_var_assembly = os.environ.get("SET_VAR_ASSEMBLY", None)
 set_var_assembly = int(set_var_assembly) if set_var_assembly is not None else None
 
+if (set_var_assembly is None):
+    log_error("SET_VAR_ASSEMBLY is not set.")
+    quit()
+
 start_at_model = (
     os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None
 )
@@ -96,6 +100,9 @@ def populate_maps(action, chromosome=None):
                     statement = select(*cols).join(variants, table.c.variant == variants.c.id).where(variants.c.assembly == set_var_assembly)
                     if chromosome is not None:
                         statement = statement.where(variants.c.variant_id.startswith(f"{chromosome}_"))
+                elif modelName == "transcripts":
+                    cols.append(table.c["assembly"])
+                    statement = select(*cols).where(table.c.assembly == set_var_assembly)
                 elif modelName == "variants":
                     cols.append(table.c["assembly"])
                     statement = select(*cols).where(table.c.assembly == set_var_assembly)
@@ -201,7 +208,7 @@ def import_file(file, file_info, action):
     for _, row in df.iterrows():
         data = row.to_dict()
         
-        if (model == "variants" and set_var_assembly is not None):
+        if (model in ["variants","transcripts"]):
             data["assembly"] = set_var_assembly
         
         if separate_cache_by_chromosome(action):
@@ -211,8 +218,6 @@ def import_file(file, file_info, action):
                 last_chromosome = current_chromosome
                 persist_and_unload_maps()
                 populate_maps(action, current_chromosome)
-        
-        
 
         skip = False
         record_map_key = action.get("tsv_map_key_expression")(data)
@@ -238,26 +243,17 @@ def import_file(file, file_info, action):
                 
             if fk is not None:
                 data[depended_model_col] = fk
-            elif fk is None and depended_model_col in action.get("null_ok", []):
-                data[depended_model_col] = None
             else:
-                log_data_issue(
-                    f"Missing {depended_model_col} {depended_map_key} in {depended_model}"
-                    if depended_model_col is not None
-                    else (
-                        f"None {depended_map_key}"
-                        if depended_map_key is not None
-                        else (
-                            f"None referenced from {model}"
-                            if model is not None
-                            else "None"
-                        )
-                    ),
-                    model,
-                )
-                log_data_issue(data, model)
-                missingRefCount += 1
-                skip = True
+                if depended_model_col in action.get("null_ok", []) and data[depended_model_col] is None:
+                    pass
+                else:
+                    log_data_issue(
+                        f"Missing {depended_model_col} {depended_map_key} in {depended_model}",
+                        model,
+                    )
+                    log_data_issue(data, model)
+                    missingRefCount += 1
+                    skip = True
         if skip:
             continue
 #        # this block replaces None with empty string for string columns (good for django)

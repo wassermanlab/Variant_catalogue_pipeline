@@ -5,7 +5,7 @@ from model_import_actions import model_import_actions
 
 def test(engine,job_dir = None):
         
-    NUM_TEST_ROWS = int(os.environ.get("NUM_TEST_ROWS", 200))
+    N = int(os.environ.get("N", 200))
 #    if job_dir is not None:
 #        setup_loggers(job_dir)
         
@@ -16,7 +16,7 @@ def test(engine,job_dir = None):
             print(msg)
             
     output(f"testing {os.environ.get('SCHEMA_NAME')}, assembly {os.environ.get('SET_VAR_ASSEMBLY')}")
-    output(f"num test rows: {NUM_TEST_ROWS}")
+    output(f"num test rows: {N}")
     output(f"tsv folder is {os.environ.get('PIPELINE_OUTPUT_PATH', '/fixtures')}")
     
     
@@ -61,7 +61,7 @@ def test(engine,job_dir = None):
             return
         nonlocal num_pass
         with engine.connect() as connection:
-            tsv_rows = get_random_tsv_rows(model, NUM_TEST_ROWS)
+            tsv_rows = get_random_tsv_rows(model, N)
             for _, row in tsv_rows.iterrows():
                 tsv_row = row.to_dict()
                 
@@ -229,7 +229,7 @@ def test(engine,job_dir = None):
                 return db_rows[0]._mapping
         
         # testing variants_consequences
-        tsv_rows = get_random_tsv_rows("variants_consequences", NUM_TEST_ROWS)
+        tsv_rows = get_random_tsv_rows("variants_consequences", N)
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             
@@ -258,7 +258,7 @@ def test(engine,job_dir = None):
                 fail(f"all matching variant consequences have wrong severity", tsv_row)
         
         # testing variants_annotations
-        tsv_rows = get_random_tsv_rows("variants_annotations", NUM_TEST_ROWS)
+        tsv_rows = get_random_tsv_rows("variants_annotations", N)
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             

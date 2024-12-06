@@ -124,6 +124,8 @@ def populate_maps(action, chromosome=None):
         reversed = {v: k for k, v in depends_on_maps["variants_transcripts"].items()}
         tenative_existing_map = make_existing_map(model, chromosome)
         current_model_existing_map = {reversed.get(k): v for k, v in tenative_existing_map.items() if reversed.get(k) is not None }
+        del reversed
+        del tenative_existing_map
         
     elif model == "variants_consequences": # non unique variant_transcripts per consequence
         depends_on_maps["variants_transcripts"] = make_existing_map("variants_transcripts", chromosome)
@@ -135,6 +137,8 @@ def populate_maps(action, chromosome=None):
             variant_id, transcript_id = reversed.get(vt_id, (None,None))
             if variant_id is not None and transcript_id is not None and descriminator is not None:
                 actual_existing_map[(variant_id, transcript_id, descriminator)] = id
+        del reversed
+        del tentative_existing_map
         current_model_existing_map = actual_existing_map #{reversed.get(k): v for k, v in tentative_existing_map.items() if reversed.get(k) is not None }
         
     else:

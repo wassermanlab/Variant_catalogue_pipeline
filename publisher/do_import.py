@@ -446,128 +446,32 @@ def start(db_engine):
     os.makedirs(job_dir, exist_ok=True)
     os.chmod(job_dir, 0o777)  # Set read and write permissions for the directory
     setup_loggers(job_dir)
-
-    now = datetime.now()
-    counts = {}
-    counts["success"] = 0
-    counts["fail"] = 0
-    counts["missingRef"] = 0
-    counts["duplicate"] = 0
-    counts["inserted"] = 0
-    counts["updated"] = 0
-    counts["successful_chunks"] = 0
-    counts["fail_chunks"] = 0
-    counts["rowcount"] = 0
     
-    with engine.connect() as connection:
-        table = get_table("severities")
-        num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
-        if num_rows == 0:
-            severitiesFile = os.path.join(current_dir, "severities.tsv")
-            
-            file_info = inspectTSV(severitiesFile)
-            log_output(
-                "\nimporting severities "
-                + " ("
-                + severitiesFile.split("/")[-1]
-                + "). Expecting "
-                + str(file_info["total_rows"])
-                + " rows..."
-            )
-            # log_output(targetFile)
-            if file_info["total_rows"] == 0:
-                log_output("Skipping empty file")
-            import_file(
-                severitiesFile,
-                file_info,
-                {"name":"severities", "fk_map":{}, "pk_lookup_col":None, "tsv_map_key_expression": lambda row: row["severity_number"], "filters":{}},
-            )
-            log_output("done importing severities")
+    try:
 
-
-    for modelName, action_info in model_import_actions.items():
-        model_counts = {}
-        model_counts["success"] = 0
-        model_counts["fail"] = 0
-        model_counts["missingRef"] = 0
-        model_counts["duplicate"] = 0
-        model_counts["inserted"] = 0
-        model_counts["updated"] = 0
-        model_counts["successful_chunks"] = 0
-        model_counts["fail_chunks"] = 0
-        model_counts["rowcount"] = 0
-        model_directory = os.path.join(rootDir, modelName)
-
-        if (
-            isinstance(start_at_model, str)
-            and modelName != start_at_model
-            and not arrived_at_start_model
-        ):
-            log_output("Skipping " + modelName + ", until " + start_at_model)
-            continue
-
-        if isinstance(start_at_model, str) and modelName == start_at_model:
-            arrived_at_start_model = True
+        now = datetime.now()
+        counts = {}
+        counts["success"] = 0
+        counts["fail"] = 0
+        counts["missingRef"] = 0
+        counts["duplicate"] = 0
+        counts["inserted"] = 0
+        counts["updated"] = 0
+        counts["successful_chunks"] = 0
+        counts["fail_chunks"] = 0
+        counts["rowcount"] = 0
         
-        log_output(f"*** import {modelName} ***")
         with engine.connect() as connection:
-            table = get_table(modelName)
+            table = get_table("severities")
             num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
-            db_row_counts["before"][modelName] = num_rows
-
-        ######### added in v2. handles case when the pipeline output directory
-        # is not a directory of directories of tsv files (ie, per chromosome), but a single directory of tsv files,
-        # with one tsv file per model
-        large_model_file_tsv = os.path.join(rootDir, modelName + ".tsv")
-        large_model_file_tsv_exists = os.path.isfile(large_model_file_tsv)
-
-        if action_info.get("skip") or not os.path.isdir(model_directory):
-            if large_model_file_tsv_exists:
-                log_output("using large model tsv file " + large_model_file_tsv)
-            else:
-                log_output(
-                    "Skipping " + modelName + " (expected dir: " + model_directory + ")"
-                )
-                continue
-        
-        if separate_cache_by_chromosome(action_info):
-            pass #populate maps instead happens per 1 chromosome
-        else:
-            populate_maps(action_info)
-        modelNow = datetime.now()
-
-        if large_model_file_tsv_exists:
-            sorted_files = [modelName + ".tsv"]
-        else:
-            sorted_files = natsorted(
-                [f for f in os.listdir(model_directory) if not f.startswith(".")],
-            )
-
-        for file in sorted_files:
-            if file.endswith(".tsv"):
-
-                if (
-                    isinstance(start_at_file, str)
-                    and file != start_at_file
-                    and not arrived_at_start_file
-                ):
-                    log_output("Skipping " + file + ", until " + start_at_file)
-                    continue
-                if isinstance(start_at_file, str) and file == start_at_file:
-                    arrived_at_start_file = True
-
-                ######## added in v2. large tsv file handling as explained above.
-                if large_model_file_tsv_exists:
-                    targetFile = large_model_file_tsv
-                else:
-                    targetFile = model_directory + "/" + file
+            if num_rows == 0:
+                severitiesFile = os.path.join(current_dir, "severities.tsv")
                 
-                file_info = inspectTSV(targetFile)
+                file_info = inspectTSV(severitiesFile)
                 log_output(
-                    "\nimporting "
-                    + modelName
+                    "\nimporting severities "
                     + " ("
-                    + targetFile.split("/")[-1]
+                    + severitiesFile.split("/")[-1]
                     + "). Expecting "
                     + str(file_info["total_rows"])
                     + " rows..."
@@ -575,64 +479,165 @@ def start(db_engine):
                 # log_output(targetFile)
                 if file_info["total_rows"] == 0:
                     log_output("Skipping empty file")
-                    continue
-                results = import_file(
-                    targetFile,
+                import_file(
+                    severitiesFile,
                     file_info,
-                    action_info,
+                    {"name":"severities", "fk_map":{}, "pk_lookup_col":None, "tsv_map_key_expression": lambda row: row["severity_number"], "filters":{}},
                 )
-                if results["success"] == 0:
-                    log_output("No rows were imported.")
+                log_output("done importing severities")
 
-                for key in [
-                    "success",
-                    "fail",
-                    "missingRef",
-                    "duplicate",
-                    "inserted",
-                    "updated",
-                    "successful_chunks",
-                    "fail_chunks",
-                    "rowcount"
-                ]:
-                    model_counts[key] += results[key]
-                    counts[key] += results[key]
 
-                report_counts(results)
+        for modelName, action_info in model_import_actions.items():
+            model_counts = {}
+            model_counts["success"] = 0
+            model_counts["fail"] = 0
+            model_counts["missingRef"] = 0
+            model_counts["duplicate"] = 0
+            model_counts["inserted"] = 0
+            model_counts["updated"] = 0
+            model_counts["successful_chunks"] = 0
+            model_counts["fail_chunks"] = 0
+            model_counts["rowcount"] = 0
+            model_directory = os.path.join(rootDir, modelName)
 
-        log_output(
-            "\nFinished importing "
-            + modelName
-            + ". Took this much time: "
-            + str(datetime.now() - modelNow)
-        )
-        current_chromosome = None
-        last_chromosome = None
-        report_counts(model_counts)
-        this_model_index = list(model_import_actions.keys()).index(modelName)
-        if this_model_index + 1 < len(model_import_actions.keys()):
-            leftover_models = list(model_import_actions.keys())[this_model_index + 1 :]
-            log_output("\nmodels left still: " + str(leftover_models) + "\n")
+            if (
+                isinstance(start_at_model, str)
+                and modelName != start_at_model
+                and not arrived_at_start_model
+            ):
+                log_output("Skipping " + modelName + ", until " + start_at_model)
+                continue
 
-        persist_and_unload_maps()
-        
-        
-        with engine.connect() as connection:
-            table = get_table(modelName)
-            num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
-            db_row_counts["after"][modelName] = num_rows
+            if isinstance(start_at_model, str) and modelName == start_at_model:
+                arrived_at_start_model = True
             
-    log_output(f"\n\nfinished importing IBVL. Time Taken: {str(datetime.now() - now)}. was job {job_dir}")
-    report_counts(counts)
-    log_output("\n\n")
-    
-    delta = {}
-    for beforeafter, counts in db_row_counts.items():
-        for modelName, count in counts.items():
-            if beforeafter == "before":
-                delta[modelName] = count
+            log_output(f"*** import {modelName} ***")
+            with engine.connect() as connection:
+                table = get_table(modelName)
+                num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
+                db_row_counts["before"][modelName] = num_rows
+
+            ######### added in v2. handles case when the pipeline output directory
+            # is not a directory of directories of tsv files (ie, per chromosome), but a single directory of tsv files,
+            # with one tsv file per model
+            large_model_file_tsv = os.path.join(rootDir, modelName + ".tsv")
+            large_model_file_tsv_exists = os.path.isfile(large_model_file_tsv)
+
+            if action_info.get("skip") or not os.path.isdir(model_directory):
+                if large_model_file_tsv_exists:
+                    log_output("using large model tsv file " + large_model_file_tsv)
+                else:
+                    log_output(
+                        "Skipping " + modelName + " (expected dir: " + model_directory + ")"
+                    )
+                    continue
+            
+            if separate_cache_by_chromosome(action_info):
+                pass #populate maps instead happens per 1 chromosome
             else:
-                delta[modelName] = count - delta[modelName]
-                log_output(f"DB row count {modelName} {count} ( grew by {delta[modelName]})")
-    return job_dir
+                populate_maps(action_info)
+            modelNow = datetime.now()
+
+            if large_model_file_tsv_exists:
+                sorted_files = [modelName + ".tsv"]
+            else:
+                sorted_files = natsorted(
+                    [f for f in os.listdir(model_directory) if not f.startswith(".")],
+                )
+
+            for file in sorted_files:
+                if file.endswith(".tsv"):
+
+                    if (
+                        isinstance(start_at_file, str)
+                        and file != start_at_file
+                        and not arrived_at_start_file
+                    ):
+                        log_output("Skipping " + file + ", until " + start_at_file)
+                        continue
+                    if isinstance(start_at_file, str) and file == start_at_file:
+                        arrived_at_start_file = True
+
+                    ######## added in v2. large tsv file handling as explained above.
+                    if large_model_file_tsv_exists:
+                        targetFile = large_model_file_tsv
+                    else:
+                        targetFile = model_directory + "/" + file
+                    
+                    file_info = inspectTSV(targetFile)
+                    log_output(
+                        "\nimporting "
+                        + modelName
+                        + " ("
+                        + targetFile.split("/")[-1]
+                        + "). Expecting "
+                        + str(file_info["total_rows"])
+                        + " rows..."
+                    )
+                    # log_output(targetFile)
+                    if file_info["total_rows"] == 0:
+                        log_output("Skipping empty file")
+                        continue
+                    results = import_file(
+                        targetFile,
+                        file_info,
+                        action_info,
+                    )
+                    if results["success"] == 0:
+                        log_output("No rows were imported.")
+
+                    for key in [
+                        "success",
+                        "fail",
+                        "missingRef",
+                        "duplicate",
+                        "inserted",
+                        "updated",
+                        "successful_chunks",
+                        "fail_chunks",
+                        "rowcount"
+                    ]:
+                        model_counts[key] += results[key]
+                        counts[key] += results[key]
+
+                    report_counts(results)
+
+            log_output(
+                "\nFinished importing "
+                + modelName
+                + ". Took this much time: "
+                + str(datetime.now() - modelNow)
+            )
+            current_chromosome = None
+            last_chromosome = None
+            report_counts(model_counts)
+            this_model_index = list(model_import_actions.keys()).index(modelName)
+            if this_model_index + 1 < len(model_import_actions.keys()):
+                leftover_models = list(model_import_actions.keys())[this_model_index + 1 :]
+                log_output("\nmodels left still: " + str(leftover_models) + "\n")
+
+            persist_and_unload_maps()
+            
+            
+            with engine.connect() as connection:
+                table = get_table(modelName)
+                num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
+                db_row_counts["after"][modelName] = num_rows
+                
+        log_output(f"\n\nfinished importing IBVL. Time Taken: {str(datetime.now() - now)}. was job {job_dir}")
+        report_counts(counts)
+        log_output("\n\n")
+        
+        delta = {}
+        for beforeafter, counts in db_row_counts.items():
+            for modelName, count in counts.items():
+                if beforeafter == "before":
+                    delta[modelName] = count
+                else:
+                    delta[modelName] = count - delta[modelName]
+                    log_output(f"DB row count {modelName} {count} ( grew by {delta[modelName]})")
+        return job_dir
+    except Exception as e:
+        log_error(e)
+        cleanup(None, None)
 #    cleanup(None, None)

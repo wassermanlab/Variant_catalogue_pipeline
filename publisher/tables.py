@@ -71,7 +71,7 @@ genomic_gnomad_frequencies_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
-    Column("af_tot", Numeric(10, 9)),
+    Column("af_tot", Numeric(14, 7)),
     Column("ac_tot", Integer),
     Column("an_tot", Integer),
     Column("hom_tot", Integer),
@@ -87,9 +87,9 @@ genomic_ibvl_frequencies_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("variant", Integer, ForeignKey("variants.id", ondelete="CASCADE")),
-    Column("af_tot", Numeric(10, 9)),
-    Column("af_xx", Numeric(10, 9)),
-    Column("af_xy", Numeric(10, 9)),
+    Column("af_tot", Numeric(14, 7)),
+    Column("af_xx", Numeric(14, 7)),
+    Column("af_xy", Numeric(14, 7)),
     Column("ac_tot", Integer),
     Column("ac_xx", Integer),
     Column("ac_xy", Integer),
@@ -111,9 +111,9 @@ mt_gnomad_frequencies_table = Table(
     Column("an", Integer),
     Column("ac_hom", Integer),
     Column("ac_het", Integer),
-    Column("af_hom", Numeric(10, 9)),
-    Column("af_het", Numeric(10, 9)),
-    Column("max_hl", Numeric(10, 9)),
+    Column("af_hom", Numeric(14, 7)),
+    Column("af_het", Numeric(14, 7)),
+    Column("max_hl", Numeric(14, 7)),
     UniqueConstraint("variant", name="mt_gnomad_freq_unique")
 )
 
@@ -125,10 +125,10 @@ mt_ibvl_frequencies_table = Table(
     Column("an", Integer),
     Column("ac_hom", Integer),
     Column("ac_het", Integer),
-    Column("af_hom", Numeric(10, 9)),
-    Column("af_het", Numeric(10, 9)),
+    Column("af_hom", Numeric(14, 7)),
+    Column("af_het", Numeric(14, 7)),
     Column("hl_hist", String(30)),
-    Column("max_hl", Numeric(10, 9)),
+    Column("max_hl", Numeric(14, 7)),
     UniqueConstraint("variant", name="mt_ibvl_freq_unique"),
 )
 
@@ -147,7 +147,7 @@ mts_table = Table(
     Column("dbsnp_id", String(30)),
     Column("dbsnp_url", String(511)),
     Column("clinvar_url", String(511)),
-    Column("clinvar_vcv", Numeric(10, 9)),
+    Column("clinvar_vcv", Numeric(14, 7)),
     UniqueConstraint("variant", name="mts_unique"),
 )
 
@@ -162,7 +162,7 @@ snvs_table = Table(
     Column("pos", Integer),
     Column("ref", String(60)),
     Column("alt", String(60)),
-    Column("cadd_score", Numeric(10, 9)),
+    Column("cadd_score", Numeric(14, 7)),
     Column("cadd_intr", String(255)),
     Column("dbsnp_id", String(30)),
     Column("dbsnp_url", String(511)),
@@ -170,8 +170,8 @@ snvs_table = Table(
     Column("ensembl_url", String(511)),
     Column("clinvar_url", String(511)),
     Column("gnomad_url", String(511)),
-    Column("clinvar_vcv", Numeric(10, 9)),
-    Column("splice_ai", Numeric(10, 9)),
+    Column("clinvar_vcv", Numeric(14, 7)),
+    Column("splice_ai", Numeric(14, 7)),
     UniqueConstraint("variant", name="snvs_unique")
 )
 

@@ -116,7 +116,7 @@ def populate_maps(action, chromosome=None):
                 model_action["map_key_expression"](row): row.id for row in result
             }
             num_in_existing_map = len(existing.keys())
-            log_output(f"    caching {str(num_in_existing_map)} {model} (chr:{chromosome})")
+            log_output(f"    caching {str(num_in_existing_map)} {modelName} (chr:{chromosome})")
             return existing
         
     if model == "variants_annotations": # unique variant_transcript per annotation
@@ -140,9 +140,12 @@ def populate_maps(action, chromosome=None):
     else:
         referenced_models = action.get("fk_map").values()
         current_model_existing_map = make_existing_map(action["name"], chromosome)
-        for model in referenced_models:
+        for m in referenced_models:
 
-            depends_on_maps[model] = make_existing_map(model,chromosome)
+            depends_on_maps[m] = make_existing_map(m,chromosome)
+    for key in depends_on_maps.keys():
+        log_output(f"    depends-on map {key} has: {len(depends_on_maps[key])} items")
+    log_output(f"    existing map {model} has: {len(current_model_existing_map)} items")
 
 
 #    log_output(f"done populating maps for {action['name']} chromosome {chromosome}")
@@ -329,7 +332,7 @@ def import_file(file, file_info, action):
                 if "Duplicate" in msg or "ORA-00001" in msg:
                     duplicateCount += 1
                     successCount += 1
-#                    log_data_issue(e, model)
+                    log_data_issue(e, model)
                     if updating:
                         updatedCount += 1
                 else:
@@ -494,11 +497,6 @@ def start(db_engine):
         model_counts["fail_chunks"] = 0
         model_counts["rowcount"] = 0
         model_directory = os.path.join(rootDir, modelName)
-        
-        with engine.connect() as connection:
-            table = get_table(modelName)
-            num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
-            db_row_counts["before"][modelName] = num_rows
 
         if (
             isinstance(start_at_model, str)
@@ -510,6 +508,12 @@ def start(db_engine):
 
         if isinstance(start_at_model, str) and modelName == start_at_model:
             arrived_at_start_model = True
+        
+        log_output(f"*** import {modelName} ***")
+        with engine.connect() as connection:
+            table = get_table(modelName)
+            num_rows = connection.execute(select(func.count()).select_from(table)).scalar()
+            db_row_counts["before"][modelName] = num_rows
 
         ######### added in v2. handles case when the pipeline output directory
         # is not a directory of directories of tsv files (ie, per chromosome), but a single directory of tsv files,

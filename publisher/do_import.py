@@ -189,6 +189,8 @@ def import_file(file, file_info, action):
     fk_map = action.get("fk_map")
     filters = action.get("filters") or {}
     
+    file_now = datetime.now()
+    
     table = get_table(model)
     
 #    cache_group = file_info('cache_group')
@@ -401,7 +403,7 @@ def import_file(file, file_info, action):
         for chunk in chunks(data_update_list, chunk_size):
             chunkOperation(chunk, updating=True)
         
-
+    log_output(f"    {str(datetime.now() - file_now)}")
     return {
         "success": successCount,
         "fail": failCount,

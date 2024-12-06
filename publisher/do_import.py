@@ -17,6 +17,7 @@ import pandas as pd
 import numpy as np
 import sys
 import os
+import traceback
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -108,6 +109,28 @@ def populate_maps(action, chromosome=None):
                     statement = select(*cols).where(table.c.assembly == set_var_assembly)
                     if chromosome is not None:
                         statement = statement.where(table.c.variant_id.startswith(f"{chromosome}_"))
+                elif modelName == "variants_annotations":
+                    variants = get_table("variants")
+                    variants_transcripts = get_table("variants_transcripts")
+                    statement = select(*cols).join(
+                            variants_transcripts, table.c.variant_transcript == variants_transcripts.c.id
+                        ).join(
+                            variants, variants.c.id == variants_transcripts.c.variant
+                        ).where(
+                            variants.c.assembly == set_var_assembly
+                        ).where(
+                            variants.c.variant_id.startswith(f"{chromosome}_"))
+                elif modelName == "variants_consequences":
+                    variants = get_table("variants")
+                    variants_transcripts = get_table("variants_transcripts")
+                    statement = select(*cols).join(
+                            variants_transcripts, table.c.variant_transcript == variants_transcripts.c.id
+                        ).join(
+                            variants, variants.c.id == variants_transcripts.c.variant
+                        ).where(
+                            variants.c.assembly == set_var_assembly
+                        ).where(
+                            variants.c.variant_id.startswith(f"{chromosome}_"))
                 else:
                     statement = select(*cols)
                     
@@ -116,7 +139,7 @@ def populate_maps(action, chromosome=None):
                 model_action["map_key_expression"](row): row.id for row in result
             }
             num_in_existing_map = len(existing.keys())
-            log_output(f"    caching {str(num_in_existing_map)} {modelName} (chr:{chromosome})")
+            log_output(f"    cached {str(num_in_existing_map)} {modelName} (chr:{chromosome})")
             return existing
         
     if model == "variants_annotations": # unique variant_transcript per annotation
@@ -644,6 +667,7 @@ def start(db_engine):
                     log_output(f"DB row count {modelName} {count} ( grew by {delta[modelName]})")
         return job_dir
     except Exception as e:
-        log_error(e)
+        log_error(f"{e.__class__.__name__}: {e}")
+        log_error(traceback.format_exc())
         cleanup(None, None)
 #    cleanup(None, None)

@@ -112,10 +112,12 @@ def populate_maps(action, chromosome=None):
                     statement = select(*cols)
                     
             result = connection.execute(statement)
-            log_output(f"    caching {str(len(result.keys()))} {model} (chr:{chromosome})")
-            return {
+            existing = {
                 model_action["map_key_expression"](row): row.id for row in result
             }
+            num_in_existing_map = len(existing.keys())
+            log_output(f"    caching {str(num_in_existing_map)} {model} (chr:{chromosome})")
+            return existing
         
     if model == "variants_annotations": # unique variant_transcript per annotation
         depends_on_maps["variants_transcripts"] = make_existing_map("variants_transcripts", chromosome)

@@ -91,6 +91,9 @@ model_import_actions = {
         "tsv_map_key_expression": lambda row: row["variant"],
         "pk_lookup_col": [],
         "fk_map": {"variant": "variants"},
+        "filters": {
+            "dbsnp_id": lambda x: x.split("&")[0] if x is not None else None
+        }
     },
     "genomic_ibvl_frequencies": {
         "name": "genomic_ibvl_frequencies",

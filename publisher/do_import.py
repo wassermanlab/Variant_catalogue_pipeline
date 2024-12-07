@@ -476,6 +476,10 @@ def start(db_engine):
     os.chmod(job_dir, 0o777)  # Set read and write permissions for the directory
     setup_loggers(job_dir)
     
+    log_output(f"schema: {schema}")
+    log_output(f"assembly: {set_var_assembly}")
+    log_output(f"tsv directory: {rootDir}")
+    
     try:
 
         now = datetime.now()

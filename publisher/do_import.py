@@ -310,6 +310,7 @@ def import_file(file, file_info, action):
 
         if record_map_key is None:
             print(f"record_map_key is None for {model} {data}")
+            log_error(f"record_map_key is None for {model} {data}")
             quit()
         existing_id = current_model_existing_map.get(record_map_key)
         if existing_id is not None:
@@ -320,7 +321,6 @@ def import_file(file, file_info, action):
             else:
                 duplicateCount += 1
                 successCount += 1
-                log_data_issue("Duplicate " + str(record_map_key), model)
                 continue
         else:
             # the record is NOT in the db, so add it
@@ -446,13 +446,15 @@ def import_file(file, file_info, action):
 
 def cleanup(sig, frame):
     global engine, depends_on_maps, metadata
-    print("terminating, cleaning up ...")
+#    print("terminating, cleaning up ...")
+    log_output("terminating, cleaning up ...")
     persist_and_unload_maps()
     engine.dispose()
     # garbage collect
     del depends_on_maps
     del metadata
-    print("done")
+#    print("done")
+    log_output("done")
     sys.exit(0)
 
 
@@ -460,7 +462,6 @@ def cleanup(sig, frame):
 
 def start(db_engine):
 
-    print("importing", rootDir)
     arrived_at_start_model = False
     arrived_at_start_file = False
     global engine, schema, current_chromosome, last_chromosome

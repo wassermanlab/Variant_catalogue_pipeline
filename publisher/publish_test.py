@@ -36,11 +36,15 @@ def test(engine,job_dir = None):
             output(F"❌ {msg}")
 #        cleanup(None, None)
 #        exit()
-        
+
+    test_chr = os.environ.get("TEST_CHR")
     def get_random_tsv_file(model_folder):
         path = os.path.join(rootDir, model_folder)
         files = [os.path.join(path,f) for f in os.listdir(path) if not f.startswith(".")]
         file = np.random.choice(files, 1)[0]
+#        if test_chr is not None:
+#            file = files.where
+        output(f"test using {file}")
         return inspectTSV(file), file
         
     def get_random_tsv_rows(model_folder, n):
@@ -235,6 +239,7 @@ def test(engine,job_dir = None):
         
         # testing variants_consequences
         tsv_rows = get_random_tsv_rows("variants_consequences", N)
+        output("testing variants_consequences...")
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             
@@ -264,6 +269,7 @@ def test(engine,job_dir = None):
         
         # testing variants_annotations
         tsv_rows = get_random_tsv_rows("variants_annotations", N)
+        output("testing variants_annotations...")
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             
@@ -293,4 +299,6 @@ def test(engine,job_dir = None):
 
     if (did_pass):
         output("✅✅✅ \n all tests passed\n✅✅✅\n")
+    else:
+        output("\n some tests failed\n")
         

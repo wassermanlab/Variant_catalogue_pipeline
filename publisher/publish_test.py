@@ -44,7 +44,7 @@ def test(engine,job_dir = None):
         file = np.random.choice(files, 1)[0]
 #        if test_chr is not None:
 #            file = files.where
-        output(f"test using {file}")
+        output(f"   using {file.split('/')[-1]}")
         return inspectTSV(file), file
         
     def get_random_tsv_rows(model_folder, n):
@@ -238,8 +238,8 @@ def test(engine,job_dir = None):
                 return db_rows[0]._mapping
         
         # testing variants_consequences
-        tsv_rows = get_random_tsv_rows("variants_consequences", N)
         output("testing variants_consequences...")
+        tsv_rows = get_random_tsv_rows("variants_consequences", N)
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             
@@ -268,8 +268,8 @@ def test(engine,job_dir = None):
                 fail(f"all matching variant consequences have wrong severity", tsv_row)
         
         # testing variants_annotations
-        tsv_rows = get_random_tsv_rows("variants_annotations", N)
         output("testing variants_annotations...")
+        tsv_rows = get_random_tsv_rows("variants_annotations", N)
         for _, row in tsv_rows.iterrows():
             tsv_row = row.to_dict()
             

@@ -362,8 +362,6 @@ def import_file(file, file_info, action):
                     duplicateCount += 1
                     successCount += 1
                     log_data_issue(e, model)
-                    if updating:
-                        updatedCount += 1
                 else:
                     failCount += 1
                     log_data_issue(e, model)

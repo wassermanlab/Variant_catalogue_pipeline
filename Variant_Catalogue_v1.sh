@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=4G
 #SBATCH -p silent_q 
-#SBATCH --mail-user=kiana.rashidi@bcchr.ca
+#SBATCH --mail-user=
 #SBATCH --mail-type=ALL
 
 ## Output and Stderr

@@ -17,7 +17,6 @@ process annotation_table_merged {
 
         input :
         file vcf
-		file index
 		val vep_cache_merged
 		val vep_cache_merged_version
 		val assembly

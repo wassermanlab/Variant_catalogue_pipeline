@@ -380,9 +380,12 @@ def import_file(file, file_info, action):
                 return
             if updating:
                 
-                ids = [row["id"] for row in chunk]
-                existing_full_records = connection.execute(select(table).where(table.c.id.in_(ids))).fetchall()
-                existing_map = {row.id: row._mapping for row in existing_full_records}
+                existing_map = {}
+                for sub_chunk in chunks(chunk, 1000):
+                    ids = [row["id"] for row in sub_chunk]
+                    existing_full_records = connection.execute(select(table).where(table.c.id.in_(ids))).fetchall()
+                    existing_map.update({row.id: row._mapping for row in existing_full_records})
+#                existing_map = {row.id: row._mapping for row in existing_full_records}
                 
                 filtered_update_list = []
                 

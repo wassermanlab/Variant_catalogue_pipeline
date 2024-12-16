@@ -620,6 +620,7 @@ def start(db_engine):
                     )
                     if results["success"] == 0:
                         log_output("No rows were imported.")
+                        cleanup(None, None)
 
                     for key in [
                         "success",

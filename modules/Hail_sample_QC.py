@@ -1,38 +1,57 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[1]:
+
+
 # Hail and plot initialisation
 
-# Last Updated: June 1, 2024 - Stephanie Petrone
-#   Update: fixing issue with contig naming discrepency for GRCh38 files 
-#   and Hail's expected labeling conventions ('chr' prefix for GRCh38)
-# In[91]:
 
+# In[1]:
+
+
+temp_directory="./tmp"
 import sys
-temp_directory=sys.argv[2]
-genome=sys.argv[3] #either GRCh37 or GRCh38 (params.assembly)
-ref_fasta=sys.argv[4]
-ref_fasta_index=sys.argv[5]
-
 import hail as hl
 from hail.plot import output_notebook, show
-hl.init(tmp_dir=temp_directory)
-output_notebook()
-
-
-# In[ ]:
-
-
-from hail.plot import show
 from pprint import pprint
 from bokeh.models import Span
 hl.plot.output_notebook()
 from bokeh.models import Range1d
 from bokeh.plotting import figure, output_file, show, save
 from bokeh.io import export_png
-
 import pandas as pd
 import os
+
+# Hail and plot initialisation
+# Configure Spark properties
+spark_conf = {
+    'spark.driver.memory': '8g'  # Set the driver memory, e.g., to 8 GB
+}
+
+# Initialize Hail with custom Spark configuration
+hl.init(master='local[*]', spark_conf=spark_conf, tmp_dir=temp_directory)
+
+output_notebook()
+
+
+# In[41]:
+
+
+
+temp_directory=sys.argv[2]
+genome=sys.argv[3] #either GRCh37 or GRCh38 (params.assembly)
+ref_fasta=sys.argv[4]
+ref_fasta_index=sys.argv[5]
+pop_vcf = sys.argv[1]
+filter_samples = False #default is false (flag for filtering samples)
+
+#use filter list only when it is passed as argument
+#counts extra arg with env 
+if ((len(sys.argv)-1) == 7):
+    filter_samples = True # flag for running filter step
+    filter_table = sys.argv[6]
+
 
 
 # Import a vcf file and read it as a matrix table (mt, hail specific file type)
@@ -41,18 +60,18 @@ import os
 # for different contig labeling and Hail's requirements
 # (Hail requires GRCh37 to have no 'chr' prefix and GRCh38 to use it
 if genome == 'GRCh37':
-    hl.import_vcf(sys.argv[1],
+    hl.import_vcf(pop_vcf,
         array_elements_required=False, 
         force_bgz=True, 
         reference_genome=genome).write('SNV_vcf.mt', overwrite=True)
 
 elif genome == 'GRCh38':
     # add extra re-coding step, as reference genome and vcf files
-    # for GRCh38 data are using GRCh37 labelling (no 'chr' prefix)
+    # for GRCh38 data are using ensemble labelling (no 'chr' prefix)
     # and Hail requires that they use the 'chr' prefix
     recode = {"MT":"chrM", **{f"{i}":f"chr{i}" for i in (list(range(1, 23)) + ['X', 'Y'])}} 
 
-    hl.import_vcf(sys.argv[1], 
+    hl.import_vcf(pop_vcf, 
         array_elements_required=False, 
         force_bgz=True, 
         reference_genome=genome,
@@ -61,7 +80,8 @@ elif genome == 'GRCh38':
 else:
     raise Exception("Must use GRCh37 or GRCh38 assembly!")
 
-# In[ ]:
+
+# In[141]:
 
 
 mt = hl.read_matrix_table('SNV_vcf.mt')
@@ -74,7 +94,8 @@ mt = hl.read_matrix_table('SNV_vcf.mt')
 # - plot_histo : To create the histogram as expected
 # - plot_sp : To create the scatter plots as expected
 
-# In[ ]:
+
+# In[142]:
 
 
 def stat(table):
@@ -87,7 +108,7 @@ def stat(table):
     return Mean, StdDev, Low_threashold, High_threashold, min_graph, max_graph
 
 
-# In[106]:
+# In[143]:
 
 
 def plot_histo (table_plot, mt_plot, variable) :
@@ -105,7 +126,7 @@ def plot_histo (table_plot, mt_plot, variable) :
     return save(p)
 
 
-# In[107]:
+# In[6]:
 
 
 def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_variable) :
@@ -132,7 +153,8 @@ def plot_sp (table_x_axis, mt_x_axis, table_y_axis, mt_y_axis, x_variable, y_var
 
 # **Generate the sample quality control metrics using hail**
 
-# In[ ]:
+
+# In[144]:
 
 
 mt = hl.sample_qc(mt)
@@ -165,7 +187,8 @@ mt = hl.sample_qc(mt)
 
 # Save the values as table
 
-# In[ ]:
+
+# In[145]:
 
 
 mt.sample_qc.dp_stats.mean.export('DP.tsv')
@@ -185,7 +208,8 @@ mt.sample_qc.n_transversion.export('n_transversion.tsv')
 
 # Open the tables as data frame
 
-# In[ ]:
+
+# In[146]:
 
 
 DP_table=pd.read_table('DP.tsv')
@@ -206,7 +230,8 @@ n_transversion_table=pd.read_table('n_transversion.tsv')
 
 # Rename the column of the tables
 
-# In[ ]:
+
+# In[147]:
 
 
 DP_table.rename(columns = {DP_table.columns[1]:'DP'}, inplace = True)
@@ -227,13 +252,14 @@ n_transversion_table.rename(columns = {n_transversion_table.columns[1]:'n_transv
 
 # Create the graphs
 
-# In[108]:
+
+# In[148]:
 
 
 plot_histo(DP_table, mt.sample_qc.dp_stats.mean, 'Mean Depth per sample')
 
 
-# In[109]:
+# In[149]:
 
 
 plot_histo(GQ_table,
@@ -241,7 +267,7 @@ plot_histo(GQ_table,
            'Mean Genotype quality per sample')
 
 
-# In[110]:
+# In[150]:
 
 
 plot_histo(call_rate_table,
@@ -249,7 +275,7 @@ plot_histo(call_rate_table,
            'Call Rate per sample')
 
 
-# In[111]:
+# In[151]:
 
 
 plot_histo(r_het_hom_var_table,
@@ -257,7 +283,7 @@ plot_histo(r_het_hom_var_table,
            'Ratio heterozygous to homozygous variants per sample')
 
 
-# In[112]:
+# In[152]:
 
 
 plot_sp (n_het_table,
@@ -268,7 +294,7 @@ plot_sp (n_het_table,
          'Number of homozygous variants')
 
 
-# In[113]:
+# In[153]:
 
 
 plot_histo(n_snp_table,
@@ -276,7 +302,7 @@ plot_histo(n_snp_table,
            'Number of SNPs per sample')
 
 
-# In[115]:
+# In[154]:
 
 
 plot_histo(n_singleton_table,
@@ -284,7 +310,7 @@ plot_histo(n_singleton_table,
            'Number of singletons per sample')
 
 
-# In[116]:
+# In[155]:
 
 
 plot_sp (n_insertion_table,
@@ -295,7 +321,7 @@ plot_sp (n_insertion_table,
          'Number of deletions')
 
 
-# In[117]:
+# In[156]:
 
 
 plot_histo(r_insertion_deletion_table,
@@ -303,7 +329,7 @@ plot_histo(r_insertion_deletion_table,
            'Ratio insertions to deletions per sample')
 
 
-# In[118]:
+# In[157]:
 
 
 plot_sp (n_transition_table,
@@ -314,7 +340,7 @@ plot_sp (n_transition_table,
          'Number of transversions')
 
 
-# In[119]:
+# In[158]:
 
 
 plot_histo(r_ti_tv_table,
@@ -332,11 +358,13 @@ plot_histo(r_ti_tv_table,
 
 
 
+# In[160]:
 
-
-# **Filter the samples based on the threasholds repersented on the figures**
-# 
-# On the test with 11 samples, no samples shoould be removed
+# **Flag the samples based on the threasholds repersented on the figures**
+# (this was previously used as an automatic filter, but it was quite
+# arbitrarily filtering good samples). Instead, manually look at the flagged
+# samples.
+# (originally Solenne's code)
 # 
 # Low_threashold = Mean - 3*StdDev = stat(table) [2]
 # 
@@ -352,45 +380,23 @@ plot_histo(r_ti_tv_table,
 # - ?? Ratio insertions to deletion per sample lower than the low threshoold or higher than high threshold
 # - Ratio transition to transversions per sample lower than the low threshoold or higher than high threshold
 
-# In[120]:
 
+# Return a list of flagged samples and number
 
-filtered_mt = mt.filter_cols(
-    (stat(DP_table) [3] > mt.sample_qc.dp_stats.mean)  &
-    (mt.sample_qc.dp_stats.mean > stat(DP_table) [2]) &
-    (stat(GQ_table) [3] > mt.sample_qc.gq_stats.mean) &
-    (mt.sample_qc.gq_stats.mean > stat(GQ_table) [2]) &
-    (stat(call_rate_table) [3] > mt.sample_qc.call_rate) &
-    (mt.sample_qc.call_rate > stat(call_rate_table) [2]) &
-    (stat(r_het_hom_var_table) [3] > mt.sample_qc.r_het_hom_var) &
-    (mt.sample_qc.r_het_hom_var > stat(r_het_hom_var_table) [2]) &
-    (stat(n_snp_table) [3] > mt.sample_qc.n_snp) &
-    (mt.sample_qc.n_snp > stat(n_snp_table) [2]) &
-    (stat(n_singleton_table) [3] > mt.sample_qc.n_singleton) &
-    (mt.sample_qc.n_singleton > stat(n_singleton_table) [2]) &
-    (stat(r_insertion_deletion_table) [3] > mt.sample_qc.r_insertion_deletion) &
-    (mt.sample_qc.r_insertion_deletion > stat(r_insertion_deletion_table) [2]) &
-    (stat(r_ti_tv_table) [3] > mt.sample_qc.r_ti_tv) &
-    (mt.sample_qc.r_ti_tv> stat(r_ti_tv_table) [2])
-)
-
-
-# In[124]:
-
-hl.export_vcf(filtered_mt, 'filtered_samples.vcf.bgz', tabix = True)
-
-# Write the report of the number of filtered out samples and the reason they were filtered out
-
-def calc_removed_samples(mt, mt_var, stat_table) :
+def calc_flagged_samples(mt, mt_var, stat_table) :
     # Save sample genotype quality metrics information to separate file
     input_mt = mt.annotate_cols(
         keep=(mt_var > stat_table [2]) &
             (mt_var < stat_table [3])
     )
 
-    n_removed = input_mt.aggregate_cols(hl.agg.count_where(~input_mt.keep))
+    flagged = input_mt.filter_cols(input_mt.keep == False, keep=True)
+    flagged_samples = flagged.s.collect()
     
-    return n_removed
+    return flagged_samples
+
+
+# In[161]:
 
 
 def report_stats():
@@ -400,33 +406,79 @@ def report_stats():
     out_stats = hl.hadoop_open(f"sample_QC.txt", "w")
     # Report numbers of filtered samples
     out_stats.write(
-        f"Number of samples removed because of depth metrics: {DP_removed}\n"
-        f"Number of samples removed because of genotype quality metrics: {GQ_removed}\n"
-        f"Number of samples removed because of call rate metrics: {CR_removed}\n"
-        f"Number of samples removed because of ratio heterozygous over homozygous: {r_het_hom_removed}\n"
-        f"Number of samples removed because of number of snps: {n_snps_removed}\n"
-        f"Number of samples removed because of number of singletons: {n_singletons_removed}\n"
-        f"Number of samples removed because of ratio insertions over deletions: {r_ins_del_removed}\n"
-        f"Number of samples removed because of ratio transversions / transitions: {r_ti_tv_removed}\n"
-        f"Percentage of the samples filtered out: {perc_removed_samples}\n"
+        f"Samples flagged because of depth metrics: {DP_flagged}\n"
+        f"Count: {DP_count}\n\n"
+
+        f"Samples flagged because of genotype quality metrics: {GQ_flagged}\n"
+        f"Count: {GQ_count}\n\n"
+
+        f"Samples flagged because of call rate metrics: {CR_flagged}\n"
+        f"Count: {CR_count}\n\n"
+
+        f"Samples flagged because of ratio heterozygous over homozygous: {r_het_hom_flagged}\n"
+        f"Count: {r_het_hom_count}\n\n"
+
+        f"Samples flagged because of number of snps: {n_snps_flagged}\n"
+        f"Count: {n_snps_count}\n\n"
+
+        f"Samples flagged because of number of singletons: {n_singletons_flagged}\n"
+        f"Count: {n_singleton_count}\n\n"
+
+        f"Samples flagged because of ratio insertions over deletions: {r_ins_del_flagged}\n"
+        f"Count: {r_ins_del_count}\n\n"
+
+        f"Samples flagged because of ratio transversions / transitions: {r_ti_tv_flagged}\n"
+        f"Count: {r_ti_tv_count}\n\n"
+
+        f"All samples flagged: {all_samples_flagged}\n"
+        f"Count of the samples flagged: {count_flagged_samples}\n"
     )
     out_stats.close()
 
 
-DP_removed = calc_removed_samples(mt, mt.sample_qc.dp_stats.mean, stat(DP_table))
-GQ_removed = calc_removed_samples(mt, mt.sample_qc.gq_stats.mean, stat(GQ_table))
-CR_removed = calc_removed_samples(mt, mt.sample_qc.call_rate, stat(call_rate_table))
-r_het_hom_removed = calc_removed_samples(mt, mt.sample_qc.r_het_hom_var, stat(r_het_hom_var_table))
-n_snps_removed = calc_removed_samples(mt, mt.sample_qc.n_snp, stat(n_snp_table))
-n_singletons_removed = calc_removed_samples(mt, mt.sample_qc.n_singleton, stat(n_singleton_table))
-r_ins_del_removed = calc_removed_samples(mt, mt.sample_qc.r_insertion_deletion, stat(r_insertion_deletion_table))
-r_ti_tv_removed = calc_removed_samples(mt, mt.sample_qc.r_ti_tv, stat(r_ti_tv_table))
-perc_removed_samples = (mt.count()[0]-filtered_mt.count()[0])/mt.count()[0] * 100
+
+
+# In[162]:
+
+
+DP_flagged = calc_flagged_samples(mt, mt.sample_qc.dp_stats.mean, stat(DP_table))
+DP_count = len(DP_flagged)
+
+GQ_flagged = calc_flagged_samples(mt, mt.sample_qc.gq_stats.mean, stat(GQ_table))
+GQ_count = len(GQ_flagged)
+
+CR_flagged = calc_flagged_samples(mt, mt.sample_qc.call_rate, stat(call_rate_table))
+CR_count = len(CR_flagged)
+
+r_het_hom_flagged = calc_flagged_samples(mt, mt.sample_qc.r_het_hom_var, stat(r_het_hom_var_table))
+r_het_hom_count = len(r_het_hom_flagged)
+
+n_snps_flagged = calc_flagged_samples(mt, mt.sample_qc.n_snp, stat(n_snp_table))
+n_snps_count = len(n_snps_flagged)
+
+n_singletons_flagged = calc_flagged_samples(mt, mt.sample_qc.n_singleton, stat(n_singleton_table))
+n_singleton_count = len(n_singletons_flagged)
+
+r_ins_del_flagged = calc_flagged_samples(mt, mt.sample_qc.r_insertion_deletion, stat(r_insertion_deletion_table))
+r_ins_del_count = len(r_ins_del_flagged)
+
+r_ti_tv_flagged = calc_flagged_samples(mt, mt.sample_qc.r_ti_tv, stat(r_ti_tv_table))
+r_ti_tv_count = len(r_ti_tv_flagged)
+
+all_samples_flagged =  list(set(DP_flagged + GQ_flagged + CR_flagged + r_het_hom_flagged + n_snps_flagged + n_singletons_flagged +
+                              r_ins_del_flagged + r_ti_tv_flagged))
+
+count_flagged_samples = len(all_samples_flagged)
 
 report_stats()
 
 
-# Impute sex based on F-stat (only for sample who passed QC)
+
+
+# In[163]:
+
+
+# Impute sex based on F-stat - for all samples
 
 # Using gnomAD hard filters :
 #- Ambiguous sex: fell outside of:
@@ -434,7 +486,7 @@ report_stats()
 #- XX: F-stat < 0.5 - this value is determined by visually
 #                     looking at the distribution
 
-imputed_sex_filtered_samples = hl.impute_sex(filtered_mt.GT)
+imputed_sex_filtered_samples = hl.impute_sex(mt.GT)
 imputed_sex_filtered_samples = imputed_sex_filtered_samples.annotate(
         sex=hl.if_else(imputed_sex_filtered_samples.f_stat < 0.5,
                        "XX",
@@ -443,6 +495,9 @@ imputed_sex_filtered_samples = imputed_sex_filtered_samples.annotate(
         )
 filtered_samples_sex=imputed_sex_filtered_samples.select("sex")
 filtered_samples_sex.export('filtered_samples_sex.tsv')
+
+filtered_samples_sex_fstat=imputed_sex_filtered_samples.select("sex", "f_stat")
+filtered_samples_sex_fstat.export('filtered_samples_sex_f_stat.tsv')
 
 
 
@@ -456,3 +511,64 @@ pl.add_layout(annot)
 
 output_file(filename=("impute_sex_distribution.html"))
 save(pl)
+
+
+
+
+# In[164]:
+
+
+#-----------------------FILTER STEP-----------------------------------
+# Filter samples if flag set (optional)
+# -The filter table should be a single column table containing
+# the sample IDs
+#---------------------------------------------------------------------
+
+if (filter_samples):
+    # important! - hail's filter_cols does not update the info fields in the
+    # row fields in the matrix table. These must be updated manually.
+    
+    #get a list from the table
+    try:
+        df = pd.read_csv(filter_table, sep='\t')
+
+    except Exception as e:
+        print(f"An error occurred opening the sample filter table: {e}")
+    
+    
+    #Filter samples - remove any that are in the list provided
+    filter_list = df['s'].tolist()
+    filter_count = len(filter_list)
+    mt = mt.filter_cols(hl.literal(filter_list).contains(mt.s), keep=False)
+    
+
+    out_filtered = hl.hadoop_open(f"samples_filtered.txt", "w")
+    
+    # Report numbers of filtered samples
+    out_filtered.write(
+            f"Samples filtered: {filter_list}\n"
+            f"Count of samples filtered: {filter_count}\n"
+        )
+    out_filtered.close()
+
+
+# In[168]:
+
+
+#hail's filter_cols function does not adjust info fields, to adjust info fields, use the code below
+# note that this is re-calculate during the next step (hail_variant_qc) during stratification
+# mt = hl.variant_qc(mt)
+# mt = mt.annotate_rows(info = mt.info.annotate(AC=mt.variant_qc.AC)) 
+# mt = mt.annotate_rows(info = mt.info.annotate(AN=mt.variant_qc.AN)) 
+# mt = mt.annotate_rows(info = mt.info.annotate(AF=mt.variant_qc.AF)) 
+
+
+# In[169]:
+
+
+#export file
+hl.export_vcf(mt, 'filtered_samples.vcf.bgz', tabix = True)
+
+
+# In[ ]:
+

@@ -43,7 +43,7 @@ if (assembly == "GRCh37" && chr == "Y") {
   	gnomad_file = fread(gfile)
 
 }
-if (length(gnomad_file)>11)gnomad_file[,12]=NULL
+if (length(gnomad_file)>14)gnomad_file[,15]=NULL
 #names(gnomad_file)
 #head(gnomad_file)
 #Create the variant ID (chr-Pos_ref_alt)
@@ -267,10 +267,17 @@ write.table(table_variant_severities_noNA, file=paste0("variants_consequences_",
 show("varaint consequence ok")
 
 #Variants_annotation
+# Function to decode the "%3D" character
+decode_hgvsp <- function(df) {
+  df$hgvsp <- gsub("%3D", "=", df$hgvsp)
+  return(df)
+}
+
 #variants_transcript_id, hgvsp, polyphen, sift (for polyphen and sift, score and interpretation together)
 table_variant_annotation =cbind(All_info$HGVSp, All_info$SIFT, All_info$PolyPhen, All_info$Feature, All_info$variant)
 colnames(table_variant_annotation) = c("hgvsp", "sift", "polyphen", "transcript", "variant")
 table_variant_annotation = as.data.frame(table_variant_annotation)
+table_variant_annotation <- decode_hgvsp(table_variant_annotation)
 table_variant_annotation_noNA = table_variant_annotation[!grepl("NA",table_variant_annotation$hgvsp), ]
 table_variant_annotation_noNA = unique(table_variant_annotation_noNA)
 write.table(table_variant_annotation_noNA, file=paste0("variants_annotations_", chromosome,".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
@@ -290,10 +297,16 @@ show("variant ok")
 #Extract only the variant that are present in the IBVL
 #gnomad_intersect = gnomad_file[gnomad_file$ID_db_gnomad  %in%  SNV_vcf@fix[,c("ID")], ]
 gnomad_intersect = gnomad_file[gnomad_file$ID_db_gnomad  %in%  All_info$variant, ]
-#Keep only the wanted info
-gnomad_intersect_mini=gnomad_intersect[,c("ID_db_gnomad", "AF", "AC", "AN", "nhomalt")]
-#rename the columns as expected in the SQL
-colnames(gnomad_intersect_mini)=c("variant", "af_tot", "ac_tot", "an_tot", "hom_tot")
+#Keep only the wanted info, #incorporate additional filter columns in newer gnomad versions
+if (assembly == "GRCh37") {
+	gnomad_intersect_mini=gnomad_intersect[,c("ID_db_gnomad", "AF", "AC", "AN", "nhomalt", "FILTER")]
+	#rename the columns as expected in the SQL
+	colnames(gnomad_intersect_mini)=c("variant", "af_tot", "ac_tot", "an_tot", "hom_tot", "FILTER")
+} else if (assembly =="GRCh38") {
+	gnomad_intersect_mini=gnomad_intersect[,c("ID_db_gnomad", "AF", "AC", "AN", "nhomalt", "FILTER", "exomes_filters", "genomes_filters")]
+	#rename the columns as expected in the SQL
+	colnames(gnomad_intersect_mini)=c("variant", "af_tot", "ac_tot", "an_tot", "hom_tot", "FILTER", "exomes_filters", "genomes_filters")
+}
 gnomad_intersect_mini = unique(gnomad_intersect_mini)
 write.table(gnomad_intersect_mini, file=paste0("genomic_gnomad_frequencies_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 
@@ -303,11 +316,7 @@ show("gnomad frequ ok")
 # Short name, (NCBI gene Id, may not be necessary anymore)
 gene_table=as.data.frame(unique(All_info$SYMBOL))
 colnames(gene_table)=c("short_name")
-gene_table = as.data.frame(gene_table)
-gene_table_noNA = gene_table[!grepl("NA", gene_table$short_name),]
-gene_table_noNA = unique(gene_table_noNA)
-gene_table_noNA = as.data.frame(gene_table_noNA)
-colnames(gene_table_noNA)=c("short_name")
+gene_table_noNA = gene_table %>% filter(!is.na(short_name)) %>% filter(short_name != "") %>% unique()
 write.table(gene_table_noNA, file=paste0("genes_", chromosome, ".tsv"), quote=FALSE, row.names = FALSE, sep="\t")
 
 show("gene table ok")
@@ -319,7 +328,7 @@ show("gene table ok")
 transcript_table=as.data.frame(unique(cbind(All_info$Feature, All_info$SYMBOL, All_info$SOURCE, All_info$TSL)))
 colnames(transcript_table)=c("transcript_id", "gene", "transcript_type", "tsl")
 transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "Ensembl", "E"))
-transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "Refseq", "R"))
+transcript_table=transcript_table %>% mutate(transcript_type = str_replace(transcript_type, "RefSeq", "R"))
 transcript_table = unique(transcript_table)
 transcript_table = as.data.frame(transcript_table)
 transcript_table_noNA = transcript_table[!grepl("NA", transcript_table$transcript_id),]

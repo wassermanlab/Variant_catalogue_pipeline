@@ -1,6 +1,8 @@
 
 ## Publisher: upload the finished pipeline data into the portal
 
+*Ongoing work done in this directory should stay in its own branch (publisher-dev) and then be merged using a PR with squashed commit, to ensure the pipeline development main branch is clean and easy to track changes.*
+
 How to run:
 
   0) (re)create the database (eg, for a mySQL db: `mysql -u root -e "DROP DATABASE IF EXISTS ibvltest; CREATE DATABASE ibvltest;"`
@@ -17,8 +19,6 @@ You can run delete-tables.py in between runs while developing to flush out all t
 model_import_actions.py defines the list of tables and lambda functions related to routine operations done during the import. Most of the custom model functionality is here, but are still some "magic" operations happening outside these (for example: the If statements in https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/publisher-dev/publisher/do_import.py#L67
 
 test-db.py can be used to verify connectivity with an Oracle DB
-
-*Ongoing work done in this directory should stay in its own branch (publisher-dev) and then be merged using a PR with squashed commit, to ensure the pipeline development main branch is clean and easy to track changes.*
 
 ## Import environment vars
   - `PIPELINE_OUTPUT_PATH` - the full path to the directory containing pipeline output files ( optional - defaults to test/fixures )

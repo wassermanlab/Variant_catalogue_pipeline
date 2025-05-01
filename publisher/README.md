@@ -2,6 +2,7 @@
 ## Publisher: upload the finished pipeline data into the portal
 
 How to run:
+
   0) (re)create the database (eg, for a mySQL db: `mysql -u root -e "DROP DATABASE IF EXISTS ibvltest; CREATE DATABASE ibvltest;"`
   1) copy the `.env-sample` file to `.env` and set values appropriately
   2) (optional - for development purposes) run `python tables.py` to create the tables (database should be empty before this)

@@ -18,6 +18,8 @@ model_import_actions.py defines the list of tables and lambda functions related 
 
 test-db.py can be used to verify connectivity with an Oracle DB
 
+*Ongoing work done in this directory should stay in its own branch (publisher-dev) and then be merged using a PR with squashed commit, to ensure the pipeline development main branch is clean and easy to track changes.*
+
 ## Import environment vars
   - `PIPELINE_OUTPUT_PATH` - the full path to the directory containing pipeline output files ( optional - defaults to test/fixures )
   - `SCHEMA_NAME` - for an Oracle destination db, the schema name (database name) goes here. ( for non-Oracle, probably just use database name )

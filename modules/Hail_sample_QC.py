@@ -22,6 +22,19 @@ from bokeh.plotting import figure, output_file, show, save
 from bokeh.io import export_png
 import pandas as pd
 import os
+import stat
+import glob
+
+# Set umask to ensure files are created with read permissions for all
+os.umask(0o022)
+
+# Helper function to ensure files have proper read permissions
+def ensure_file_readable(filepath):
+    """Ensure file has read permissions for all users (644 permissions)"""
+    try:
+        os.chmod(filepath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+    except Exception as e:
+        print(f"Warning: Could not set permissions on {filepath}: {e}")
 
 # Hail and plot initialisation
 # Configure Spark properties
@@ -206,6 +219,13 @@ mt.sample_qc.r_ti_tv.export('r_ti_tv.tsv')
 mt.sample_qc.n_transition.export('n_transition.tsv')
 mt.sample_qc.n_transversion.export('n_transversion.tsv')
 
+# Ensure all exported TSV files have proper read permissions
+for tsv_file in ['DP.tsv', 'GQ.tsv', 'call_rate.tsv', 'r_het_hom_var.tsv', 
+                  'n_het.tsv', 'n_hom_var.tsv', 'n_snp.tsv', 'n_singleton.tsv',
+                  'r_insertion_deletion.tsv', 'n_insertion.tsv', 'n_deletion.tsv',
+                  'r_ti_tv.tsv', 'n_transition.tsv', 'n_transversion.tsv']:
+    ensure_file_readable(tsv_file)
+
 # Open the tables as data frame
 
 
@@ -347,6 +367,9 @@ plot_histo(r_ti_tv_table,
            mt.sample_qc.r_ti_tv,
            'Ratio transitions to transversions per sample')
 
+# Ensure all HTML plot files have proper read permissions
+for html_file in glob.glob('*.html'):
+    ensure_file_readable(html_file)
 
 ## In[ ]:
 #
@@ -434,6 +457,7 @@ def report_stats():
         f"Count of the samples flagged: {count_flagged_samples}\n"
     )
     out_stats.close()
+    ensure_file_readable("sample_QC.txt")
 
 
 
@@ -495,9 +519,11 @@ imputed_sex_filtered_samples = imputed_sex_filtered_samples.annotate(
         )
 filtered_samples_sex=imputed_sex_filtered_samples.select("sex")
 filtered_samples_sex.export('filtered_samples_sex.tsv')
+ensure_file_readable('filtered_samples_sex.tsv')
 
 filtered_samples_sex_fstat=imputed_sex_filtered_samples.select("sex", "f_stat")
 filtered_samples_sex_fstat.export('filtered_samples_sex_f_stat.tsv')
+ensure_file_readable('filtered_samples_sex_f_stat.tsv')
 
 
 
@@ -511,6 +537,7 @@ pl.add_layout(annot)
 
 output_file(filename=("impute_sex_distribution.html"))
 save(pl)
+ensure_file_readable("impute_sex_distribution.html")
 
 
 
@@ -550,6 +577,7 @@ if (filter_samples):
             f"Count of samples filtered: {filter_count}\n"
         )
     out_filtered.close()
+    ensure_file_readable("samples_filtered.txt")
 
 
 # In[168]:
@@ -569,6 +597,14 @@ if (filter_samples):
 #export file
 hl.export_vcf(mt, 'filtered_samples.vcf.bgz', tabix = True)
 
+# Ensure VCF and index files have proper read permissions
+ensure_file_readable('filtered_samples.vcf.bgz')
+if os.path.exists('filtered_samples.vcf.bgz.tbi'):
+    ensure_file_readable('filtered_samples.vcf.bgz.tbi')
+
+# Final check: ensure any PNG files have proper read permissions
+for png_file in glob.glob('*.png'):
+    ensure_file_readable(png_file)
 
 # In[ ]:
 

@@ -22,8 +22,21 @@ from bokeh.plotting import output_file, show, save
 
 import pandas as pd
 import os
+import stat
+import glob
 
 from typing import Optional, Dict, List
+
+# Set umask to ensure files are created with read permissions for all
+os.umask(0o022)
+
+# Helper function to ensure files have proper read permissions
+def ensure_file_readable(filepath):
+    """Ensure file has read permissions for all users (644 permissions)"""
+    try:
+        os.chmod(filepath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+    except Exception as e:
+        print(f"Warning: Could not set permissions on {filepath}: {e}")
 
 
 # #Created through the nextflow pipeline
@@ -548,6 +561,10 @@ mt.variant_qc.n_het.export('n_het_SV.tsv')
 mt.variant_qc.p_value_hwe.export('p_value_hwe_SV.tsv')
 mt.variant_qc.het_freq_hwe.export('het_freq_hwe_SV.tsv')
 
+# Ensure all exported TSV files have proper read permissions
+for tsv_file in ['DP_SV.tsv', 'AN_SV.tsv', 'call_rate_SV.tsv', 'n_called_SV.tsv',
+                  'n_not_called_SV.tsv', 'n_het_SV.tsv', 'p_value_hwe_SV.tsv', 'het_freq_hwe_SV.tsv']:
+    ensure_file_readable(tsv_file)
 
 # In[36]:
 
@@ -1220,6 +1237,19 @@ hl.export_vcf(SV_mt_filtered_export, 'SV_filtered_with_geno.vcf.bgz', tabix=True
 
 hl.export_vcf(SV_mt_filtered_export_no_geno, 'SV_filtered_frequ_only.vcf.bgz', tabix=True)
 
+# Ensure all output files have proper read permissions
+ensure_file_readable('SV_filtered_with_geno.vcf.bgz')
+ensure_file_readable('SV_filtered_frequ_only.vcf.bgz')
+if os.path.exists('SV_filtered_with_geno.vcf.bgz.tbi'):
+    ensure_file_readable('SV_filtered_with_geno.vcf.bgz.tbi')
+if os.path.exists('SV_filtered_frequ_only.vcf.bgz.tbi'):
+    ensure_file_readable('SV_filtered_frequ_only.vcf.bgz.tbi')
+
+# Ensure all HTML and PNG files have proper read permissions
+for html_file in glob.glob('*.html'):
+    ensure_file_readable(html_file)
+for png_file in glob.glob('*.png'):
+    ensure_file_readable(png_file)
 
 # In[76]:
 

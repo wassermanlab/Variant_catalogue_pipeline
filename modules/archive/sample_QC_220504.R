@@ -12,6 +12,18 @@
 library(ggplot2)
 library('ggplot2')
 
+# Set umask to ensure files are created with read permissions for all
+Sys.umask("022")
+
+# Helper function to ensure files have proper read permissions
+ensure_file_readable <- function(filepath) {
+  tryCatch({
+    Sys.chmod(filepath, mode = "0644")
+  }, error = function(e) {
+    warning(paste("Could not set permissions on", filepath, ":", e$message))
+  })
+}
+
 #Sex definition
 #XY:
 #normalized X coverage < 1.29 &
@@ -81,6 +93,7 @@ for (i in 1: nrow(plink_F_file)) {
 }
 
 write.table(table_QC, file="QC_sample.tsv", quote=FALSE, row.names = FALSE, sep="\t")
+ensure_file_readable("QC_sample.tsv")
 
 ##Create graph
 #Sex inference graph : x : chr X relative ploidy (0.5 to 3), Y : Chr Y relative ploidy (0 to 1.6)
@@ -98,6 +111,7 @@ sex_graph = ggplot(table_QC) +
   geom_rect(data=data.frame(xmin = -Inf, xmax = 1.29, ymin = 0.1, ymax = 1.16),
             aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="blue", alpha=0.5)
 ggsave("sex_graph.pdf")
+ensure_file_readable("sex_graph.pdf")
 
 
 #Singleton graph
@@ -111,6 +125,7 @@ hist(as.numeric(table_QC$singleton), breaks=12, xlab="Number of singleton SNV pe
      xlim = c(50000,3000000), main="Singleton distribution by vcftools")
   abline(v = 100000, col="blue")
 dev.off()
+ensure_file_readable("singleton_graph.pdf")
 
 #Number of singletons counted using bcftools
 pdf(file="singleton_bcftools_graph.pdf", width = 4, height = 4)
@@ -118,6 +133,7 @@ hist(as.numeric(table_QC$singleton_bcftools), breaks=12, xlab="Number of singlet
      main="Singleton distribution by bcftools")
   abline(v = 100000, col="blue")
 dev.off()
+ensure_file_readable("singleton_bcftools_graph.pdf")
 
 #Coverage graph
 # Distribution of the coverage by individual (on the whole genome, while gnomAD does it only based on chr20)
@@ -129,6 +145,7 @@ hist(as.numeric(table_QC$mean_coverage), breaks=12, xlab="Mean coverage per samp
      xlim = c(0,50), main = "Mean coverage distribution")
 abline(v = 15, col="blue")  	
 dev.off()
+ensure_file_readable("coverage_graph.pdf")
 
 # Total number of SNP graph
 # Distribution of the total number of SNPs by individuals
@@ -141,6 +158,7 @@ hist(as.numeric(table_QC$SNPs), breaks=12, xlab="Total number of SNPs per sample
   abline(v = 2400000, col="blue")+
     abline(v = 3750000, col="blue")
 dev.off()
+ensure_file_readable("SNPs_count_graph.pdf")
 
 
 # Ratio number of heterozygous variants / number of homozygous variants
@@ -153,5 +171,11 @@ hist(as.numeric(table_QC$het_hom_ratio), breaks=12, xlab="Het/Hom ratio per samp
        xlim = c(0,5), main = "Het/Hom distribution")
   abline(v = 3.3, col="blue")
 dev.off()
+ensure_file_readable("het_hom_ratio_graph.pdf")
 
+# Final check: ensure any PNG files have proper read permissions
+png_files <- list.files(pattern = "\\.png$")
+for (png_file in png_files) {
+  ensure_file_readable(png_file)
+}
 

@@ -12,18 +12,6 @@
 library(ggplot2)
 library('ggplot2')
 
-# Set umask to ensure files are created with read permissions for all
-Sys.umask("022")
-
-# Helper function to ensure files have proper read permissions
-ensure_file_readable <- function(filepath) {
-  tryCatch({
-    Sys.chmod(filepath, mode = "0644")
-  }, error = function(e) {
-    warning(paste("Could not set permissions on", filepath, ":", e$message))
-  })
-}
-
 #Sex definition
 #XY:
 #normalized X coverage < 1.29 &
@@ -94,7 +82,6 @@ for (i in 1: nrow(plink_F_file)) {
 }
 
 write.table(table_QC, file="QC_sample.tsv", quote=FALSE, row.names = FALSE, sep="\t")
-ensure_file_readable("QC_sample.tsv")
 
 ##Create graph
 #Sex inference graph : x : chr X relative ploidy (0.5 to 3), Y : Chr Y relative ploidy (0 to 1.6)
@@ -112,7 +99,6 @@ sex_graph = ggplot(table_QC) +
   geom_rect(data=data.frame(xmin = -Inf, xmax = 1.29, ymin = 0.1, ymax = 1.16),
             aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="blue", alpha=0.5)
 ggsave("sex_graph.pdf")
-ensure_file_readable("sex_graph.pdf")
 
 
 #Singleton graph
@@ -169,9 +155,14 @@ ensure_file_readable("sex_graph.pdf")
 #  abline(v = 3.3, col="blue")
 #dev.off()
 
-# Final check: ensure any PNG files have proper read permissions
+# Fix permissions for PNG files only
 png_files <- list.files(pattern = "\\.png$")
 for (png_file in png_files) {
-  ensure_file_readable(png_file)
+  tryCatch({
+    Sys.chmod(png_file, mode = "0644")
+  }, error = function(e) {
+    warning(paste("Could not set permissions on", png_file, ":", e$message))
+  })
 }
+
 

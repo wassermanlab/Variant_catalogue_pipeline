@@ -11,22 +11,10 @@ from bokeh.models import Range1d
 from bokeh.plotting import  output_file, save
 import pandas as pd
 import os
-import stat
-import glob
 import sys
 from typing import Optional, Dict, List
 hl.plot.output_notebook()
 
-# Set umask to ensure files are created with read permissions for all
-os.umask(0o022)
-
-# Helper function to ensure files have proper read permissions
-def ensure_file_readable(filepath):
-    """Ensure file has read permissions for all users (644 permissions)"""
-    try:
-        os.chmod(filepath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
-    except Exception as e:
-        print(f"Warning: Could not set permissions on {filepath}: {e}")
 
 # In[2]:
 
@@ -807,17 +795,16 @@ else:
 #save file with indels >50 bp that passed quality control
 hl.export_vcf(large_indels_mt, f'SNV_large_indels_{chr}.vcf.bgz', tabix=True)
 
-# Ensure all output files have proper read permissions
-for vcf_file in glob.glob('*.vcf.bgz'):
-    ensure_file_readable(vcf_file)
-for tbi_file in glob.glob('*.vcf.bgz.tbi'):
-    ensure_file_readable(tbi_file)
-
-# Ensure all HTML and PNG files have proper read permissions
-for html_file in glob.glob('*.html'):
-    ensure_file_readable(html_file)
-for png_file in glob.glob('*.png'):
-    ensure_file_readable(png_file)
 
 # In[ ]:
+
+
+# Fix permissions for PNG files only
+import glob
+import stat
+for png_file in glob.glob('*.png'):
+    try:
+        os.chmod(png_file, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+    except Exception as e:
+        print(f"Warning: Could not set permissions on {png_file}: {e}")
 

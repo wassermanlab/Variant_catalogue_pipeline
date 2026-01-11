@@ -69,21 +69,8 @@ from bokeh.models import Range1d
 from bokeh.plotting import figure, output_file, show, save
 
 import pandas as pd
-import stat
-import glob
 from typing import Tuple
 import string
-
-# Set umask to ensure files are created with read permissions for all
-os.umask(0o022)
-
-# Helper function to ensure files have proper read permissions
-def ensure_file_readable(filepath):
-    """Ensure file has read permissions for all users (644 permissions)"""
-    try:
-        os.chmod(filepath, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
-    except Exception as e:
-        print(f"Warning: Could not set permissions on {filepath}: {e}")
 
 import re
 
@@ -2739,23 +2726,12 @@ os.replace('MT_Step3_output_dir/sample_annotations.txt','sample_annotations_MT.t
 os.replace('MT_Step3_output_dir/stats_pass.txt','MT_stats_pass.txt')
 os.replace('MT_Step3_output_dir/stats.txt','MT_stats.txt')
 
-# Ensure all output files have proper read permissions
-for vcf_file in ['MT.vcf.bgz', 'MT_filtered_with_geno.vcf.bgz', 
-                 'MT_post_hail_combined_sites_only.vcf.bgz']:
-    if os.path.exists(vcf_file):
-        ensure_file_readable(vcf_file)
-for tbi_file in ['MT.vcf.bgz.tbi', 'MT_filtered_with_geno.vcf.bgz.tbi', 
-                 'MT_post_hail_combined_sites_only.vcf.bgz.tbi']:
-    if os.path.exists(tbi_file):
-        ensure_file_readable(tbi_file)
-for txt_file in ['MT_filtered_frequ_only.vcf', 'sample_annotations_MT.txt', 
-                 'MT_stats_pass.txt', 'MT_stats.txt']:
-    if os.path.exists(txt_file):
-        ensure_file_readable(txt_file)
-
-# Ensure all HTML and PNG files have proper read permissions
-for html_file in glob.glob('*.html'):
-    ensure_file_readable(html_file)
+# Fix permissions for PNG files only
+import glob
+import stat
 for png_file in glob.glob('*.png'):
-    ensure_file_readable(png_file)
+    try:
+        os.chmod(png_file, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+    except Exception as e:
+        print(f"Warning: Could not set permissions on {png_file}: {e}")
 

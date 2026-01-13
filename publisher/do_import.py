@@ -92,7 +92,8 @@ def populate_maps(model_action, group_label="all", variant_prefix=None, variant_
                 
                 if "variant" in depended_model_action["fk_map"]:
                     variants = get_table("variants")
-                    cols.append(variants.c["variant_id", "assembly"])
+                    cols.append(variants.c["variant_id", "assembly"])  # TODO: Invalid SQLAlchemy syntax - fix below
+                    # cols.extend([variants.c.variant_id, variants.c.assembly])  # FIX: Use extend with individual column references
                     statement = select(*cols).join(variants, table.c.variant == variants.c.id).where(variants.c.assembly == set_var_assembly)
                     statement = statement.where(variants.c.variant_id.startswith(variant_prefix))
                     #                    statement =  variant_prefix(statement, variants)

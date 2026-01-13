@@ -17,7 +17,7 @@ rootDir = os.environ.get("PIPELINE_OUTPUT_PATH")
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 schema = os.environ.get("SCHEMA_NAME")
 
-if rootDir == None:
+if rootDir is None:
     print("No root directory specified")
     exit()
 

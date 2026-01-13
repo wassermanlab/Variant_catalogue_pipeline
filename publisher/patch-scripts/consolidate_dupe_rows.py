@@ -26,7 +26,7 @@ resolved_with_quality = 0
 same_ac_and_q = 0
 
 def process_tsv(input_file,output_file):
-    global resolved_with_quality, num_processed, diffmax_count
+    global resolved_with_quality, num_processed
     print("processing file", input_file)
     df = pd.read_csv(input_file, sep='\t', dtype=freq_types, na_values=['.'])
 #    df = pd.read_csv(input_file, sep='\t')

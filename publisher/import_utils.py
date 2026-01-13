@@ -95,7 +95,7 @@ def setup_loggers(job_dir):
         a_logger = logging.getLogger(model_name)
         a_logger.setLevel(logging.WARNING)
         a_logger.propagate = False        
-        a_logger_handler = logging.FileHandler(os.path.join(job_dir,f"warnings-{model_name}.log"))
+        a_logger_handler = logging.FileHandler(os.path.join(job_dir, f"warnings-{model_name}.log"))
         a_logger_handler.setLevel(logging.WARNING)
         a_logger.addHandler(a_logger_handler)
         data_issue_logger[model_name] = a_logger
@@ -104,7 +104,7 @@ def setup_loggers(job_dir):
     output_logger.setLevel(logging.INFO)
     output_logger.propagate = False
 
-    output_logger_handler = logging.FileHandler(os.path.join("./",job_dir,"output.log"))
+    output_logger_handler = logging.FileHandler(job_dir, "output.log")
     output_logger_handler.setLevel(logging.INFO)
     output_logger.addHandler(output_logger_handler)
 
@@ -113,11 +113,11 @@ def setup_loggers(job_dir):
     error_logger = logging.getLogger("error")
     error_logger.setLevel(logging.ERROR)
     error_logger.propagate = False
-    error_logger_handler = logging.FileHandler(os.path.join(job_dir,"error.log"))
+    error_logger_handler = logging.FileHandler(os.path.join(job_dir, "error.log"))
     error_logger_handler.setLevel(logging.ERROR)
     error_logger.addHandler(error_logger_handler)
     
-    print("logging to", os.path.join(job_dir,"error.log"), os.path.join(job_dir,"output.log"))
+    print("logging to", os.path.join(job_dir, "error.log"), os.path.join(job_dir, "output.log"))
 
 def log_data_issue(s, model=None):
     if model is not None:

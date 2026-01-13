@@ -50,7 +50,7 @@ start_at_file = (
 
 db_row_counts = {"before": {}, "after": {}}
 
-if rootDir == None:
+if rootDir is None:
     rootDir = os.path.join(current_dir, "fixtures")
 
 engine = None
@@ -305,8 +305,7 @@ def import_file(file, file_info, action):
                     if isinstance(data[depended_model_col], str):
                         depended_map_key = data[depended_model_col]
                 if depended_map_key == "NA":
-                    
-                        data[depended_model_col] = None
+                    data[depended_model_col] = None
                 elif depended_map_key is None:
                     fk = None
                 else:

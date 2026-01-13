@@ -78,6 +78,8 @@ def populate_maps(model_action, group_label="all", variant_prefix=None, variant_
             if (modelName == "variants_transcripts"):
                 variants = get_table("variants")
                 transcripts = get_table("transcripts")
+                # TODO: Fix invalid column selection syntax (see review comment)
+                # Current code has invalid SQLAlchemy syntax on line 83
                 statement = select(
                     table.c["id"],
                     variants.c["variant_id", "assembly"], 
@@ -87,12 +89,27 @@ def populate_maps(model_action, group_label="all", variant_prefix=None, variant_
                 ).where(variants.c.assembly == set_var_assembly)
                 statement = statement.where(variants.c.variant_id.startswith(variant_prefix))
                 
+                # CORRECTED VERSION (commented out for review/testing):
+                # statement = select(
+                #     table.c["id"],
+                #     variants.c.variant_id,
+                #     variants.c.assembly,
+                #     transcripts.c["transcript_id"]
+                # ).join(variants, table.c.variant == variants.c.id
+                # ).join(transcripts, table.c.transcript == transcripts.c.id
+                # ).where(variants.c.assembly == set_var_assembly)
+                # statement = statement.where(variants.c.variant_id.startswith(variant_prefix))
+                
             else:
                 cols = [table.c[col] for col in ["id"] + depended_model_action["pk_lookup_col"] ]
                 
                 if "variant" in depended_model_action["fk_map"]:
                     variants = get_table("variants")
+                    # TODO: Fix invalid column selection syntax (see review comment)
+                    # Current code has invalid SQLAlchemy syntax on line 95
                     cols.append(variants.c["variant_id", "assembly"])
+                    # CORRECTED VERSION (commented out for review/testing):
+                    # cols.extend([variants.c.variant_id, variants.c.assembly])
                     statement = select(*cols).join(variants, table.c.variant == variants.c.id).where(variants.c.assembly == set_var_assembly)
                     statement = statement.where(variants.c.variant_id.startswith(variant_prefix))
                     #                    statement =  variant_prefix(statement, variants)

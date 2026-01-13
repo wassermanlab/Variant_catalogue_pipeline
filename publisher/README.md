@@ -1,22 +1,27 @@
 
 ## Publisher: upload the finished pipeline data into the portal
 
-How to run an import:
-  1) copy the `import/.env-sample` file to `import/.env` and set values appropriately
-  2) (optional) if you need to, run `python tables.py` to create the tables (database should be empty before this)
+*Ongoing work done in this directory should stay in its own branch (publisher-dev) and then be merged using a PR with squashed commit, to ensure the pipeline development main branch is clean and easy to track changes.*
+
+How to run:
+
+  0) (re)create the database (eg, for a mySQL db: `mysql -u root -e "DROP DATABASE IF EXISTS ibvltest; CREATE DATABASE ibvltest;"`
+  1) copy the `.env-sample` file to `.env` and set values appropriately
+  2) (optional - for development purposes) run `python tables.py` to create the tables (database should be empty before this)
   3) `python publish.py` will kick off the migration
 
-The script creates a directory called "jobs", and a directory inside that called "1" the first time, "2" the second time, eg. 
+## Notes:
 
-Each of these job folders has working data for the migration and two output logs (one for errors, one for progress). The working data is just (for each model) a file with the latest primary key, and a reverse lookup map for entity id (eg gene or variant or transcript id) to primary key.
+The script creates a directory called "jobs", and additional subdirectories every time it is run. Each of these job folders has log, error output and an error / warning list for each model.
 
-### Import environment vars
-  - `PIPELINE_OUTPUT_PATH` - the full path to the directory containing pipeline output files
-  - `SCHEMA_NAME` - for an Oracle destination db, the schema name goes here.
+You can run delete-tables.py in between runs while developing to flush out all the data.
+
+model_import_actions.py defines the list of tables and lambda functions related to routine operations done during the import. Most of the custom model functionality is here, but are still some "magic" operations happening outside these (for example: the If statements in https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/publisher-dev/publisher/do_import.py#L67
+
+test-db.py can be used to verify connectivity with an Oracle DB
+
+## Import environment vars
+  - `PIPELINE_OUTPUT_PATH` - the full path to the directory containing pipeline output files ( optional - defaults to test/fixures )
+  - `SCHEMA_NAME` - for an Oracle destination db, the schema name (database name) goes here. ( for non-Oracle, probably just use database name )
   - `START_AT_MODEL` - to pick up after a previous migration run left off, you can enter the model name here, and the script will skip to that model (it runs in the order of keys as defined in the `model_import_actions` map)
   - (`START_AT_FILE`) - for convenience, you can also skip to a particular file in the first model dir imported, using natural sorting. Be very careful if using this in production as it will lead to false duplicates unless the primary key for new row insertions is corrected.
-
-
-### snippets
-
-`mysql -u root -e "DROP DATABASE IF EXISTS ibvltesttiny; CREATE DATABASE ibvltesttiny;"`

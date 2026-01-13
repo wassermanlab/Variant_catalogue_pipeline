@@ -104,7 +104,7 @@ def setup_loggers(job_dir):
     output_logger.setLevel(logging.INFO)
     output_logger.propagate = False
 
-    output_logger_handler = logging.FileHandler(job_dir, "output.log")
+    output_logger_handler = logging.FileHandler(os.path.join(job_dir, "output.log"))
     output_logger_handler.setLevel(logging.INFO)
     output_logger.addHandler(output_logger_handler)
 

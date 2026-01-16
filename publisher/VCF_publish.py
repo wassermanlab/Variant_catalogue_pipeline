@@ -1,15 +1,14 @@
 """
-Pipeline driver for transforming VCF data and loading into database.
-
+VCF Publisher
 This module orchestrates the transformation of VCF files and related data sources
-into database tables, bypassing the TSV intermediate step.
+into database tables
 """
 
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 import logging
 
-from .transformers import (
+from .VCF_transformers import (
     GenesTransformer,
     TranscriptsTransformer,
     VariantsTransformer,

@@ -8,7 +8,7 @@ for each transformer.
 import unittest
 from typing import List, Dict, Any
 
-from publisher.transformers import (
+from publisher.VCF_transformers import (
     GenesTransformer,
     TranscriptsTransformer,
     VariantsTransformer,

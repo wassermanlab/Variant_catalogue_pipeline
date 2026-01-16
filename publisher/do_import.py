@@ -27,18 +27,14 @@ load_dotenv()
 rootDir = os.environ.get("PIPELINE_OUTPUT_PATH")
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
-chunk_size = int(os.environ.get("CHUNK_SIZE"))
+chunk_size = int(os.environ.get("CHUNK_SIZE", 5000))
 # verbose = os.environ.get("VERBOSE") == "true"
 
 schema = os.environ.get("SCHEMA_NAME")
 dry_run = os.environ.get("DRY_RUN") == "true"
 update = os.environ.get("UPDATE") == "true"
-set_var_assembly = os.environ.get("SET_VAR_ASSEMBLY", None)
-set_var_assembly = int(set_var_assembly) if set_var_assembly is not None else None
-
-if (set_var_assembly is None):
-    log_error("SET_VAR_ASSEMBLY is not set.")
-    quit()
+set_var_assembly = os.environ.get("SET_VAR_ASSEMBLY", 2)
+log_output(f"set_var_assembly is {set_var_assembly}")
 
 start_at_model = (
     os.environ.get("START_AT_MODEL") if os.environ.get("START_AT_MODEL") != "" else None

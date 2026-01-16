@@ -17,7 +17,7 @@ from sqlalchemy.exc import DataError, IntegrityError, ProgrammingError
 from import_utils import *
 
 dry_run = os.environ.get("DRY_RUN") == "true"
-chunk_size = int(os.environ.get("CHUNK_SIZE"))
+chunk_size = int(os.environ.get("CHUNK_SIZE", 5000))
 
 def publish_group(
     data_insert_list,

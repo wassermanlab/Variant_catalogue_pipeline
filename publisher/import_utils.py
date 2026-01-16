@@ -16,7 +16,7 @@ error_logger = None
 
 load_dotenv()
 
-chunk_size = int(os.environ.get("CHUNK_SIZE"))
+chunk_size = int(os.environ.get("CHUNK_SIZE", 5000))
 fail_fast = os.environ.get("FAIL_FAST") == "true" or os.environ.get("FAIL_FAST") == "True"
 verbose = os.environ.get("VERBOSE") == "true" or os.environ.get("VERBOSE") == "True"
 print('verbose is', verbose)
@@ -128,11 +128,11 @@ def log_data_issue(s, model=None):
     if (verbose):
         print(s)
 def log_output(s):
-    output_logger.info(s)
+    output_logger.info(s) if output_logger else print(s)
     if (verbose):
         print(s)
 def log_error(s):
-    error_logger.error(s)
+    error_logger.error(s) if error_logger else print(s, file=stderr)
     if (fail_fast):
         print(s)
         exit()

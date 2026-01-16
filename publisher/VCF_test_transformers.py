@@ -118,22 +118,18 @@ class TestGenesTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records)
+        result = self.transformer.transform(self.vcf_records)
+        
+        # Check result is a list
+        self.assertIsInstance(result, list)
+        
+        # Check each item has expected keys
+        if result:
+            self.assertIn('short_name', result[0])
             
-            # Check result is a list
-            self.assertIsInstance(result, list)
-            
-            # Check each item has expected keys
-            if result:
-                self.assertIn('short_name', result[0])
-                
-                # Check expected values
-                gene_names = [r['short_name'] for r in result]
-                self.assertIn('GENE1', gene_names)
-        except NotImplementedError:
-            # Transformer not yet implemented - test passes
-            self.skipTest("Transformer not yet implemented")
+            # Check expected values
+            gene_names = [r['short_name'] for r in result]
+            self.assertIn('GENE1', gene_names)
 
 
 class TestTranscriptsTransformer(unittest.TestCase):
@@ -145,22 +141,19 @@ class TestTranscriptsTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records)
+        result = self.transformer.transform(self.vcf_records)
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            # Check expected keys
+            self.assertIn('transcript_id', result[0])
+            self.assertIn('gene', result[0])
+            self.assertIn('transcript_type', result[0])
+            self.assertIn('tsl', result[0])
             
-            self.assertIsInstance(result, list)
-            
-            if result:
-                # Check expected keys
-                self.assertIn('transcript_id', result[0])
-                self.assertIn('gene', result[0])
-                self.assertIn('transcript_type', result[0])
-                self.assertIn('tsl', result[0])
-                
-                # Check transcript type is encoded (E or R)
-                self.assertIn(result[0]['transcript_type'], ['E', 'R'])
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            # Check transcript type is encoded (E or R)
+            self.assertIn(result[0]['transcript_type'], ['E', 'R'])
 
 
 class TestVariantsTransformer(unittest.TestCase):
@@ -172,22 +165,19 @@ class TestVariantsTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records, 'SNV')
+        result = self.transformer.transform(self.vcf_records, 'SNV')
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            self.assertIn('variant_id', result[0])
+            self.assertIn('var_type', result[0])
             
-            self.assertIsInstance(result, list)
+            # Check variant type matches
+            self.assertEqual(result[0]['var_type'], 'SNV')
             
-            if result:
-                self.assertIn('variant_id', result[0])
-                self.assertIn('var_type', result[0])
-                
-                # Check variant type matches
-                self.assertEqual(result[0]['var_type'], 'SNV')
-                
-                # Check variant ID format
-                self.assertIn('1_100000_A_G', [r['variant_id'] for r in result])
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            # Check variant ID format
+            self.assertIn('1_100000_A_G', [r['variant_id'] for r in result])
 
 
 class TestVariantsTranscriptsTransformer(unittest.TestCase):
@@ -199,20 +189,17 @@ class TestVariantsTranscriptsTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records)
+        result = self.transformer.transform(self.vcf_records)
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            self.assertIn('transcript', result[0])
+            self.assertIn('variant', result[0])
+            self.assertIn('hgvsc', result[0])
             
-            self.assertIsInstance(result, list)
-            
-            if result:
-                self.assertIn('transcript', result[0])
-                self.assertIn('variant', result[0])
-                self.assertIn('hgvsc', result[0])
-                
-                # Check HGVS format
-                self.assertTrue(result[0]['hgvsc'].startswith('ENST'))
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            # Check HGVS format
+            self.assertTrue(result[0]['hgvsc'].startswith('ENST'))
 
 
 class TestVariantsAnnotationsTransformer(unittest.TestCase):
@@ -224,19 +211,16 @@ class TestVariantsAnnotationsTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records)
-            
-            self.assertIsInstance(result, list)
-            
-            if result:
-                self.assertIn('hgvsp', result[0])
-                self.assertIn('sift', result[0])
-                self.assertIn('polyphen', result[0])
-                self.assertIn('transcript', result[0])
-                self.assertIn('variant', result[0])
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+        result = self.transformer.transform(self.vcf_records)
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            self.assertIn('hgvsp', result[0])
+            self.assertIn('sift', result[0])
+            self.assertIn('polyphen', result[0])
+            self.assertIn('transcript', result[0])
+            self.assertIn('variant', result[0])
 
 
 class TestVariantsConsequencesTransformer(unittest.TestCase):
@@ -249,20 +233,17 @@ class TestVariantsConsequencesTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records, self.severity_table)
+        result = self.transformer.transform(self.vcf_records, self.severity_table)
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            self.assertIn('severity', result[0])
+            self.assertIn('variant', result[0])
+            self.assertIn('transcript', result[0])
             
-            self.assertIsInstance(result, list)
-            
-            if result:
-                self.assertIn('severity', result[0])
-                self.assertIn('variant', result[0])
-                self.assertIn('transcript', result[0])
-                
-                # Check severity is numeric
-                self.assertIsInstance(result[0]['severity'], int)
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            # Check severity is numeric
+            self.assertIsInstance(result[0]['severity'], int)
 
 
 class TestSnvsTransformer(unittest.TestCase):
@@ -274,24 +255,21 @@ class TestSnvsTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records, 'GRCh38')
+        result = self.transformer.transform(self.vcf_records, 'GRCh38')
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            expected_keys = ['variant', 'type', 'length', 'chr', 'pos', 'ref', 'alt',
+                           'cadd_score', 'cadd_intr', 'dbsnp_id', 'dbsnp_url',
+                           'ucsc_url', 'ensembl_url', 'clinvar_url', 'gnomad_url',
+                           'clinvar_vcv', 'splice_ai']
             
-            self.assertIsInstance(result, list)
+            for key in expected_keys:
+                self.assertIn(key, result[0])
             
-            if result:
-                expected_keys = ['variant', 'type', 'length', 'chr', 'pos', 'ref', 'alt',
-                               'cadd_score', 'cadd_intr', 'dbsnp_id', 'dbsnp_url',
-                               'ucsc_url', 'ensembl_url', 'clinvar_url', 'gnomad_url',
-                               'clinvar_vcv', 'splice_ai']
-                
-                for key in expected_keys:
-                    self.assertIn(key, result[0])
-                
-                # Check CADD interpretation
-                self.assertIn(result[0]['cadd_intr'], ['Tolerable', 'Damaging'])
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            # Check CADD interpretation
+            self.assertIn(result[0]['cadd_intr'], ['Tolerable', 'Damaging'])
 
 
 class TestMtsTransformer(unittest.TestCase):
@@ -303,24 +281,21 @@ class TestMtsTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(
-                self.vcf_records, 
-                'GRCh38',
-                ['chrM_8602_T_C']
-            )
+        result = self.transformer.transform(
+            self.vcf_records, 
+            'GRCh38',
+            ['chrM_8602_T_C']
+        )
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            expected_keys = ['variant', 'pos', 'ref', 'alt', 'ucsc_url',
+                           'mitomap_url', 'gnomad_url', 'dbsnp_id',
+                           'dbsnp_url', 'clinvar_url', 'clinvar_vcv']
             
-            self.assertIsInstance(result, list)
-            
-            if result:
-                expected_keys = ['variant', 'pos', 'ref', 'alt', 'ucsc_url',
-                               'mitomap_url', 'gnomad_url', 'dbsnp_id',
-                               'dbsnp_url', 'clinvar_url', 'clinvar_vcv']
-                
-                for key in expected_keys:
-                    self.assertIn(key, result[0])
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            for key in expected_keys:
+                self.assertIn(key, result[0])
 
 
 class TestGenomicIbvlFrequenciesTransformer(unittest.TestCase):
@@ -332,25 +307,22 @@ class TestGenomicIbvlFrequenciesTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records)
+        result = self.transformer.transform(self.vcf_records)
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            expected_keys = ['variant', 'af_tot', 'af_xx', 'af_xy',
+                           'ac_tot', 'ac_xx', 'ac_xy',
+                           'an_tot', 'an_xx', 'an_xy',
+                           'hom_tot', 'hom_xx', 'hom_xy', 'quality']
             
-            self.assertIsInstance(result, list)
+            for key in expected_keys:
+                self.assertIn(key, result[0])
             
-            if result:
-                expected_keys = ['variant', 'af_tot', 'af_xx', 'af_xy',
-                               'ac_tot', 'ac_xx', 'ac_xy',
-                               'an_tot', 'an_xx', 'an_xy',
-                               'hom_tot', 'hom_xx', 'hom_xy', 'quality']
-                
-                for key in expected_keys:
-                    self.assertIn(key, result[0])
-                
-                # Check types
-                self.assertIsInstance(result[0]['af_tot'], float)
-                self.assertIsInstance(result[0]['ac_tot'], int)
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            # Check types
+            self.assertIsInstance(result[0]['af_tot'], float)
+            self.assertIsInstance(result[0]['ac_tot'], int)
 
 
 class TestGenomicGnomadFrequenciesTransformer(unittest.TestCase):
@@ -362,22 +334,19 @@ class TestGenomicGnomadFrequenciesTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(
-                self.gnomad_records,
-                ['1_100000_A_G'],
-                'GRCh38'
-            )
+        result = self.transformer.transform(
+            self.gnomad_records,
+            ['1_100000_A_G'],
+            'GRCh38'
+        )
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            expected_keys = ['variant', 'af_tot', 'ac_tot', 'an_tot', 'hom_tot', 'FILTER']
             
-            self.assertIsInstance(result, list)
-            
-            if result:
-                expected_keys = ['variant', 'af_tot', 'ac_tot', 'an_tot', 'hom_tot', 'FILTER']
-                
-                for key in expected_keys:
-                    self.assertIn(key, result[0])
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            for key in expected_keys:
+                self.assertIn(key, result[0])
 
 
 class TestMtIbvlFrequenciesTransformer(unittest.TestCase):
@@ -389,22 +358,19 @@ class TestMtIbvlFrequenciesTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(self.vcf_records)
+        result = self.transformer.transform(self.vcf_records)
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            expected_keys = ['variant', 'an', 'ac_hom', 'ac_het',
+                           'af_hom', 'af_het', 'hl_hist', 'max_hl']
             
-            self.assertIsInstance(result, list)
+            for key in expected_keys:
+                self.assertIn(key, result[0])
             
-            if result:
-                expected_keys = ['variant', 'an', 'ac_hom', 'ac_het',
-                               'af_hom', 'af_het', 'hl_hist', 'max_hl']
-                
-                for key in expected_keys:
-                    self.assertIn(key, result[0])
-                
-                # Check heteroplasmy histogram is formatted
-                self.assertIsInstance(result[0]['hl_hist'], str)
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            # Check heteroplasmy histogram is formatted
+            self.assertIsInstance(result[0]['hl_hist'], str)
 
 
 class TestMtGnomadFrequenciesTransformer(unittest.TestCase):
@@ -416,22 +382,19 @@ class TestMtGnomadFrequenciesTransformer(unittest.TestCase):
     
     def test_transform_output_structure(self):
         """Test that transform returns correct structure."""
-        try:
-            result = self.transformer.transform(
-                self.gnomad_records,
-                ['chrM_8602_T_C']
-            )
+        result = self.transformer.transform(
+            self.gnomad_records,
+            ['chrM_8602_T_C']
+        )
+        
+        self.assertIsInstance(result, list)
+        
+        if result:
+            expected_keys = ['variant', 'an', 'ac_hom', 'ac_het',
+                           'af_hom', 'af_het', 'max_hl']
             
-            self.assertIsInstance(result, list)
-            
-            if result:
-                expected_keys = ['variant', 'an', 'ac_hom', 'ac_het',
-                               'af_hom', 'af_het', 'max_hl']
-                
-                for key in expected_keys:
-                    self.assertIn(key, result[0])
-        except NotImplementedError:
-            self.skipTest("Transformer not yet implemented")
+            for key in expected_keys:
+                self.assertIn(key, result[0])
 
 
 if __name__ == '__main__':

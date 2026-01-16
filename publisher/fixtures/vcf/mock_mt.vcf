@@ -1,0 +1,11 @@
+##fileformat=VCFv4.2
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP">
+##FORMAT=<ID=AC_hom,Number=1,Type=Integer,Description="Homoplasmic allele count">
+##FORMAT=<ID=AC_het,Number=1,Type=Integer,Description="Heteroplasmic allele count">
+##FORMAT=<ID=AF_hom,Number=1,Type=Float,Description="Homoplasmic allele frequency">
+##FORMAT=<ID=AF_het,Number=1,Type=Float,Description="Heteroplasmic allele frequency">
+##FORMAT=<ID=AN,Number=1,Type=Integer,Description="Allele number">
+##FORMAT=<ID=max_observed_heteroplasmy,Number=1,Type=Float,Description="Maximum observed heteroplasmy">
+##FORMAT=<ID=heteroplasmy_histogram,Number=1,Type=String,Description="Heteroplasmy histogram">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE
+MT	8602	chrM_8602_T_C	T	C	100.0	PASS	CSQ=C|missense_variant|MODERATE|MT-ATP6|ENSG00000198899|Transcript|ENST00000361899|protein_coding|||ENST00000361899.2:c.321T>C|ENSP00000355046.2:p.Ile107Thr||||I/T||rs879029014||1||SNV||||Ensembl||T|C||||||||ClinVar::VCV000692920||30.0|0.3||||||	AC_hom:AC_het:AF_hom:AF_het:AN:max_observed_heteroplasmy:heteroplasmy_histogram	5:10:0.05:0.10:100:0.95:[[0.1,0.2,0.3],[5,10,15]]

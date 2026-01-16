@@ -1,0 +1,8 @@
+##fileformat=VCFv4.2
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP">
+##INFO=<ID=AF_tot_XX_XY,Number=3,Type=Float,Description="Allele frequency total,XX,XY">
+##INFO=<ID=AC_tot_XX_XY,Number=3,Type=Integer,Description="Allele count total,XX,XY">
+##INFO=<ID=AN_tot_XX_XY,Number=3,Type=Integer,Description="Allele number total,XX,XY">
+##INFO=<ID=hom_tot_XX_XY,Number=3,Type=Integer,Description="Homozygote count total,XX,XY">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+1	100000	1_100000_A_G	A	G	99.9	PASS	CSQ=G|missense_variant|MODERATE|GENE1|ENSG00000001|Transcript|ENST00000001|protein_coding|5/10||ENST00000001.1:c.123A>G|ENSP00000001.1:p.Lys41Glu|123|123|41|K/E|Aaa/Gaa|rs123456||1||SNV|HGNC|HGNC:1234|1|TRUE|Ensembl||A|A||tolerated(0.5)|benign(0.1)|||ClinVar::VCV000123456||35.0|0.5|1|2|3|4|0.1|0.2|0.3|0.4;AF_tot_XX_XY=0.01,0.02,0.005;AC_tot_XX_XY=10,15,5;AN_tot_XX_XY=1000,750,1000;hom_tot_XX_XY=2,1,1

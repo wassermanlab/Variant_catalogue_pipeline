@@ -1,0 +1,2 @@
+chromosome	position	ref	alt	AN	AC_hom	AC_het	AF_hom	AF_het	max_observed_heteroplasmy
+chrM	8602	T	C	50000	250	500	0.005	0.010	0.98

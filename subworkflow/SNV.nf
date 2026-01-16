@@ -32,6 +32,8 @@ workflow SNV {
 	assembly        			= params.assembly
 	reference       			= file (params.ref)
 	reference_index 			= file (params.ref_index)
+        sample_assignments                      = params.sample_assignments
+        pop_list                                = params.pop_list
         SNV                                     = params.SNV
 		var_qc_intervals 						= ['autosomal', 'X', 'Y']
         chr                                     = params.chrom

@@ -3,12 +3,40 @@ Unit tests for VCF transformer classes.
 
 These tests validate the expected input/output structures for each transformer
 using real VCF fixture files.
+
+To focus on a single test (similar to fit() in Mocha):
+
+1. Use unittest.skip decorator on other tests:
+   @unittest.skip("Temporarily skipping")
+   
+2. Run specific test from command line:
+   python -m unittest publisher.VCF_test_transformers.TestTranscriptsTransformer
+   python -m unittest publisher.VCF_test_transformers.TestTranscriptsTransformer.test_transform_output_structure
+   
+3. Use pytest with -k flag (if pytest is installed):
+   pytest publisher/VCF_test_transformers.py -k "Transcripts"
+   
+4. Use environment variable or attribute (demonstrated below with FOCUS_TEST)
 """
 
 import unittest
 import os
 from pathlib import Path
 from typing import List, Dict, Any
+
+# Set to True to enable focus mode - only focused tests will run
+FOCUS_MODE = os.environ.get('FOCUS_TEST', 'false').lower() == 'true'
+
+def focus(cls):
+    """Decorator to mark a test class as focused. Only runs when FOCUS_MODE=true."""
+    cls._focused = True
+    return cls
+
+def skipUnlessFocused(cls):
+    """Decorator to skip test class unless it's focused or FOCUS_MODE is off."""
+    if FOCUS_MODE and not getattr(cls, '_focused', False):
+        return unittest.skip("Skipping - not focused")(cls)
+    return cls
 
 from publisher.VCF_transformers import (
     GenesTransformer,
@@ -109,6 +137,7 @@ def read_severity_table(filename: str) -> Dict[str, int]:
     return {r['consequence']: int(r['severity_number']) for r in records}
 
 
+@skipUnlessFocused
 class TestGenesTransformer(unittest.TestCase):
     """Test GenesTransformer."""
     
@@ -132,8 +161,10 @@ class TestGenesTransformer(unittest.TestCase):
             self.assertIn('GENE1', gene_names)
 
 
+@skipUnlessFocused
+@focus
 class TestTranscriptsTransformer(unittest.TestCase):
-    """Test TranscriptsTransformer."""
+    """Test TranscriptsTransformer - FOCUSED for demonstration."""
     
     def setUp(self):
         self.transformer = TranscriptsTransformer()
@@ -156,6 +187,7 @@ class TestTranscriptsTransformer(unittest.TestCase):
             self.assertIn(result[0]['transcript_type'], ['E', 'R'])
 
 
+@skipUnlessFocused
 class TestVariantsTransformer(unittest.TestCase):
     """Test VariantsTransformer."""
     
@@ -180,6 +212,7 @@ class TestVariantsTransformer(unittest.TestCase):
             self.assertIn('1_100000_A_G', [r['variant_id'] for r in result])
 
 
+@skipUnlessFocused
 class TestVariantsTranscriptsTransformer(unittest.TestCase):
     """Test VariantsTranscriptsTransformer."""
     
@@ -202,6 +235,7 @@ class TestVariantsTranscriptsTransformer(unittest.TestCase):
             self.assertTrue(result[0]['hgvsc'].startswith('ENST'))
 
 
+@skipUnlessFocused
 class TestVariantsAnnotationsTransformer(unittest.TestCase):
     """Test VariantsAnnotationsTransformer."""
     
@@ -223,6 +257,7 @@ class TestVariantsAnnotationsTransformer(unittest.TestCase):
             self.assertIn('variant', result[0])
 
 
+@skipUnlessFocused
 class TestVariantsConsequencesTransformer(unittest.TestCase):
     """Test VariantsConsequencesTransformer."""
     
@@ -246,6 +281,7 @@ class TestVariantsConsequencesTransformer(unittest.TestCase):
             self.assertIsInstance(result[0]['severity'], int)
 
 
+@skipUnlessFocused
 class TestSnvsTransformer(unittest.TestCase):
     """Test SnvsTransformer."""
     
@@ -272,6 +308,7 @@ class TestSnvsTransformer(unittest.TestCase):
             self.assertIn(result[0]['cadd_intr'], ['Tolerable', 'Damaging'])
 
 
+@skipUnlessFocused
 class TestMtsTransformer(unittest.TestCase):
     """Test MtsTransformer."""
     
@@ -298,6 +335,7 @@ class TestMtsTransformer(unittest.TestCase):
                 self.assertIn(key, result[0])
 
 
+@skipUnlessFocused
 class TestGenomicIbvlFrequenciesTransformer(unittest.TestCase):
     """Test GenomicIbvlFrequenciesTransformer."""
     
@@ -325,6 +363,7 @@ class TestGenomicIbvlFrequenciesTransformer(unittest.TestCase):
             self.assertIsInstance(result[0]['ac_tot'], int)
 
 
+@skipUnlessFocused
 class TestGenomicGnomadFrequenciesTransformer(unittest.TestCase):
     """Test GenomicGnomadFrequenciesTransformer."""
     
@@ -349,6 +388,7 @@ class TestGenomicGnomadFrequenciesTransformer(unittest.TestCase):
                 self.assertIn(key, result[0])
 
 
+@skipUnlessFocused
 class TestMtIbvlFrequenciesTransformer(unittest.TestCase):
     """Test MtIbvlFrequenciesTransformer."""
     
@@ -373,6 +413,7 @@ class TestMtIbvlFrequenciesTransformer(unittest.TestCase):
             self.assertIsInstance(result[0]['hl_hist'], str)
 
 
+@skipUnlessFocused
 class TestMtGnomadFrequenciesTransformer(unittest.TestCase):
     """Test MtGnomadFrequenciesTransformer."""
     
@@ -398,4 +439,21 @@ class TestMtGnomadFrequenciesTransformer(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    # Examples of running focused tests:
+    # 
+    # 1. Run all tests (focus mode off):
+    #    python -m publisher.VCF_test_transformers
+    #
+    # 2. Run only focused test (TestTranscriptsTransformer):
+    #    FOCUS_TEST=true python -m publisher.VCF_test_transformers
+    #
+    # 3. Run specific test class directly:
+    #    python -m unittest publisher.VCF_test_transformers.TestTranscriptsTransformer
+    #
+    # 4. Run specific test method:
+    #    python -m unittest publisher.VCF_test_transformers.TestTranscriptsTransformer.test_transform_output_structure
+    #
+    # To focus on a different test, move the @focus decorator to that test class
+    # (remember to place it AFTER @skipUnlessFocused for proper decorator order)
+    
     unittest.main()

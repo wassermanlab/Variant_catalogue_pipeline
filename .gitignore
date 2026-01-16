@@ -8,6 +8,7 @@ flowchart.png*
 .nextflow/*
 .*
 !.gitignore
+!.vscode
 /hail
 *.ipynb
 hail*

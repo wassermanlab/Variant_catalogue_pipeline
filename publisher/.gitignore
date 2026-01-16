@@ -1,0 +1,21 @@
+# python generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+uv.lock
+
+# venv
+env/
+*-env/
+.venv
+
+.env
+
+!.env-sample
+!.python-version
+!fixtures/**/*.tsv
+!severities.tsv
+jobs

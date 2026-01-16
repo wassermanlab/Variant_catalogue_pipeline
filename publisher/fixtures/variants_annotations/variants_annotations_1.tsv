@@ -1,0 +1,12 @@
+hgvsp	sift	polyphen	transcript	variant
+ENSP00000334393.3:p.Thr141Ala	tolerated(0.82)	benign(0)	TRANS1	1_1001_A_C
+ENSP00000334393.3:p.Thr141Ala	tolerated(0.82)	benign(0)	TRANS1	2_1091_G_A
+ENSP00000334393.3:p.Thr141Ala	tolerated(0.82)	benign(0)	TRANS1	2_1090_G_C
+NP_001005484.2:p.Cys203Ser	deleterious(0)	probably_damaging(0.999)	TRANS4	2_1091_G_A
+ENSP00000468859.1:p.Ile5%3D	NA	NA	TRANS2	7_2500_A_GG
+NP_001005484.2:p.Thr162Ala	tolerated(0.85)	benign(0)	TRANS2	7_2500_A_AA
+ENSP00000334393.3:p.Cys182Ser	deleterious(0)	probably_damaging(0.987)	TRANS3	7_2500_A_GG
+ENSP00000468859.1:p.His41Arg	tolerated(0.53)	benign(0.412)	TRANS5	7_2500_A_AA
+ENSP00000468859.1:p.Tyr3ThrfsTer18	NA	NA	TRANS7	7_2510_AC_A
+MITO.1:p.Tyr3ThrfsTer18	NA	NA	MITOTRANS	chrM_88_C_T
+MITO.12:p.Tyr3ThrfsTer18	NA	NA	MITOTRANS2	chrM_99_GG_-

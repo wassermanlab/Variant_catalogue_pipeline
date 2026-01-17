@@ -483,21 +483,4 @@ class TestMtGnomadFrequenciesTransformer(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # Examples of running focused tests:
-    # 
-    # 1. Run all tests (focus mode off):
-    #    python -m publisher.VCF_test_transformers
-    #
-    # 2. Run only focused test (TestTranscriptsTransformer):
-    #    FOCUS_TEST=true python -m publisher.VCF_test_transformers
-    #
-    # 3. Run specific test class directly:
-    #    python -m unittest publisher.VCF_test_transformers.TestTranscriptsTransformer
-    #
-    # 4. Run specific test method:
-    #    python -m unittest publisher.VCF_test_transformers.TestTranscriptsTransformer.test_transform_output_structure
-    #
-    # To focus on a different test, move the @focus decorator to that test class
-    # (remember to place it AFTER @skipUnlessFocused for proper decorator order)
-    
     unittest.main()

@@ -73,7 +73,7 @@ All variant types are first processed through:
 ## Table Descriptions
 
 ### 1. genes
-**Script**: `SNV_data_organization.R`, `MT_data_organization.R`, `SV_data_organization.R`, `MEI_data_organization.R`, `STR_data_organization.R`
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L320), [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L232), [`SV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SV_data_organization.R#L289), [`MEI_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MEI_data_organization.R#L224), [`STR_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/STR_data_organization.R#L150)
 
 **Data Source**: VCF INFO field, VEP annotation CSQ subfield `SYMBOL`
 
@@ -90,7 +90,7 @@ All variant types are first processed through:
 ---
 
 ### 2. transcripts
-**Script**: `SNV_data_organization.R`, `MT_data_organization.R`
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L335), [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L248)
 
 **Data Source**: VCF INFO field, VEP annotation CSQ subfields: `Feature`, `SYMBOL`, `SOURCE`, `TSL`
 
@@ -110,7 +110,7 @@ All variant types are first processed through:
 ---
 
 ### 3. variants
-**Script**: `SNV_data_organization.R`, `MT_data_organization.R`, `SV_data_organization.R`, `MEI_data_organization.R`, `STR_data_organization.R`
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L291), [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L163), [`SV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SV_data_organization.R#L276), [`MEI_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MEI_data_organization.R#L211), [`STR_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/STR_data_organization.R#L142)
 
 **Data Source**: VCF ID field (variant identifier: chr_pos_ref_alt format)
 
@@ -126,7 +126,7 @@ All variant types are first processed through:
 ---
 
 ### 4. variants_transcripts
-**Script**: `SNV_data_organization.R`, `MT_data_organization.R`
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L246), [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L174)
 
 **Data Source**: VCF INFO field, VEP annotation CSQ subfields: `Feature`, variant ID, `HGVSc`
 
@@ -143,7 +143,7 @@ All variant types are first processed through:
 ---
 
 ### 5. variants_annotations
-**Script**: `SNV_data_organization.R`, `MT_data_organization.R`
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L283), [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L205)
 
 **Data Source**: VCF INFO field, VEP annotation CSQ subfields: `HGVSp`, `SIFT`, `PolyPhen`, `Feature`, variant ID
 
@@ -161,7 +161,7 @@ All variant types are first processed through:
 ---
 
 ### 6. variants_consequences
-**Script**: `SNV_data_organization.R`, `MT_data_organization.R`
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L265), [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L194)
 
 **Data Source**: VCF INFO field, VEP annotation CSQ subfield `Consequence`, severity_table.tsv
 
@@ -180,7 +180,7 @@ All variant types are first processed through:
 ---
 
 ### 7. snvs
-**Script**: `SNV_data_organization.R`
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L234)
 
 **Data Source**: VCF (CHROM, POS, ID, REF, ALT, QUAL, INFO field with VEP CSQ)
 
@@ -207,7 +207,7 @@ All variant types are first processed through:
 ---
 
 ### 8. mts
-**Script**: `MT_data_organization.R`
+**Script**: [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L154)
 
 **Data Source**: VCF (CHROM, POS, ID, REF, ALT, INFO field with VEP CSQ)
 
@@ -232,7 +232,7 @@ All variant types are first processed through:
 ---
 
 ### 9. genomic_ibvl_frequencies
-**Script**: `SNV_data_organization.R`, `SV_data_organization.R`, `MEI_data_organization.R`
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L225), [`SV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SV_data_organization.R#L237), [`MEI_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MEI_data_organization.R#L179)
 
 **Data Source**: VCF INFO field, Hail-calculated frequencies: `AF_tot_XX_XY`, `AC_tot_XX_XY`, `AN_tot_XX_XY`, `hom_tot_XX_XY`
 
@@ -254,7 +254,7 @@ All variant types are first processed through:
 ---
 
 ### 10. genomic_gnomad_frequencies
-**Script**: `SNV_data_organization.R` (uses gnomad_frequency_table.nf)
+**Script**: [`SNV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SNV_data_organization.R#L311) (uses [`gnomad_frequency_table.nf`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/gnomad_frequency_table.nf))
 
 **Data Source**: External gnomAD VCF files, processed through `gnomad_frequency_table.nf`
 
@@ -278,7 +278,7 @@ All variant types are first processed through:
 ---
 
 ### 11. mt_ibvl_frequencies
-**Script**: `MT_data_organization.R`
+**Script**: [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L145)
 
 **Data Source**: VCF GT (genotype) fields with Hail-calculated MT-specific metrics
 
@@ -301,7 +301,7 @@ All variant types are first processed through:
 ---
 
 ### 12. mt_gnomad_frequencies
-**Script**: `MT_data_organization.R`
+**Script**: [`MT_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MT_data_organization.R#L219)
 
 **Data Source**: External gnomAD mitochondrial TSV file (pre-processed, not VCF format)
 
@@ -323,7 +323,7 @@ All variant types are first processed through:
 The pipeline also generates SV-specific consequence and annotation tables that differ from the SNV/MT pattern:
 
 ### svs (Structural Variants)
-**Scripts**: `SV_data_organization.R`, `MEI_data_organization.R`
+**Scripts**: [`SV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SV_data_organization.R#L246), [`MEI_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MEI_data_organization.R#L188)
 
 **Data Source**: VCF with SV-specific INFO fields (SVLEN, SVTYPE, AVG_START, AVG_END, etc.)
 
@@ -340,7 +340,7 @@ The pipeline also generates SV-specific consequence and annotation tables that d
 **Output Fields**: `variant`, `chr1`, `chr1_pos1`, `chr1_pos2`, `sv_type`, `sv_length`, `algorithm`, `ucsc_url`, `gnomad_id`, `gnomad_url`
 
 ### sv_consequences
-**Scripts**: `SV_data_organization.R`, `MEI_data_organization.R`, `STR_data_organization.R`
+**Scripts**: [`SV_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/SV_data_organization.R), [`MEI_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/MEI_data_organization.R), [`STR_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/STR_data_organization.R#L146)
 
 **Data Source**: VCF INFO field, VEP CSQ Consequence field
 
@@ -356,7 +356,7 @@ The pipeline also generates SV-specific consequence and annotation tables that d
 **Output Fields**: `gene`, `variant`, `consequence`
 
 ### str
-**Script**: `STR_data_organization.R`
+**Script**: [`STR_data_organization.R`](https://github.com/wassermanlab/Variant_catalogue_pipeline/blob/main/modules/STR_data_organization.R#L138)
 
 **Data Source**: VCF (REF, RU, REPID, END from INFO), ExpansionHunter variant catalogue JSON, genotype REPCN field
 

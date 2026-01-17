@@ -26,7 +26,7 @@ from .VCF_transformers import (
 logger = logging.getLogger(__name__)
 
 
-class VariantCataloguePipeline:
+class VariantPublisher:
     """
     Main pipeline orchestrator for transforming VCF data to database records.
     
@@ -61,7 +61,7 @@ class VariantCataloguePipeline:
     
     def process_snv_vcf(self, vcf_path: Path, assembly: str, 
                         severity_table_path: Path,
-                        gnomad_tsv_path: Path) -> Dict[str, List[Dict[str, Any]]]:
+                        gnomad_tsv_path: Path = None) -> Dict[str, List[Dict[str, Any]]]:
         """
         Process SNV VCF file and generate all SNV-related tables.
         
@@ -82,7 +82,7 @@ class VariantCataloguePipeline:
         
         vcf_records = self._read_vcf(vcf_path)
         severity_table = self._read_severity_table(severity_table_path)
-        gnomad_records = self._read_gnomad_tsv(gnomad_tsv_path)
+        gnomad_records = self._read_gnomad_tsv(gnomad_tsv_path) if gnomad_tsv_path else []
         
         results = {}
         
@@ -108,7 +108,7 @@ class VariantCataloguePipeline:
     
     def process_mt_vcf(self, vcf_path: Path, assembly: str,
                        severity_table_path: Path,
-                       gnomad_mt_tsv_path: Path) -> Dict[str, List[Dict[str, Any]]]:
+                       gnomad_mt_tsv_path: Path = None) -> Dict[str, List[Dict[str, Any]]]:
         """
         Process mitochondrial VCF file and generate all MT-related tables.
         
@@ -129,7 +129,7 @@ class VariantCataloguePipeline:
         
         vcf_records = self._read_mt_vcf(vcf_path)
         severity_table = self._read_severity_table(severity_table_path)
-        gnomad_mt_records = self._read_gnomad_mt_tsv(gnomad_mt_tsv_path)
+        gnomad_mt_records = self._read_gnomad_mt_tsv(gnomad_mt_tsv_path) if gnomad_mt_tsv_path else []
         
         # Get list of gnomAD variant IDs for URL generation
         gnomad_variants = [r['variant'] for r in gnomad_mt_records]
@@ -173,11 +173,14 @@ class VariantCataloguePipeline:
             return
         
         logger.info(f"Loading {len(records)} records into {table_name}")
+        logger.info("first 10 rows:")
+        for record in records[:10]:
+            logger.info(record)
         
         # Stub implementation
         raise NotImplementedError("Database loading not yet implemented")
     
-    def run_full_pipeline(self, config: Dict[str, Any]) -> None:
+    def start(self, config: Dict[str, Any]) -> None:
         """
         Run the complete pipeline for all variant types.
         
@@ -199,7 +202,7 @@ class VariantCataloguePipeline:
                 Path(config['snv_vcf_path']),
                 config['assembly'],
                 Path(config['severity_table_path']),
-                Path(config['gnomad_snv_tsv_path'])
+#                Path(config['gnomad_snv_tsv_path'])
             )
             
             # Load SNV data to database
@@ -212,7 +215,7 @@ class VariantCataloguePipeline:
                 Path(config['mt_vcf_path']),
                 config['assembly'],
                 Path(config['severity_table_path']),
-                Path(config['gnomad_mt_tsv_path'])
+#                Path(config['gnomad_mt_tsv_path'])
             )
             
             # Load MT data to database
@@ -321,8 +324,8 @@ def main():
         config['mt_vcf_path'] = args.mt_vcf
         config['gnomad_mt_tsv_path'] = args.gnomad_mt_tsv
     
-    pipeline = VariantCataloguePipeline()
-    pipeline.run_full_pipeline(config)
+    publish_job = VariantPublisher()
+    publish_job.start(config)
 
 
 if __name__ == '__main__':

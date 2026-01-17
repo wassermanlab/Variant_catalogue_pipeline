@@ -54,7 +54,17 @@ class GenesTransformer(BaseTransformer):
         # TODO: Extract SYMBOL from pipe-delimited CSQ
         # TODO: Filter NA/empty values
         # TODO: Return unique gene names
-        raise NotImplementedError("GenesTransformer.transform() not yet implemented")
+        
+        genes = set()
+        for record in vcf_records:
+            csq_annotations = record.get('INFO', {}).get('CSQ', '')
+            for annotation in csq_annotations.split(','):
+                fields = annotation.split('|')
+                if len(fields) > 3:  # Assuming SYMBOL is at index 3
+                    symbol = fields[3]
+                    if symbol and symbol != 'NA':
+                        genes.add(symbol)
+        return [{'short_name': gene} for gene in sorted(genes)]
 
 
 class TranscriptsTransformer(BaseTransformer):
@@ -90,8 +100,32 @@ class TranscriptsTransformer(BaseTransformer):
         # TODO: Recode SOURCE: Ensembl->E, RefSeq->R
         # TODO: Filter entries without transcript IDs
         # TODO: Return unique transcript records
-        raise NotImplementedError("TranscriptsTransformer.transform() not yet implemented")
 
+        transcripts = {}
+        for record in vcf_records:
+            csq_annotations = record.get('INFO', {}).get('CSQ', '')
+            for annotation in csq_annotations.split(','):
+                fields = annotation.split('|')
+                if len(fields) > 6:  # Assuming Feature=0, SYMBOL=3, SOURCE=5, TSL=6
+                    transcript_id = fields[0]
+                    gene = fields[3]
+                    source = fields[26]
+                    tsl = fields[6]
+                    
+                    if not transcript_id or transcript_id == 'NA':
+                        continue
+                    
+                    transcript_type = 'E' if source == 'Ensembl' else 'R' if source == 'RefSeq' else source
+                    
+                    transcripts[transcript_id] = {
+                        'transcript_id': transcript_id,
+                        'gene': gene,
+                        'transcript_type': transcript_type,
+                        'tsl': tsl
+                    }
+        
+        
+        return list(transcripts.values())
 
 class VariantsTransformer(BaseTransformer):
     """

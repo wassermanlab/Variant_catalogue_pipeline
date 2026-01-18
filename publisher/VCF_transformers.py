@@ -52,7 +52,7 @@ class CallFilter(ABC):
         pass
 
 
-class GenesTransformer(CallFilter):
+class GenesCallFilter(CallFilter):
     """
     Generates the 'genes' table.
     
@@ -78,10 +78,10 @@ class GenesTransformer(CallFilter):
         # TODO: Extract SYMBOL from pipe-delimited CSQ
         # TODO: Filter NA/empty values
         # TODO: Return unique gene names
-        raise NotImplementedError("GenesTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("GenesCallFilter.getTableRows() not yet implemented")
 
 
-class TranscriptsTransformer(CallFilter):
+class TranscriptsCallFilter(CallFilter):
     """
     Generates the 'transcripts' table.
     
@@ -111,9 +111,9 @@ class TranscriptsTransformer(CallFilter):
         # TODO: Recode SOURCE: Ensembl->E, RefSeq->R
         # TODO: Filter entries without transcript IDs
         # TODO: Return unique transcript records
-        raise NotImplementedError("TranscriptsTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("TranscriptsCallFilter.getTableRows() not yet implemented")
 
-class VariantsTransformer(CallFilter):
+class VariantsCallFilter(CallFilter):
     """
     Generates the 'variants' table (master variant list).
     
@@ -148,10 +148,10 @@ class VariantsTransformer(CallFilter):
         # TODO: Extract variant ID from VCF ID field in loaded records
         # TODO: Assign variant type
         # TODO: Return unique variant records
-        raise NotImplementedError("VariantsTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("VariantsCallFilter.getTableRows() not yet implemented")
 
 
-class VariantsTranscriptsTransformer(CallFilter):
+class VariantsTranscriptsCallFilter(CallFilter):
     """
     Generates the 'variants_transcripts' table.
     
@@ -179,10 +179,10 @@ class VariantsTranscriptsTransformer(CallFilter):
         # TODO: Parse CSQ field and extract Feature, variant ID, HGVSc
         # TODO: Filter intergenic variants
         # TODO: Return unique variant-transcript associations
-        raise NotImplementedError("VariantsTranscriptsTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("VariantsTranscriptsCallFilter.getTableRows() not yet implemented")
 
 
-class VariantsAnnotationsTransformer(CallFilter):
+class VariantsAnnotationsCallFilter(CallFilter):
     """
     Generates the 'variants_annotations' table.
     
@@ -213,10 +213,10 @@ class VariantsAnnotationsTransformer(CallFilter):
         # TODO: Decode URL-encoded characters in HGVSp
         # TODO: Filter entries without valid HGVSp
         # TODO: Return unique annotation records
-        raise NotImplementedError("VariantsAnnotationsTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("VariantsAnnotationsCallFilter.getTableRows() not yet implemented")
 
 
-class VariantsConsequencesTransformer(CallFilter):
+class VariantsConsequencesCallFilter(CallFilter):
     """
     Generates the 'variants_consequences' table.
     
@@ -258,10 +258,10 @@ class VariantsConsequencesTransformer(CallFilter):
         # TODO: Map consequence terms to severity numbers
         # TODO: Filter intergenic variants
         # TODO: Return variant-transcript-severity associations
-        raise NotImplementedError("VariantsConsequencesTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("VariantsConsequencesCallFilter.getTableRows() not yet implemented")
 
 
-class SnvsTransformer(CallFilter):
+class SnvsCallFilter(CallFilter):
     """
     Generates the 'snvs' table (SNV-specific annotations).
     
@@ -311,10 +311,10 @@ class SnvsTransformer(CallFilter):
         # TODO: Extract dbSNP and ClinVar IDs
         # TODO: Generate browser URLs based on assembly
         # TODO: Return unique SNV annotations
-        raise NotImplementedError("SnvsTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("SnvsCallFilter.getTableRows() not yet implemented")
 
 
-class MtsTransformer(CallFilter):
+class MtsCallFilter(CallFilter):
     """
     Generates the 'mts' table (mitochondrial variant annotations).
     
@@ -361,10 +361,10 @@ class MtsTransformer(CallFilter):
         # TODO: Extract dbSNP and ClinVar IDs
         # TODO: Generate MT-specific URLs (MitoMap, etc.)
         # TODO: Return unique MT annotations
-        raise NotImplementedError("MtsTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("MtsCallFilter.getTableRows() not yet implemented")
 
 
-class GenomicIbvlFrequenciesTransformer(CallFilter):
+class GenomicIbvlFrequenciesCallFilter(CallFilter):
     """
     Generates the 'genomic_ibvl_frequencies' table.
     
@@ -399,10 +399,10 @@ class GenomicIbvlFrequenciesTransformer(CallFilter):
         # TODO: Split comma-separated values (tot, XX, XY)
         # TODO: Extract QUAL field
         # TODO: Return unique frequency records
-        raise NotImplementedError("GenomicIbvlFrequenciesTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("GenomicIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
 
 
-class GenomicGnomadFrequenciesTransformer(CallFilter):
+class GenomicGnomadFrequenciesCallFilter(CallFilter):
     """
     Generates the 'genomic_gnomad_frequencies' table.
     
@@ -450,10 +450,10 @@ class GenomicGnomadFrequenciesTransformer(CallFilter):
         # TODO: Intersect with IBVL variants
         # TODO: Include assembly-specific fields
         # TODO: Return gnomAD frequencies for matching variants
-        raise NotImplementedError("GenomicGnomadFrequenciesTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("GenomicGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
 
 
-class MtIbvlFrequenciesTransformer(CallFilter):
+class MtIbvlFrequenciesCallFilter(CallFilter):
     """
     Generates the 'mt_ibvl_frequencies' table.
     
@@ -487,10 +487,10 @@ class MtIbvlFrequenciesTransformer(CallFilter):
         # TODO: Filter AN=0 variants
         # TODO: Adjust indel variant IDs
         # TODO: Return unique MT frequency records
-        raise NotImplementedError("MtIbvlFrequenciesTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("MtIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
 
 
-class MtGnomadFrequenciesTransformer(CallFilter):
+class MtGnomadFrequenciesCallFilter(CallFilter):
     """
     Generates the 'mt_gnomad_frequencies' table.
     
@@ -533,4 +533,4 @@ class MtGnomadFrequenciesTransformer(CallFilter):
         # TODO: Adjust indel variant IDs
         # TODO: Intersect with IBVL MT variants
         # TODO: Return gnomAD MT frequencies for matching variants
-        raise NotImplementedError("MtGnomadFrequenciesTransformer.getTableRows() not yet implemented")
+        raise NotImplementedError("MtGnomadFrequenciesCallFilter.getTableRows() not yet implemented")

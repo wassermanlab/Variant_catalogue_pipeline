@@ -1,22 +1,50 @@
 """
-Transformer classes for converting VCF data to database-ready structures.
+CallFilter classes for extracting table data from VCF files.
 
-Each transformer class corresponds to a table in the database and implements
-a transform() method that takes raw data sources and returns a list of dictionaries
-representing rows in the table.
+Each CallFilter class corresponds to a table in the database. The class reads
+VCF files in its constructor and provides a getTableRows() method that returns
+a list of dictionaries representing rows in the table.
+
+VCF files contain "calls" (variant calls), and these filters extract and transform
+the relevant data for each specific table (genes, frequencies, transcripts, etc.).
 """
 
 from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
 
 
-class BaseTransformer(ABC):
-    """Base class for all transformers."""
+class CallFilter(ABC):
+    """
+    Base class for all table filters.
+    
+    Each CallFilter reads VCF file(s) in constructor and extracts specific
+    data needed for its corresponding database table.
+    """
+    
+    def __init__(self, vcf_file_paths: List[str]):
+        """
+        Initialize the filter with VCF file paths.
+        
+        Args:
+            vcf_file_paths: List of paths to VCF files to process
+        """
+        self.vcf_file_paths = vcf_file_paths
+        self.vcf_records = []
+        self._load_vcf_files()
+    
+    def _load_vcf_files(self):
+        """
+        Load and parse VCF files into internal records structure.
+        Subclasses can override this if they need custom parsing.
+        """
+        # TODO: Implement actual VCF parsing
+        # For now, this is a stub that subclasses will use
+        pass
     
     @abstractmethod
-    def transform(self, *args, **kwargs) -> List[Dict[str, Any]]:
+    def getTableRows(self) -> List[Dict[str, Any]]:
         """
-        Transform raw data into a list of dictionaries.
+        Extract table rows from the loaded VCF data.
         
         Returns:
             List of dictionaries where each dict represents a row in the table.
@@ -24,7 +52,7 @@ class BaseTransformer(ABC):
         pass
 
 
-class GenesTransformer(BaseTransformer):
+class GenesCallFilter(CallFilter):
     """
     Generates the 'genes' table.
     
@@ -39,35 +67,21 @@ class GenesTransformer(BaseTransformer):
     Output Fields: short_name
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def getTableRows(self) -> List[Dict[str, Any]]:
         """
         Extract unique gene symbols from VEP CSQ annotations.
-        
-        Args:
-            vcf_records: List of VCF records with INFO field containing CSQ annotation
-                        Format: {'INFO': {'CSQ': 'allele|consequence|...|SYMBOL|...'}}
         
         Returns:
             List of dicts with structure: {'short_name': str}
         """
-        # TODO: Implement parsing of CSQ field
+        # TODO: Implement parsing of CSQ field from loaded VCF records
         # TODO: Extract SYMBOL from pipe-delimited CSQ
         # TODO: Filter NA/empty values
         # TODO: Return unique gene names
-        
-        genes = set()
-        for record in vcf_records:
-            csq_annotations = record.get('INFO', {}).get('CSQ', '')
-            for annotation in csq_annotations.split(','):
-                fields = annotation.split('|')
-                if len(fields) > 3:  # Assuming SYMBOL is at index 3
-                    symbol = fields[3]
-                    if symbol and symbol != 'NA':
-                        genes.add(symbol)
-        return [{'short_name': gene} for gene in sorted(genes)]
+        raise NotImplementedError("GenesCallFilter.getTableRows() not yet implemented")
 
 
-class TranscriptsTransformer(BaseTransformer):
+class TranscriptsCallFilter(CallFilter):
     """
     Generates the 'transcripts' table.
     
@@ -85,49 +99,21 @@ class TranscriptsTransformer(BaseTransformer):
     Note: Only applies to SNV and MT variants (not SV, MEI, STR)
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def getTableRows(self) -> List[Dict[str, Any]]:
         """
         Associate transcripts with genes from VEP annotations.
-        
-        Args:
-            vcf_records: List of VCF records with INFO field containing CSQ annotation
         
         Returns:
             List of dicts with structure: 
             {'transcript_id': str, 'gene': str, 'transcript_type': str, 'tsl': str}
         """
-        # TODO: Parse CSQ field and extract Feature, SYMBOL, SOURCE, TSL
+        # TODO: Parse CSQ field from loaded VCF records and extract Feature, SYMBOL, SOURCE, TSL
         # TODO: Recode SOURCE: Ensembl->E, RefSeq->R
         # TODO: Filter entries without transcript IDs
         # TODO: Return unique transcript records
+        raise NotImplementedError("TranscriptsCallFilter.getTableRows() not yet implemented")
 
-        transcripts = {}
-        for record in vcf_records:
-            csq_annotations = record.get('INFO', {}).get('CSQ', '')
-            for annotation in csq_annotations.split(','):
-                fields = annotation.split('|')
-                if len(fields) > 6:  # Assuming Feature=0, SYMBOL=3, SOURCE=5, TSL=6
-                    transcript_id = fields[0]
-                    gene = fields[3]
-                    source = fields[26]
-                    tsl = fields[6]
-                    
-                    if not transcript_id or transcript_id == 'NA':
-                        continue
-                    
-                    transcript_type = 'E' if source == 'Ensembl' else 'R' if source == 'RefSeq' else source
-                    
-                    transcripts[transcript_id] = {
-                        'transcript_id': transcript_id,
-                        'gene': gene,
-                        'transcript_type': transcript_type,
-                        'tsl': tsl
-                    }
-        
-        
-        return list(transcripts.values())
-
-class VariantsTransformer(BaseTransformer):
+class VariantsCallFilter(CallFilter):
     """
     Generates the 'variants' table (master variant list).
     
@@ -141,25 +127,31 @@ class VariantsTransformer(BaseTransformer):
     Output Fields: variant_id, var_type
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]], variant_type: str) -> List[Dict[str, Any]]:
+    def __init__(self, vcf_file_paths: List[str], variant_type: str):
         """
-        Create master variant list with type classification.
+        Initialize with VCF files and variant type.
         
         Args:
-            vcf_records: List of VCF records with ID field
-                        Format: {'ID': 'chr_pos_ref_alt'}
+            vcf_file_paths: List of VCF file paths
             variant_type: One of "SNV", "MT", or "SV"
+        """
+        super().__init__(vcf_file_paths)
+        self.variant_type = variant_type
+    
+    def getTableRows(self) -> List[Dict[str, Any]]:
+        """
+        Create master variant list with type classification.
         
         Returns:
             List of dicts with structure: {'variant_id': str, 'var_type': str}
         """
-        # TODO: Extract variant ID from VCF ID field
+        # TODO: Extract variant ID from VCF ID field in loaded records
         # TODO: Assign variant type
         # TODO: Return unique variant records
-        raise NotImplementedError("VariantsTransformer.transform() not yet implemented")
+        raise NotImplementedError("VariantsCallFilter.getTableRows() not yet implemented")
 
 
-class VariantsTranscriptsTransformer(BaseTransformer):
+class VariantsTranscriptsCallFilter(CallFilter):
     """
     Generates the 'variants_transcripts' table.
     
@@ -174,7 +166,7 @@ class VariantsTranscriptsTransformer(BaseTransformer):
     Output Fields: transcript, variant, hgvsc
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def getTableRows(self) -> List[Dict[str, Any]]:
         """
         Link variants to transcripts with HGVS coding notation.
         
@@ -187,10 +179,10 @@ class VariantsTranscriptsTransformer(BaseTransformer):
         # TODO: Parse CSQ field and extract Feature, variant ID, HGVSc
         # TODO: Filter intergenic variants
         # TODO: Return unique variant-transcript associations
-        raise NotImplementedError("VariantsTranscriptsTransformer.transform() not yet implemented")
+        raise NotImplementedError("VariantsTranscriptsCallFilter.getTableRows() not yet implemented")
 
 
-class VariantsAnnotationsTransformer(BaseTransformer):
+class VariantsAnnotationsCallFilter(CallFilter):
     """
     Generates the 'variants_annotations' table.
     
@@ -206,7 +198,7 @@ class VariantsAnnotationsTransformer(BaseTransformer):
     Output Fields: hgvsp, sift, polyphen, transcript, variant
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def getTableRows(self) -> List[Dict[str, Any]]:
         """
         Extract protein-level annotations with pathogenicity predictions.
         
@@ -221,10 +213,10 @@ class VariantsAnnotationsTransformer(BaseTransformer):
         # TODO: Decode URL-encoded characters in HGVSp
         # TODO: Filter entries without valid HGVSp
         # TODO: Return unique annotation records
-        raise NotImplementedError("VariantsAnnotationsTransformer.transform() not yet implemented")
+        raise NotImplementedError("VariantsAnnotationsCallFilter.getTableRows() not yet implemented")
 
 
-class VariantsConsequencesTransformer(BaseTransformer):
+class VariantsConsequencesCallFilter(CallFilter):
     """
     Generates the 'variants_consequences' table.
     
@@ -241,27 +233,35 @@ class VariantsConsequencesTransformer(BaseTransformer):
     Output Fields: severity, variant, transcript
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]], 
-                  severity_table: Dict[str, int]) -> List[Dict[str, Any]]:
+    def __init__(self, vcf_file_paths: List[str], severity_table_path: str):
         """
-        Map variants to transcripts with numeric severity scores.
+        Initialize with VCF files and severity table.
         
         Args:
-            vcf_records: List of VCF records with INFO field containing CSQ annotation
-            severity_table: Dict mapping consequence terms to numeric severity scores
+            vcf_file_paths: List of VCF file paths
+            severity_table_path: Path to severity_table.tsv
+        """
+        super().__init__(vcf_file_paths)
+        self.severity_table_path = severity_table_path
+        self.severity_table = {}
+        # TODO: Load severity table in _load_vcf_files or separate method
+    
+    def getTableRows(self) -> List[Dict[str, Any]]:
+        """
+        Map variants to transcripts with numeric severity scores.
         
         Returns:
             List of dicts with structure: {'severity': int, 'variant': str, 'transcript': str}
         """
-        # TODO: Parse CSQ Consequence field
+        # TODO: Parse CSQ Consequence field from loaded VCF records
         # TODO: Split compound consequences (separated by &)
         # TODO: Map consequence terms to severity numbers
         # TODO: Filter intergenic variants
         # TODO: Return variant-transcript-severity associations
-        raise NotImplementedError("VariantsConsequencesTransformer.transform() not yet implemented")
+        raise NotImplementedError("VariantsConsequencesCallFilter.getTableRows() not yet implemented")
 
 
-class SnvsTransformer(BaseTransformer):
+class SnvsCallFilter(CallFilter):
     """
     Generates the 'snvs' table (SNV-specific annotations).
     
@@ -281,14 +281,21 @@ class SnvsTransformer(BaseTransformer):
                    clinvar_vcv, splice_ai
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]], 
-                  assembly: str) -> List[Dict[str, Any]]:
+    def __init__(self, vcf_file_paths: List[str], assembly: Optional[str] = None):
         """
-        Generate SNV-specific annotations with scores and browser URLs.
+        Initialize with VCF files and optional assembly version.
         
         Args:
-            vcf_records: List of VCF records with full annotation
-            assembly: Genome assembly ("GRCh37" or "GRCh38")
+            vcf_file_paths: List of VCF file paths
+            assembly: Genome assembly ("GRCh37" or "GRCh38"), auto-detected if None
+        """
+        super().__init__(vcf_file_paths)
+        self.assembly = assembly
+        # TODO: Auto-detect assembly from VCF ##contig headers if not provided
+    
+    def getTableRows(self) -> List[Dict[str, Any]]:
+        """
+        Generate SNV-specific annotations with scores and browser URLs.
         
         Returns:
             List of dicts with structure: {'variant': str, 'type': str, 'length': int,
@@ -297,17 +304,17 @@ class SnvsTransformer(BaseTransformer):
             'ensembl_url': str, 'clinvar_url': str, 'gnomad_url': str, 
             'clinvar_vcv': str, 'splice_ai': float}
         """
-        # TODO: Parse VCF fields and CSQ annotation
+        # TODO: Parse VCF fields and CSQ annotation from loaded records
         # TODO: Calculate variant length based on VARIANT_CLASS
         # TODO: Derive CADD interpretation
         # TODO: Calculate max SpliceAI score
         # TODO: Extract dbSNP and ClinVar IDs
         # TODO: Generate browser URLs based on assembly
         # TODO: Return unique SNV annotations
-        raise NotImplementedError("SnvsTransformer.transform() not yet implemented")
+        raise NotImplementedError("SnvsCallFilter.getTableRows() not yet implemented")
 
 
-class MtsTransformer(BaseTransformer):
+class MtsCallFilter(CallFilter):
     """
     Generates the 'mts' table (mitochondrial variant annotations).
     
@@ -324,31 +331,40 @@ class MtsTransformer(BaseTransformer):
                    dbsnp_id, dbsnp_url, clinvar_url, clinvar_vcv
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]], 
-                  assembly: str,
-                  gnomad_variants: List[str]) -> List[Dict[str, Any]]:
+    def __init__(self, vcf_file_paths: List[str], gnomad_file_path: str, 
+                 assembly: Optional[str] = None):
         """
-        Generate MT-specific annotations with MT database URLs.
+        Initialize with VCF files, gnomAD data, and optional assembly.
         
         Args:
-            vcf_records: List of VCF records with full annotation
-            assembly: Genome assembly
-            gnomad_variants: List of variant IDs present in gnomAD
+            vcf_file_paths: List of VCF file paths
+            gnomad_file_path: Path to gnomAD MT TSV file
+            assembly: Genome assembly, auto-detected if None
+        """
+        super().__init__(vcf_file_paths)
+        self.gnomad_file_path = gnomad_file_path
+        self.assembly = assembly
+        self.gnomad_variants = set()
+        # TODO: Load gnomAD variant IDs in initialization
+    
+    def getTableRows(self) -> List[Dict[str, Any]]:
+        """
+        Generate MT-specific annotations with MT database URLs.
         
         Returns:
             List of dicts with structure: {'variant': str, 'pos': int, 'ref': str,
             'alt': str, 'ucsc_url': str, 'mitomap_url': str, 'gnomad_url': str,
             'dbsnp_id': str, 'dbsnp_url': str, 'clinvar_url': str, 'clinvar_vcv': str}
         """
-        # TODO: Parse VCF fields and CSQ annotation
+        # TODO: Parse VCF fields and CSQ annotation from loaded records
         # TODO: Adjust variant IDs for indels (gnomAD format)
         # TODO: Extract dbSNP and ClinVar IDs
         # TODO: Generate MT-specific URLs (MitoMap, etc.)
         # TODO: Return unique MT annotations
-        raise NotImplementedError("MtsTransformer.transform() not yet implemented")
+        raise NotImplementedError("MtsCallFilter.getTableRows() not yet implemented")
 
 
-class GenomicIbvlFrequenciesTransformer(BaseTransformer):
+class GenomicIbvlFrequenciesCallFilter(CallFilter):
     """
     Generates the 'genomic_ibvl_frequencies' table.
     
@@ -365,7 +381,7 @@ class GenomicIbvlFrequenciesTransformer(BaseTransformer):
                    an_xx, an_xy, hom_tot, hom_xx, hom_xy, quality
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def getTableRows(self) -> List[Dict[str, Any]]:
         """
         Extract internal cohort allele frequencies stratified by sex.
         
@@ -383,10 +399,10 @@ class GenomicIbvlFrequenciesTransformer(BaseTransformer):
         # TODO: Split comma-separated values (tot, XX, XY)
         # TODO: Extract QUAL field
         # TODO: Return unique frequency records
-        raise NotImplementedError("GenomicIbvlFrequenciesTransformer.transform() not yet implemented")
+        raise NotImplementedError("GenomicIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
 
 
-class GenomicGnomadFrequenciesTransformer(BaseTransformer):
+class GenomicGnomadFrequenciesCallFilter(CallFilter):
     """
     Generates the 'genomic_gnomad_frequencies' table.
     
@@ -403,16 +419,26 @@ class GenomicGnomadFrequenciesTransformer(BaseTransformer):
     Output Fields (GRCh38): +exomes_filters, genomes_filters
     """
     
-    def transform(self, gnomad_records: List[Dict[str, Any]], 
-                  ibvl_variants: List[str],
-                  assembly: str) -> List[Dict[str, Any]]:
+    def __init__(self, vcf_file_paths: List[str], gnomad_file_path: str,
+                 assembly: Optional[str] = None):
         """
-        Extract gnomAD population frequencies for cohort variants.
+        Initialize with VCF files and gnomAD data.
         
         Args:
-            gnomad_records: Pre-processed gnomAD records from TSV
-            ibvl_variants: List of variant IDs present in the cohort
-            assembly: Genome assembly ("GRCh37" or "GRCh38")
+            vcf_file_paths: List of VCF file paths (to get IBVL variant IDs)
+            gnomad_file_path: Path to pre-processed gnomAD TSV
+            assembly: Genome assembly, auto-detected if None
+        """
+        super().__init__(vcf_file_paths)
+        self.gnomad_file_path = gnomad_file_path
+        self.assembly = assembly
+        self.ibvl_variants = set()
+        self.gnomad_records = []
+        # TODO: Extract IBVL variant IDs and load gnomAD records
+    
+    def getTableRows(self) -> List[Dict[str, Any]]:
+        """
+        Extract gnomAD population frequencies for cohort variants.
         
         Returns:
             List of dicts with structure: {'variant': str, 'af_tot': float, 'ac_tot': int,
@@ -424,10 +450,10 @@ class GenomicGnomadFrequenciesTransformer(BaseTransformer):
         # TODO: Intersect with IBVL variants
         # TODO: Include assembly-specific fields
         # TODO: Return gnomAD frequencies for matching variants
-        raise NotImplementedError("GenomicGnomadFrequenciesTransformer.transform() not yet implemented")
+        raise NotImplementedError("GenomicGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
 
 
-class MtIbvlFrequenciesTransformer(BaseTransformer):
+class MtIbvlFrequenciesCallFilter(CallFilter):
     """
     Generates the 'mt_ibvl_frequencies' table.
     
@@ -444,7 +470,7 @@ class MtIbvlFrequenciesTransformer(BaseTransformer):
     Output Fields: variant, an, ac_hom, ac_het, af_hom, af_het, hl_hist, max_hl
     """
     
-    def transform(self, vcf_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def getTableRows(self) -> List[Dict[str, Any]]:
         """
         Extract mitochondrial frequencies with heteroplasmy information.
         
@@ -461,10 +487,10 @@ class MtIbvlFrequenciesTransformer(BaseTransformer):
         # TODO: Filter AN=0 variants
         # TODO: Adjust indel variant IDs
         # TODO: Return unique MT frequency records
-        raise NotImplementedError("MtIbvlFrequenciesTransformer.transform() not yet implemented")
+        raise NotImplementedError("MtIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
 
 
-class MtGnomadFrequenciesTransformer(BaseTransformer):
+class MtGnomadFrequenciesCallFilter(CallFilter):
     """
     Generates the 'mt_gnomad_frequencies' table.
     
@@ -481,14 +507,23 @@ class MtGnomadFrequenciesTransformer(BaseTransformer):
     Output Fields: variant, an, ac_hom, ac_het, af_hom, af_het, max_hl
     """
     
-    def transform(self, gnomad_mt_records: List[Dict[str, Any]], 
-                  ibvl_variants: List[str]) -> List[Dict[str, Any]]:
+    def __init__(self, vcf_file_paths: List[str], gnomad_mt_file_path: str):
         """
-        Extract gnomAD MT population frequencies for cohort variants.
+        Initialize with VCF files and gnomAD MT data.
         
         Args:
-            gnomad_mt_records: gnomAD MT records from TSV
-            ibvl_variants: List of MT variant IDs in the cohort
+            vcf_file_paths: List of VCF file paths (to get IBVL MT variant IDs)
+            gnomad_mt_file_path: Path to gnomAD MT TSV file
+        """
+        super().__init__(vcf_file_paths)
+        self.gnomad_mt_file_path = gnomad_mt_file_path
+        self.ibvl_variants = set()
+        self.gnomad_mt_records = []
+        # TODO: Extract IBVL MT variant IDs and load gnomAD MT records
+    
+    def getTableRows(self) -> List[Dict[str, Any]]:
+        """
+        Extract gnomAD MT population frequencies for cohort variants.
         
         Returns:
             List of dicts with structure: {'variant': str, 'an': int, 'ac_hom': int,
@@ -498,4 +533,4 @@ class MtGnomadFrequenciesTransformer(BaseTransformer):
         # TODO: Adjust indel variant IDs
         # TODO: Intersect with IBVL MT variants
         # TODO: Return gnomAD MT frequencies for matching variants
-        raise NotImplementedError("MtGnomadFrequenciesTransformer.transform() not yet implemented")
+        raise NotImplementedError("MtGnomadFrequenciesCallFilter.getTableRows() not yet implemented")

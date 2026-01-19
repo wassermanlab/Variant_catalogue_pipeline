@@ -9,38 +9,72 @@ VCF files contain "calls" (variant calls), and these filters extract and transfo
 the relevant data for each specific table (genes, frequencies, transcripts, etc.).
 """
 
+import logging
 from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
 
+import vcfpy
 
-class CallFilter(ABC):
-    """
-    Base class for all table filters.
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
     
-    Each CallFilter reads VCF file(s) in constructor and extracts specific
-    data needed for its corresponding database table.
-    """
+class CallFilter(ABC):
+    vcf_records: List[vcfpy.Record]
     
     def __init__(self, vcf_file_paths: List[str]):
-        """
-        Initialize the filter with VCF file paths.
-        
-        Args:
-            vcf_file_paths: List of paths to VCF files to process
-        """
-        self.vcf_file_paths = vcf_file_paths
         self.vcf_records = []
-        self._load_vcf_files()
+        self.csq_fields = []
+        self.csq_index_map = {}
+        
+        self.load_vcf_files(vcf_file_paths)
     
-    def _load_vcf_files(self):
+    def load_vcf_files(self, vcf_file_paths: List[str]):
         """
         Load and parse VCF files into internal records structure.
         Subclasses can override this if they need custom parsing.
         """
-        # TODO: Implement actual VCF parsing
-        # For now, this is a stub that subclasses will use
-        pass
+        
+        for file in vcf_file_paths:
+            reader = vcfpy.Reader.from_path(file)
+            csq = reader.header.get_info_field_info("CSQ")
+            csq_elements = csq.description.split("Format: ")[1]
+            self.csq_fields = csq_elements.split("|")
+            self.csq_index_map = {field: index for index, field in enumerate(self.csq_fields)}
+
+            for record in reader:
+                if not record.is_snv():
+                    continue
+                self.vcf_records.append(record)
     
+    def get_csq_values(self, record: vcfpy.Record, field_name: str) -> List[str]:
+        """
+        Helper method to extract a specific CSQ field value from a VCF record.
+        
+        Args:
+            record: VCF record object
+            field_name: Name of the CSQ field to extract
+        """
+        index = self.csq_index_map.get(field_name)
+        values = []
+        if index is None:
+            return []
+        csq_list = record.INFO.get("CSQ", [])
+        if not csq_list:
+            return []
+        for list in csq_list:
+            csq_parts = list.split("|")
+            if index >= len(csq_parts):
+                return []
+            else:
+                values.append(csq_parts[index])
+        return values
+
     @abstractmethod
     def getTableRows(self) -> List[Dict[str, Any]]:
         """
@@ -50,7 +84,6 @@ class CallFilter(ABC):
             List of dictionaries where each dict represents a row in the table.
         """
         pass
-
 
 class GenesCallFilter(CallFilter):
     """
@@ -74,11 +107,17 @@ class GenesCallFilter(CallFilter):
         Returns:
             List of dicts with structure: {'short_name': str}
         """
-        # TODO: Implement parsing of CSQ field from loaded VCF records
-        # TODO: Extract SYMBOL from pipe-delimited CSQ
-        # TODO: Filter NA/empty values
-        # TODO: Return unique gene names
-        raise NotImplementedError("GenesCallFilter.getTableRows() not yet implemented")
+        
+        print("get genees from", self.csq_fields)
+        gene_index = self.csq_fields.index("SYMBOL")
+
+        short_names = set()
+        for record in self.vcf_records:
+            
+            for gene_symbol in self.get_csq_values(record, "SYMBOL"):
+                if gene_symbol and gene_symbol != "NA":
+                    short_names.add(gene_symbol)
+        return [{'short_name': name} for name in sorted(short_names)]
 
 
 class TranscriptsCallFilter(CallFilter):
@@ -111,7 +150,31 @@ class TranscriptsCallFilter(CallFilter):
         # TODO: Recode SOURCE: Ensembl->E, RefSeq->R
         # TODO: Filter entries without transcript IDs
         # TODO: Return unique transcript records
-        raise NotImplementedError("TranscriptsCallFilter.getTableRows() not yet implemented")
+        
+        transcripts = {};
+        feature_index = self.csq_fields.index("Feature")
+        symbol_index = self.csq_fields.index("SYMBOL")
+        source_index = self.csq_fields.index("SOURCE")
+        tsl_index = self.csq_fields.index("TSL")
+        for record in self.vcf_records:
+            csq = record.INFO.get("CSQ", [])[0]
+            csq_parts = csq.split("|")
+            feature = csq_parts[feature_index]
+            if feature == "" or feature == "NA":
+                continue
+            symbol = csq_parts[symbol_index]
+            source = csq_parts[source_index]
+            tsl = csq_parts[tsl_index]
+            transcript = {'transcript_id': feature,
+                          'gene': symbol,
+                          'transcript_type': 'E' if source == 'Ensembl' else ('R' if source == 'RefSeq' else source),
+                          'tsl': tsl}
+            if feature not in transcripts:
+                transcripts[feature] = transcript
+            else:
+                continue
+#                logger.info("seen this transcript before: %s", feature)
+        return list(transcripts.values())
 
 class VariantsCallFilter(CallFilter):
     """
@@ -127,28 +190,35 @@ class VariantsCallFilter(CallFilter):
     Output Fields: variant_id, var_type
     """
     
-    def __init__(self, vcf_file_paths: List[str], variant_type: str):
-        """
-        Initialize with VCF files and variant type.
-        
-        Args:
-            vcf_file_paths: List of VCF file paths
-            variant_type: One of "SNV", "MT", or "SV"
-        """
+    def __init__(self, vcf_file_paths: List[str]):
         super().__init__(vcf_file_paths)
-        self.variant_type = variant_type
     
     def getTableRows(self) -> List[Dict[str, Any]]:
-        """
-        Create master variant list with type classification.
-        
-        Returns:
-            List of dicts with structure: {'variant_id': str, 'var_type': str}
-        """
         # TODO: Extract variant ID from VCF ID field in loaded records
         # TODO: Assign variant type
         # TODO: Return unique variant records
-        raise NotImplementedError("VariantsCallFilter.getTableRows() not yet implemented")
+        
+        typeIndex = self.csq_fields.index("VARIANT_CLASS")
+    
+    
+        variants = {}
+        for record in self.vcf_records:
+            variant_id = record.ID[0]
+            filter = ";".join(record.FILTER)
+            csq = record.INFO.get("CSQ", [])[0]
+            csq_parts = csq.split("|")
+            variant_class = csq_parts[typeIndex]
+#            filter = record.INFO.split("|")[filterIndex]
+            if variant_id not in variants:
+                variants[variant_id] = {
+                    'variant_id': variant_id, 
+                    'var_type': variant_class,
+                    'filter': filter
+                }
+            else:
+                continue
+        
+        return list(variants.values())
 
 
 class VariantsTranscriptsCallFilter(CallFilter):
@@ -179,8 +249,32 @@ class VariantsTranscriptsCallFilter(CallFilter):
         # TODO: Parse CSQ field and extract Feature, variant ID, HGVSc
         # TODO: Filter intergenic variants
         # TODO: Return unique variant-transcript associations
-        raise NotImplementedError("VariantsTranscriptsCallFilter.getTableRows() not yet implemented")
-
+        
+        variantsTranscripts = []
+        
+        for record in self.vcf_records:
+            transcript = self.get_csq_values(record, "Feature")
+            variant = record.ID[0]
+            hgvsc = self.get_csq_values(record, "HGVSc")
+            
+            l = len(transcript)
+            lh = len(hgvsc)
+            
+            if l != lh:
+                logger.warning("mismatched lengths for transcript and hgvsc: %d vs %d", l, lh)
+                exit()
+            else:
+                for i in range(l):
+                    t = transcript[i]
+                    h = hgvsc[i]
+                    if t == "NA" or t == "":
+                        continue
+                    variantsTranscripts.append({
+                        'transcript': t,
+                        'variant': variant,
+                        'hgvsc': h
+                    })
+        return variantsTranscripts
 
 class VariantsAnnotationsCallFilter(CallFilter):
     """
@@ -233,17 +327,8 @@ class VariantsConsequencesCallFilter(CallFilter):
     Output Fields: severity, variant, transcript
     """
     
-    def __init__(self, vcf_file_paths: List[str], severity_table_path: str):
-        """
-        Initialize with VCF files and severity table.
-        
-        Args:
-            vcf_file_paths: List of VCF file paths
-            severity_table_path: Path to severity_table.tsv
-        """
+    def __init__(self, vcf_file_paths: List[str]):
         super().__init__(vcf_file_paths)
-        self.severity_table_path = severity_table_path
-        self.severity_table = {}
         # TODO: Load severity table in _load_vcf_files or separate method
     
     def getTableRows(self) -> List[Dict[str, Any]]:

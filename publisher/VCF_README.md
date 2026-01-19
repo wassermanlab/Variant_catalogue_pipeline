@@ -8,7 +8,7 @@ The VCF transformer module consists of:
 
 - **VCF_transformers.py**: Stub classes for each database table transformation
 - **VCF_publish.py**: Main orchestrator that coordinates reading data, transforming, and loading to database
-- **VCF_test_transformers.py**: Unit tests with mock data defining expected input/output structures
+- **VCF_test.py**: Unit tests with mock data defining expected input/output structures
 - **fixtures/vcf/**: Test fixtures including VCF files and TSV files
 
 ## Architecture
@@ -33,7 +33,7 @@ Test fixtures are stored in `fixtures/vcf/`:
 ### Running Tests
 
 ```bash
-python -m publisher.VCF_test_transformers
+python -m publisher.VCF_test
 ```
 
 Tests will skip unimplemented transformers automatically.
@@ -134,7 +134,7 @@ Tests validate:
 
 Run tests to verify the framework:
 ```bash
-python -m publisher.VCF_test_transformers
+python -m publisher.VCF_test
 ```
 
 All tests should pass (skipping unimplemented transformers).

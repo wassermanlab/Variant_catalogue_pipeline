@@ -36,4 +36,5 @@ packages = ["src/publisher"]
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "watchdog>=6.0.0",
 ]

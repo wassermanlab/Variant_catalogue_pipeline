@@ -10,11 +10,11 @@ To focus on a single test (similar to fit() in Mocha):
    @unittest.skip("Temporarily skipping")
    
 2. Run specific test from command line:
-   python -m unittest publisher.VCF_test_transformers.TestTranscriptsCallFilter
-   python -m unittest publisher.VCF_test_transformers.TestTranscriptsCallFilter.test_transform_output_structure
+   python -m unittest publisher.VCF_test.TestTranscriptsCallFilter
+   python -m unittest publisher.VCF_test.TestTranscriptsCallFilter.test_transform_output_structure
    
 3. Use pytest with -k flag (if pytest is installed):
-   pytest publisher/VCF_test_transformers.py -k "Transcripts"
+   pytest publisher/VCF_test.py -k "Transcripts"
    
 4. Use environment variable or attribute (demonstrated below with FOCUS_TEST)
 """
@@ -22,6 +22,7 @@ To focus on a single test (similar to fit() in Mocha):
 import unittest
 import os
 from pathlib import Path
+import vcfpy
 
 # Set to True to enable focus mode - only focused tests will run
 FOCUS_MODE = os.environ.get('FOCUS_TEST', 'false').lower() == 'true'
@@ -37,7 +38,8 @@ def skipUnlessFocused(cls):
         return unittest.skip("Skipping - not focused")(cls)
     return cls
 
-from publisher.VCF_transformers import (
+from publisher.VCF_filters import (
+    CallFilter,
     GenesCallFilter,
     TranscriptsCallFilter,
     VariantsCallFilter,
@@ -52,30 +54,54 @@ from publisher.VCF_transformers import (
     MtGnomadFrequenciesCallFilter,
 )
 
-
 # Helper function to get fixture paths
 def get_fixture_path(filename: str) -> str:
     """Get the absolute path to a fixture file."""
-    return str(Path(__file__).parent / 'fixtures' / 'vcf' / filename)
+    return os.path.join(os.path.dirname(__file__), 'fixtures', 'vcf', filename)
 
+@skipUnlessFocused
+class TestBaseFilter(unittest.TestCase):
+    
+    testInstance = None
+    class MockFilter(CallFilter):
+            
+        def load_vcf_files(self, vcf_file_paths: list[str]):
+            super().load_vcf_files(vcf_file_paths)
+
+        def getTableRows(self):
+            return []
+
+    def setUp(self):
+        self.testInstance = self.MockFilter([get_fixture_path('mock_snv.vcf')])
+        
+    def test_instance_creation(self):
+        self.assertIsInstance(self.testInstance, CallFilter)
+        
+    def test_has_records(self):
+        self.assertEqual(len(self.testInstance.vcf_records), 2)
+        
+    def test_csq_getter(self):    
+        csq_values = self.testInstance.get_csq_values(self.testInstance.vcf_records[1], 'SYMBOL')
+        self.assertEqual(csq_values, ['LA16c-60H5.7', 'NBEAP3'])
 
 @skipUnlessFocused
 class TestGenesCallFilter(unittest.TestCase):
     """Test GenesCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
-    vcf_files = None
+    filter = None
     
     def setUp(self):
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        self.transformer = GenesCallFilter(self.vcf_files)
+        self.filter = GenesCallFilter([
+            get_fixture_path('mock_snv.vcf'),
+            
+        ])
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("GenesCallFilter.getTableRows() not yet implemented")
         
@@ -93,18 +119,18 @@ class TestTranscriptsCallFilter(unittest.TestCase):
     """Test TranscriptsCallFilter - FOCUSED for demonstration."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     
     def setUp(self):
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        self.transformer = TranscriptsCallFilter(self.vcf_files)
+        self.filter = TranscriptsCallFilter(self.vcf_files)
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("TranscriptsCallFilter.getTableRows() not yet implemented")
         
@@ -126,21 +152,20 @@ class TestVariantsCallFilter(unittest.TestCase):
     """Test VariantsCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     
     def setUp(self):
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        self.transformer = VariantsCallFilter(
-            self.vcf_files, 
-            variant_type='SNV'
+        self.filter = VariantsCallFilter(
+            self.vcf_files
         )
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("VariantsCallFilter.getTableRows() not yet implemented")
         
@@ -159,20 +184,20 @@ class TestVariantsTranscriptsCallFilter(unittest.TestCase):
     """Test VariantsTranscriptsCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     
     def setUp(self):
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        self.transformer = VariantsTranscriptsCallFilter(
+        self.filter = VariantsTranscriptsCallFilter(
             self.vcf_files
         )
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("VariantsTranscriptsCallFilter.getTableRows() not yet implemented")
         
@@ -189,20 +214,20 @@ class TestVariantsAnnotationsCallFilter(unittest.TestCase):
     """Test VariantsAnnotationsCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     
     def setUp(self):
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        self.transformer = VariantsAnnotationsCallFilter(
+        self.filter = VariantsAnnotationsCallFilter(
             self.vcf_files
         )
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("VariantsAnnotationsCallFilter.getTableRows() not yet implemented")
         
@@ -221,23 +246,20 @@ class TestVariantsConsequencesCallFilter(unittest.TestCase):
     """Test VariantsConsequencesCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
-    severity_table_path = None
     
     def setUp(self):
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        TestVariantsConsequencesCallFilter.severity_table_path = get_fixture_path('severity_table.tsv')
-        self.transformer = VariantsConsequencesCallFilter(
-            self.vcf_files,
-            TestVariantsConsequencesCallFilter.severity_table_path
+        self.filter = VariantsConsequencesCallFilter(
+            self.vcf_files
         )
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("VariantsConsequencesCallFilter.getTableRows() not yet implemented")
         
@@ -254,13 +276,13 @@ class TestSnvsCallFilter(unittest.TestCase):
     """Test SnvsCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     
     def setUp(self):
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        self.transformer = SnvsCallFilter(
+        self.filter = SnvsCallFilter(
             self.vcf_files,
             assembly='GRCh37'
         )
@@ -268,7 +290,7 @@ class TestSnvsCallFilter(unittest.TestCase):
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("SnvsCallFilter.getTableRows() not yet implemented")
         
@@ -286,15 +308,16 @@ class TestMtsCallFilter(unittest.TestCase):
     """Test MtsCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     gnomad_file = None
     
     def setUp(self):
+        self.skipTest("MtsCallFilter.getTableRows() not yet implemented")
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_mt.vcf')]
         TestMtsCallFilter.gnomad_file = get_fixture_path('gnomad_mt.tsv')
-        self.transformer = MtsCallFilter(
+        self.filter = MtsCallFilter(
             self.vcf_files,
             TestMtsCallFilter.gnomad_file,
             assembly='GRCh37'
@@ -303,7 +326,7 @@ class TestMtsCallFilter(unittest.TestCase):
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("MtsCallFilter.getTableRows() not yet implemented")
         
@@ -321,20 +344,20 @@ class TestGenomicIbvlFrequenciesCallFilter(unittest.TestCase):
     """Test GenomicIbvlFrequenciesCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     
     def setUp(self):
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        self.transformer = GenomicIbvlFrequenciesCallFilter(
+        self.filter = GenomicIbvlFrequenciesCallFilter(
             self.vcf_files
         )
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("GenomicIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
         
@@ -351,7 +374,7 @@ class TestGenomicGnomadFrequenciesCallFilter(unittest.TestCase):
     """Test GenomicGnomadFrequenciesCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     gnomad_file = None
     
@@ -359,16 +382,15 @@ class TestGenomicGnomadFrequenciesCallFilter(unittest.TestCase):
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_snv.vcf')]
         TestGenomicGnomadFrequenciesCallFilter.gnomad_file = get_fixture_path('gnomad_snv.tsv')
-        self.transformer = GenomicGnomadFrequenciesCallFilter(
+        self.filter = GenomicGnomadFrequenciesCallFilter(
             self.vcf_files,
             TestGenomicGnomadFrequenciesCallFilter.gnomad_file,
-            assembly='GRCh37'
         )
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("GenomicGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
         
@@ -385,20 +407,21 @@ class TestMtIbvlFrequenciesCallFilter(unittest.TestCase):
     """Test MtIbvlFrequenciesCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     
     def setUp(self):
+        self.skipTest("MtIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_mt.vcf')]
-        self.transformer = MtIbvlFrequenciesCallFilter(
+        self.filter = MtIbvlFrequenciesCallFilter(
             self.vcf_files
         )
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("MtIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
         
@@ -416,15 +439,16 @@ class TestMtGnomadFrequenciesCallFilter(unittest.TestCase):
     """Test MtGnomadFrequenciesCallFilter."""
     
     # Class variables initialized to None
-    transformer = None
+    filter = None
     vcf_files = None
     gnomad_mt_file = None
     
     def setUp(self):
+        self.skipTest("MtGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_mt.vcf')]
         TestMtGnomadFrequenciesCallFilter.gnomad_mt_file = get_fixture_path('gnomad_mt.tsv')
-        self.transformer = MtGnomadFrequenciesCallFilter(
+        self.filter = MtGnomadFrequenciesCallFilter(
             self.vcf_files,
             TestMtGnomadFrequenciesCallFilter.gnomad_mt_file
         )
@@ -432,7 +456,7 @@ class TestMtGnomadFrequenciesCallFilter(unittest.TestCase):
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
         try:
-            result = self.transformer.getTableRows()
+            result = self.filter.getTableRows()
         except NotImplementedError:
             self.skipTest("MtGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
         

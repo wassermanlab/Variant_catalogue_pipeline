@@ -2726,3 +2726,12 @@ os.replace('MT_Step3_output_dir/sample_annotations.txt','sample_annotations_MT.t
 os.replace('MT_Step3_output_dir/stats_pass.txt','MT_stats_pass.txt')
 os.replace('MT_Step3_output_dir/stats.txt','MT_stats.txt')
 
+# Fix permissions for PNG files only
+import glob
+import stat
+for png_file in glob.glob('*.png'):
+    try:
+        os.chmod(png_file, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+    except Exception as e:
+        print(f"Warning: Could not set permissions on {png_file}: {e}")
+

@@ -154,4 +154,14 @@ hist(as.numeric(table_QC$het_hom_ratio), breaks=12, xlab="Het/Hom ratio per samp
   abline(v = 3.3, col="blue")
 dev.off()
 
+# Fix permissions for PNG files only
+png_files <- list.files(pattern = "\\.png$")
+for (png_file in png_files) {
+  tryCatch({
+    Sys.chmod(png_file, mode = "0644")
+  }, error = function(e) {
+    warning(paste("Could not set permissions on", png_file, ":", e$message))
+  })
+}
+
 

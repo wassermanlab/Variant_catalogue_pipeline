@@ -880,7 +880,14 @@ hl.export_vcf(MEI_mt_filtered_export_no_geno, 'MEI_filtered_frequ_only.vcf.bgz',
 # In[ ]:
 
 
-
+# Fix permissions for PNG files only
+import glob
+import stat
+for png_file in glob.glob('*.png'):
+    try:
+        os.chmod(png_file, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+    except Exception as e:
+        print(f"Warning: Could not set permissions on {png_file}: {e}")
 
 
 # In[ ]:

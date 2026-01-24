@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 import logging
 import os
+from datetime import datetime
 
 from VCF_filters import (
     GenesCallFilter,
@@ -19,14 +20,20 @@ from VCF_filters import (
     SnvsCallFilter,
     MtsCallFilter,
     GenomicIbvlFrequenciesCallFilter,
-    GenomicGnomadFrequenciesCallFilter,
+#    GenomicGnomadFrequenciesCallFilter,
     MtIbvlFrequenciesCallFilter,
-    MtGnomadFrequenciesCallFilter,
+#    MtGnomadFrequenciesCallFilter,
 )
 
-vcfs = [
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/SNV/SNV_filtered_frequ_only_SNV_annotation_table_merged_22_truncated.vcf')
+snv_vcfs = [
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/HG002-4_chr21_SNV_v7.vcf')
+#    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/vcf/mock_snv.vcf')
 ]
+
+mt_vcfs = [
+#    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/HG002-4_MT_v3.vcf')
+]
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -44,21 +51,47 @@ class VariantPublisher:
     def start(self, config: Dict[str, Any]) -> None:
         
         results = {}
+        now = datetime.now()
         
-        # Transform data using appropriate transformers
-        results['genes'] = GenesCallFilter(vcfs).getTableRows()
-        results['transcripts'] = TranscriptsCallFilter(vcfs).getTableRows()
-        results['variants'] = VariantsCallFilter(vcfs).getTableRows()
-        results['variants_transcripts'] = VariantsTranscriptsCallFilter(vcfs).getTableRows()
-#        results['variants_annotations'] = VariantsAnnotationsCallFilter(vcfs).getTableRows()
-#        results['variants_consequences'] = VariantsConsequencesCallFilter(vcfs).getTableRows()
- #       results['snvs'] = SnvsCallFilter(vcfs).getTableRows( )
-#        results['genomic_ibvl_frequencies'] = GenomicIbvlFrequenciesCallFilter(vcfs).getTableRows()
+        results['genes'] = GenesCallFilter(snv_vcfs).getTableRows()
+        results['transcripts'] = TranscriptsCallFilter(snv_vcfs).getTableRows()
+        results['variants'] = VariantsCallFilter(snv_vcfs).getTableRows()
+        results['variants_transcripts'] = VariantsTranscriptsCallFilter(snv_vcfs).getTableRows()
+        results['variants_annotations'] = VariantsAnnotationsCallFilter(snv_vcfs).getTableRows()
+        results['variants_consequences'] = VariantsConsequencesCallFilter(snv_vcfs).getTableRows()
+        results['snvs'] = SnvsCallFilter(snv_vcfs).getTableRows( )
+        results['genomic_ibvl_frequencies'] = GenomicIbvlFrequenciesCallFilter(snv_vcfs).getTableRows()
+        results['mts'] = MtsCallFilter(mt_vcfs).getTableRows()
+        results['mt_ibvl_frequencies'] = MtIbvlFrequenciesCallFilter(mt_vcfs).getTableRows()
         
         for table_name, records in results.items():
             for r in records[:5]:
                 logger.info(f"SNV Table {table_name} record: {r}")
             #send it to the database
+            
+        output_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        for table_name, records in results.items():
+            if not records:
+                continue
+            output_path = output_dir / f"{table_name}.tsv"
+            with open(output_path, "w", encoding="utf-8") as f:
+                # Write header
+                header = records[0].keys() if isinstance(records[0], dict) else []
+                if header:
+                    f.write("\t".join(header) + "\n")
+                # Write rows
+                for row in records:
+                    if isinstance(row, dict):
+                        f.write("\t".join(str(row.get(col, "")) for col in header) + "\n")
+                    
+        logger.info(f"TSV files written to {output_dir}")
+        logger.info(f"Processing completed at {datetime.now()}")
+        duration = datetime.now() - now
+        logger.info(f"Total duration: {duration}")
+        duration_seconds = duration.total_seconds()
+        logger.info(f"Total duration in seconds: {duration_seconds}")
 
 def main():
     """Command-line entry point."""

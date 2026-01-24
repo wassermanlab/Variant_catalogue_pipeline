@@ -12,9 +12,10 @@ the relevant data for each specific table (genes, frequencies, transcripts, etc.
 import logging
 from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
+import urllib.parse
 
 import vcfpy
-
+import os
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -31,26 +32,53 @@ class CallFilter(ABC):
         self.vcf_records = []
         self.csq_fields = []
         self.csq_index_map = {}
+        self.severity_map = {}
+        
+        child_class_name = self.__class__.__name__
+        logger.info("booting up %s", child_class_name)
+        
+        #read severity table file
+        severity_table_path = os.path.join(os.path.dirname(__file__), "severities.tsv")
+        try:
+            with open(severity_table_path, "r") as f:
+                for line in f.readlines()[1:]:
+                    parts = line.strip().split("\t")
+                    if len(parts) == 3:
+                        severity, _, consequence = parts
+                        self.severity_map[consequence] = int(severity)
+        except FileNotFoundError:
+            logger.warning("Severity table file not found: %s", severity_table_path)
         
         self.load_vcf_files(vcf_file_paths)
+        
     
-    def load_vcf_files(self, vcf_file_paths: List[str]):
+    def load_vcf_files(self, vcf_file_paths: List[str], type = "SNV"):
         """
         Load and parse VCF files into internal records structure.
         Subclasses can override this if they need custom parsing.
         """
         
-        for file in vcf_file_paths:
-            reader = vcfpy.Reader.from_path(file)
-            csq = reader.header.get_info_field_info("CSQ")
-            csq_elements = csq.description.split("Format: ")[1]
-            self.csq_fields = csq_elements.split("|")
-            self.csq_index_map = {field: index for index, field in enumerate(self.csq_fields)}
+        if type == "SNV":
+            
+            for file in vcf_file_paths:
+                reader = vcfpy.Reader.from_path(file)
+                csq = reader.header.get_info_field_info("CSQ")
+                csq_elements = csq.description.split("Format: ")[1]
+                self.csq_fields = csq_elements.split("|")
+                self.csq_index_map = {field: index for index, field in enumerate(self.csq_fields)}
 
-            for record in reader:
-                if not record.is_snv():
-                    continue
-                self.vcf_records.append(record)
+                for record in reader:
+    #                if not record.is_snv():
+    #                    continue
+                    self.vcf_records.append(record)
+        elif type == "MT":
+            for file in vcf_file_paths:
+                
+                reader = vcfpy.Reader.from_path(file, )
+                self.csq_index_map = {field: index for index, field in enumerate(self.csq_fields)}
+
+                for record in reader:    
+                    self.vcf_records.append(record)
     
     def get_csq_values(self, record: vcfpy.Record, field_name: str) -> List[str]:
         """
@@ -84,6 +112,7 @@ class CallFilter(ABC):
             List of dictionaries where each dict represents a row in the table.
         """
         pass
+    
 
 class GenesCallFilter(CallFilter):
     """
@@ -99,7 +128,6 @@ class GenesCallFilter(CallFilter):
     
     Output Fields: short_name
     """
-    
     def getTableRows(self) -> List[Dict[str, Any]]:
         """
         Extract unique gene symbols from VEP CSQ annotations.
@@ -108,7 +136,6 @@ class GenesCallFilter(CallFilter):
             List of dicts with structure: {'short_name': str}
         """
         
-        print("get genees from", self.csq_fields)
         gene_index = self.csq_fields.index("SYMBOL")
 
         short_names = set()
@@ -157,22 +184,25 @@ class TranscriptsCallFilter(CallFilter):
         source_index = self.csq_fields.index("SOURCE")
         tsl_index = self.csq_fields.index("TSL")
         for record in self.vcf_records:
-            csq = record.INFO.get("CSQ", [])[0]
-            csq_parts = csq.split("|")
-            feature = csq_parts[feature_index]
-            if feature == "" or feature == "NA":
-                continue
-            symbol = csq_parts[symbol_index]
-            source = csq_parts[source_index]
-            tsl = csq_parts[tsl_index]
-            transcript = {'transcript_id': feature,
-                          'gene': symbol,
-                          'transcript_type': 'E' if source == 'Ensembl' else ('R' if source == 'RefSeq' else source),
-                          'tsl': tsl}
-            if feature not in transcripts:
-                transcripts[feature] = transcript
-            else:
-                continue
+            for csq in record.INFO.get("CSQ", []):
+#            csq = record.INFO.get("CSQ", [])[0]
+                csq_parts = csq.split("|")
+                feature = csq_parts[feature_index]
+                if feature == "" or feature == "NA":
+#                    logger.info("skipping transcript with no feature: %s", feature)
+                    continue
+                symbol = csq_parts[symbol_index]
+                source = csq_parts[source_index]
+                tsl = csq_parts[tsl_index]
+                transcript = {'transcript_id': feature,
+                            'gene': symbol,
+                            'transcript_type': 'E' if source == 'Ensembl' else ('R' if (source == 'RefSeq' or source == 'Refseq') else source),
+                            'tsl': tsl}
+                if feature not in transcripts:
+                    transcripts[feature] = transcript
+                else:
+                    continue
+            
 #                logger.info("seen this transcript before: %s", feature)
         return list(transcripts.values())
 
@@ -205,18 +235,18 @@ class VariantsCallFilter(CallFilter):
         for record in self.vcf_records:
             variant_id = record.ID[0]
             filter = ";".join(record.FILTER)
-            csq = record.INFO.get("CSQ", [])[0]
-            csq_parts = csq.split("|")
-            variant_class = csq_parts[typeIndex]
-#            filter = record.INFO.split("|")[filterIndex]
-            if variant_id not in variants:
-                variants[variant_id] = {
-                    'variant_id': variant_id, 
-                    'var_type': variant_class,
-                    'filter': filter
-                }
-            else:
-                continue
+            for csq in record.INFO.get("CSQ", []):
+                csq_parts = csq.split("|")
+                variant_class = csq_parts[typeIndex]
+    #            filter = record.INFO.split("|")[filterIndex]
+                if variant_id not in variants:
+                    variants[variant_id] = {
+                        'variant_id': variant_id, 
+                        'var_type': variant_class,
+                        'filter': filter
+                    }
+                else:
+                    continue
         
         return list(variants.values())
 
@@ -307,8 +337,39 @@ class VariantsAnnotationsCallFilter(CallFilter):
         # TODO: Decode URL-encoded characters in HGVSp
         # TODO: Filter entries without valid HGVSp
         # TODO: Return unique annotation records
-        raise NotImplementedError("VariantsAnnotationsCallFilter.getTableRows() not yet implemented")
-
+        
+        annotations = []
+        for record in self.vcf_records:
+            variant = record.ID[0]
+            hgvsp_list = self.get_csq_values(record, "HGVSp")
+            sift_list = self.get_csq_values(record, "SIFT")
+            polyphen_list = self.get_csq_values(record, "PolyPhen")
+            transcript_list = self.get_csq_values(record, "Feature")
+            
+            if hgvsp_list and hgvsp_list[0] == "":
+                continue    
+            l = len(hgvsp_list)
+            if not (l == len(sift_list) == len(polyphen_list) == len(transcript_list)):
+                logger.warning("mismatched lengths in annotation fields for variant %s", variant)
+                continue
+            
+            for i in range(l):
+                hgvsp = urllib.parse.unquote(hgvsp_list[i])
+                sift = sift_list[i]
+                polyphen = polyphen_list[i]
+                transcript = transcript_list[i]
+                
+                if hgvsp == "" or hgvsp == "NA":
+                    continue
+                
+                annotations.append({
+                    'hgvsp': hgvsp,
+                    'sift': sift,
+                    'polyphen': polyphen,
+                    'transcript': transcript,
+                    'variant': variant
+                })
+        return annotations
 
 class VariantsConsequencesCallFilter(CallFilter):
     """
@@ -329,7 +390,6 @@ class VariantsConsequencesCallFilter(CallFilter):
     
     def __init__(self, vcf_file_paths: List[str]):
         super().__init__(vcf_file_paths)
-        # TODO: Load severity table in _load_vcf_files or separate method
     
     def getTableRows(self) -> List[Dict[str, Any]]:
         """
@@ -342,9 +402,30 @@ class VariantsConsequencesCallFilter(CallFilter):
         # TODO: Split compound consequences (separated by &)
         # TODO: Map consequence terms to severity numbers
         # TODO: Filter intergenic variants
-        # TODO: Return variant-transcript-severity associations
-        raise NotImplementedError("VariantsConsequencesCallFilter.getTableRows() not yet implemented")
-
+        # TODO: Return variant-transcript-severity associations 
+        variant_consequences = []
+        for record in self.vcf_records:
+            variant = record.ID[0]
+            transcript_list = self.get_csq_values(record, "Feature")
+            consequence_list = self.get_csq_values(record, "Consequence")
+            l = len(transcript_list)
+            if l != len(consequence_list):
+                logger.warning("mismatched lengths for transcript and consequence: %d vs %d", l, len(consequence_list))
+                continue
+            for i in range(l):
+                transcript = transcript_list[i]
+                consequences = consequence_list[i].split("&")
+                if transcript == "NA" or transcript == "":
+                    continue
+                for consequence in consequences:
+                    severity = self.severity_map.get(consequence)
+                    if severity is not None:
+                        variant_consequences.append({
+                            'severity': severity,
+                            'variant': variant,
+                            'transcript': transcript
+                        })
+        return variant_consequences
 
 class SnvsCallFilter(CallFilter):
     """
@@ -358,7 +439,6 @@ class SnvsCallFilter(CallFilter):
     - Calculate variant length and CADD interpretation (≤15=Tolerable, >15=Damaging)
     - Calculate max SpliceAI score from DS_AG/AL/DG/DL fields
     - Extract dbSNP ID, ClinVar VCV number
-    - Generate URLs: dbSNP, UCSC, Ensembl, ClinVar, gnomAD
     - Filter to unique variants
     
     Output Fields: variant, type, length, chr, pos, ref, alt, cadd_score, cadd_intr,
@@ -396,60 +476,85 @@ class SnvsCallFilter(CallFilter):
         # TODO: Extract dbSNP and ClinVar IDs
         # TODO: Generate browser URLs based on assembly
         # TODO: Return unique SNV annotations
-        raise NotImplementedError("SnvsCallFilter.getTableRows() not yet implemented")
-
-
-class MtsCallFilter(CallFilter):
-    """
-    Generates the 'mts' table (mitochondrial variant annotations).
-    
-    Data Source: VCF (CHROM, POS, ID, REF, ALT, INFO with VEP CSQ)
-    
-    Processing:
-    - Parse VCF fixed fields and VEP CSQ annotation
-    - Adjust variant IDs for indels to match gnomAD format (position +1, trimmed)
-    - Extract dbSNP ID and ClinVar VCV from VEP annotations
-    - Generate URLs: UCSC, MitoMap, gnomAD, dbSNP, ClinVar
-    - Filter to unique variants
-    
-    Output Fields: variant, pos, ref, alt, ucsc_url, mitomap_url, gnomad_url,
-                   dbsnp_id, dbsnp_url, clinvar_url, clinvar_vcv
-    """
-    
-    def __init__(self, vcf_file_paths: List[str], gnomad_file_path: str, 
-                 assembly: Optional[str] = None):
-        """
-        Initialize with VCF files, gnomAD data, and optional assembly.
         
-        Args:
-            vcf_file_paths: List of VCF file paths
-            gnomad_file_path: Path to gnomAD MT TSV file
-            assembly: Genome assembly, auto-detected if None
-        """
-        super().__init__(vcf_file_paths)
-        self.gnomad_file_path = gnomad_file_path
-        self.assembly = assembly
-        self.gnomad_variants = set()
-        # TODO: Load gnomAD variant IDs in initialization
-    
-    def getTableRows(self) -> List[Dict[str, Any]]:
-        """
-        Generate MT-specific annotations with MT database URLs.
-        
-        Returns:
-            List of dicts with structure: {'variant': str, 'pos': int, 'ref': str,
-            'alt': str, 'ucsc_url': str, 'mitomap_url': str, 'gnomad_url': str,
-            'dbsnp_id': str, 'dbsnp_url': str, 'clinvar_url': str, 'clinvar_vcv': str}
-        """
-        # TODO: Parse VCF fields and CSQ annotation from loaded records
-        # TODO: Adjust variant IDs for indels (gnomAD format)
-        # TODO: Extract dbSNP and ClinVar IDs
-        # TODO: Generate MT-specific URLs (MitoMap, etc.)
-        # TODO: Return unique MT annotations
-        raise NotImplementedError("MtsCallFilter.getTableRows() not yet implemented")
-
+        snvs = {}
+        for record in self.vcf_records:
+            variant = record.ID[0]
+            chrom = record.CHROM
+            pos = record.POS
+            ref = record.REF
+            alt = record.ALT[0].value  # assuming single ALT allele
+            qual = record.QUAL
+            info = record.INFO
+            
+            # Extract CSQ values
+            csq_list = self.get_csq_values(record, "VARIANT_CLASS")
+            cadd_phred_list = self.get_csq_values(record, "CADD_PHRED")
+            existing_variation_list = self.get_csq_values(record, "Existing_variation")
+            var_synonyms_list = self.get_csq_values(record, "VAR_SYNONYMS")
+            ds_ag_list = self.get_csq_values(record, "DS_AG")
+            ds_al_list = self.get_csq_values(record, "DS_AL")
+            ds_dg_list = self.get_csq_values(record, "DS_DG")
+            ds_dl_list = self.get_csq_values(record, "DS_DL")
+            dbsnp_ids = []
+            clinvar_vcvs = []
+            
+            for ev in existing_variation_list:
+                if ev.startswith("rs"):
+                    dbsnp_ids.append(ev)
+                if ev.startswith("VCV"):
+                    clinvar_vcvs.append(ev)
+            
+            variant_class = csq_list[0] if csq_list else "NA"
+            cadd_phred = float(cadd_phred_list[0]) if cadd_phred_list and cadd_phred_list[0] != "" else None
+            
+            # Determine variant length
+            if variant_class == "SNV":
+                var_length = 1
+            elif variant_class in ["INS", "DEL"]:
+                var_length = abs(len(alt) - len(ref))
+            else:
+                var_length = None
+            
+            # CADD interpretation
+            if cadd_phred is not None:
+                cadd_intr = "Damaging" if cadd_phred > 15 else "Tolerable"
+            else:
+                cadd_intr = "NA"
+            #clinvar_vcv
+            
+            
+            # Max SpliceAI score
+            splice_ai_scores = []
+            for score_list in [ds_ag_list, ds_al_list, ds_dg_list, ds_dl_list]:
+                for score in score_list:
+                    try:
+                        splice_ai_scores.append(float(score))
+                    except ValueError:
+                        continue
+            max_splice_ai = max(splice_ai_scores) if splice_ai_scores else None
+            if snvs.get(variant) is None:
+                snvs[variant] = {
+                    'variant': variant,
+                    'type': variant_class,
+                    'length': var_length,
+                    'chr': chrom,
+                    'pos': pos,
+                    'ref': ref,
+                    'alt': alt,
+                    'cadd_score': cadd_phred,
+                    'cadd_intr': cadd_intr,
+                    'dbsnp_id': dbsnp_ids[0] if dbsnp_ids else "NA",
+                    "clinvar_vcv": clinvar_vcvs[0] if clinvar_vcvs else "NA",
+                    "splice_ai": max_splice_ai if max_splice_ai else "NA"
+                }
+            else:
+#                logger.info("seen this snv before: %s", variant)
+                continue
+        return list(snvs.values())  
 
 class GenomicIbvlFrequenciesCallFilter(CallFilter):
+
     """
     Generates the 'genomic_ibvl_frequencies' table.
     
@@ -484,59 +589,131 @@ class GenomicIbvlFrequenciesCallFilter(CallFilter):
         # TODO: Split comma-separated values (tot, XX, XY)
         # TODO: Extract QUAL field
         # TODO: Return unique frequency records
-        raise NotImplementedError("GenomicIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
+        
+        rows = []
+        for record in self.vcf_records:
+            variant = record.ID[0]
+            qual = record.QUAL
+            info = record.INFO
 
+            # Each field is a comma-separated string: total, XX, XY
+            def parse_info_field(field):
+                values = info.get(field, None)
+                if values is None:
+                    return [None, None, None]
+                return values[0:3]
 
-class GenomicGnomadFrequenciesCallFilter(CallFilter):
+            af_tot, af_xx, af_xy = parse_info_field("AF_tot_XX_XY")
+            ac_tot, ac_xx, ac_xy = parse_info_field("AC_tot_XX_XY")
+            an_tot, an_xx, an_xy = parse_info_field("AN_tot_XX_XY")
+            hom_tot, hom_xx, hom_xy = parse_info_field("hom_tot_XX_XY")
+
+            try:
+                row = {
+                    'variant': variant,
+                    'af_tot': float(af_tot) if af_tot not in [None, ""] else "NA",
+                    'af_xx': float(af_xx) if af_xx not in [None, ""] else "NA",
+                    'af_xy': float(af_xy) if af_xy not in [None, ""] else "NA",
+                    'ac_tot': int(ac_tot) if ac_tot not in [None, ""] else "NA",
+                    'ac_xx': int(ac_xx) if ac_xx not in [None, ""] else "NA",
+                    'ac_xy': int(ac_xy) if ac_xy not in [None, ""] else "NA",
+                    'an_tot': int(an_tot) if an_tot not in [None, ""] else "NA",
+                    'an_xx': int(an_xx) if an_xx not in [None, ""] else "NA",
+                    'an_xy': int(an_xy) if an_xy not in [None, ""] else "NA",
+                    'hom_tot': int(hom_tot) if hom_tot not in [None, ""] else "NA",
+                    'hom_xx': int(hom_xx) if hom_xx not in [None, ""] else "NA",
+                    'hom_xy': int(hom_xy) if hom_xy not in [None, ""] else "NA",
+                    'quality': qual
+                }
+                rows.append(row)
+            except Exception as e:
+                logger.warning("Error parsing frequency fields for variant %s: %s", variant, e)
+        return rows
+
+class MtsCallFilter(CallFilter):
     """
-    Generates the 'genomic_gnomad_frequencies' table.
+    Generates the 'mts' table (mitochondrial variant annotations).
     
-    Data Source: External gnomAD VCF files (pre-processed via gnomad_frequency_table.nf)
+    Data Source: VCF (CHROM, POS, ID, REF, ALT, INFO with VEP CSQ)
     
     Processing:
-    - Read pre-processed gnomAD TSV (CHROM, POS, REF, ALT, FILTER, AF, AC, AN, nhomalt)
-    - Create variant ID: chr_pos_ref_alt
-    - Adjust chromosome labels to match pipeline format
-    - Intersect with IBVL variants (keep only cohort variants)
-    - Output gnomAD frequencies for matching variants
+    - Parse VCF fixed fields and VEP CSQ annotation
+    - Adjust variant IDs for indels to match gnomAD format (position +1, trimmed)
+    - Extract dbSNP ID and ClinVar VCV from VEP annotations
+    - Generate URLs: UCSC, MitoMap, gnomAD, dbSNP, ClinVar
+    - Filter to unique variants
     
-    Output Fields (GRCh37): variant, af_tot, ac_tot, an_tot, hom_tot, FILTER
-    Output Fields (GRCh38): +exomes_filters, genomes_filters
+    Output Fields: variant, pos, ref, alt, ucsc_url, mitomap_url, gnomad_url,
+                   dbsnp_id, dbsnp_url, clinvar_url, clinvar_vcv
     """
     
-    def __init__(self, vcf_file_paths: List[str], gnomad_file_path: str,
+    def __init__(self, vcf_file_paths: List[str], 
                  assembly: Optional[str] = None):
         """
-        Initialize with VCF files and gnomAD data.
+        Initialize with VCF files, gnomAD data, and optional assembly.
         
         Args:
-            vcf_file_paths: List of VCF file paths (to get IBVL variant IDs)
-            gnomad_file_path: Path to pre-processed gnomAD TSV
+            vcf_file_paths: List of VCF file paths
             assembly: Genome assembly, auto-detected if None
         """
         super().__init__(vcf_file_paths)
-        self.gnomad_file_path = gnomad_file_path
         self.assembly = assembly
-        self.ibvl_variants = set()
-        self.gnomad_records = []
-        # TODO: Extract IBVL variant IDs and load gnomAD records
+        self.gnomad_variants = set()
     
     def getTableRows(self) -> List[Dict[str, Any]]:
         """
-        Extract gnomAD population frequencies for cohort variants.
+        Generate MT-specific annotations with MT database URLs.
         
         Returns:
-            List of dicts with structure: {'variant': str, 'af_tot': float, 'ac_tot': int,
-            'an_tot': int, 'hom_tot': int, 'FILTER': str, 'exomes_filters': str (GRCh38),
-            'genomes_filters': str (GRCh38)}
+            List of dicts with structure: {'variant': str, 'pos': int, 'ref': str,
+            'alt': str, 'ucsc_url': str, 'mitomap_url': str, 'gnomad_url': str,
+            'dbsnp_id': str, 'dbsnp_url': str, 'clinvar_url': str, 'clinvar_vcv': str}
         """
-        # TODO: Create variant IDs from gnomAD records
-        # TODO: Adjust chromosome labels
-        # TODO: Intersect with IBVL variants
-        # TODO: Include assembly-specific fields
-        # TODO: Return gnomAD frequencies for matching variants
-        raise NotImplementedError("GenomicGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
+        # TODO: Parse VCF fields and CSQ annotation from loaded records
+        # TODO: Adjust variant IDs for indels (gnomAD format)
+        # TODO: Extract dbSNP and ClinVar IDs
+        # TODO: Generate MT-specific URLs (MitoMap, etc.)
+        # TODO: Return unique MT annotations
+        
+        mts = {}
+        for record in self.vcf_records:
+            variant = record.ID[0]
+            pos = record.POS
+            ref = record.REF
+            alt = record.ALT[0].value  # assuming single ALT allele
 
+            # Extract CSQ values
+            existing_variation_list = self.get_csq_values(record, "Existing_variation")
+            dbsnp_id = "NA"
+            clinvar_vcv = "NA"
+            for ev in existing_variation_list:
+                if ev.startswith("rs"):
+                    dbsnp_id = ev
+                if ev.startswith("VCV"):
+                    clinvar_vcv = ev
+
+            # URLs (placeholders, adjust as needed)
+            ucsc_url = f"https://genome.ucsc.edu/cgi-bin/hgTracks?db={self.assembly or 'hg38'}&position=chrM%3A{pos}-{pos}"
+            mitomap_url = f"https://www.mitomap.org/foswiki/bin/view/MITOMAP/MutationsCodingControl#{pos}"
+            gnomad_url = f"https://gnomad.broadinstitute.org/variant/M-{pos}-{ref}-{alt}?dataset=gnomad_r3"
+            dbsnp_url = f"https://www.ncbi.nlm.nih.gov/snp/{dbsnp_id}" if dbsnp_id != "NA" else ""
+            clinvar_url = f"https://www.ncbi.nlm.nih.gov/clinvar/variation/{clinvar_vcv[3:]}" if clinvar_vcv != "NA" else ""
+
+            if variant not in mts:
+                mts[variant] = {
+                    'variant': variant,
+                    'pos': pos,
+                    'ref': ref,
+                    'alt': alt,
+                    'ucsc_url': ucsc_url,
+                    'mitomap_url': mitomap_url,
+                    'gnomad_url': gnomad_url,
+                    'dbsnp_id': dbsnp_id,
+                    'dbsnp_url': dbsnp_url,
+                    'clinvar_url': clinvar_url,
+                    'clinvar_vcv': clinvar_vcv
+                }
+        return list(mts.values())
 
 class MtIbvlFrequenciesCallFilter(CallFilter):
     """
@@ -572,50 +749,34 @@ class MtIbvlFrequenciesCallFilter(CallFilter):
         # TODO: Filter AN=0 variants
         # TODO: Adjust indel variant IDs
         # TODO: Return unique MT frequency records
-        raise NotImplementedError("MtIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
-
-
-class MtGnomadFrequenciesCallFilter(CallFilter):
-    """
-    Generates the 'mt_gnomad_frequencies' table.
-    
-    Data Source: External gnomAD mitochondrial TSV file
-    
-    Processing:
-    - Read gnomAD MT table (chromosome, position, ref, alt, AN, AC_hom, AC_het,
-      AF_hom, AF_het, max_observed_heteroplasmy)
-    - Create variant ID: chr_pos_ref_alt
-    - Adjust IDs for indels
-    - Intersect with IBVL MT variants
-    - Output gnomAD frequencies for matching variants
-    
-    Output Fields: variant, an, ac_hom, ac_het, af_hom, af_het, max_hl
-    """
-    
-    def __init__(self, vcf_file_paths: List[str], gnomad_mt_file_path: str):
-        """
-        Initialize with VCF files and gnomAD MT data.
         
-        Args:
-            vcf_file_paths: List of VCF file paths (to get IBVL MT variant IDs)
-            gnomad_mt_file_path: Path to gnomAD MT TSV file
-        """
-        super().__init__(vcf_file_paths)
-        self.gnomad_mt_file_path = gnomad_mt_file_path
-        self.ibvl_variants = set()
-        self.gnomad_mt_records = []
-        # TODO: Extract IBVL MT variant IDs and load gnomAD MT records
-    
-    def getTableRows(self) -> List[Dict[str, Any]]:
-        """
-        Extract gnomAD MT population frequencies for cohort variants.
-        
-        Returns:
-            List of dicts with structure: {'variant': str, 'an': int, 'ac_hom': int,
-            'ac_het': int, 'af_hom': float, 'af_het': float, 'max_hl': float}
-        """
-        # TODO: Create variant IDs from gnomAD MT records
-        # TODO: Adjust indel variant IDs
-        # TODO: Intersect with IBVL MT variants
-        # TODO: Return gnomAD MT frequencies for matching variants
-        raise NotImplementedError("MtGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
+        rows = []
+        for record in self.vcf_records:
+            variant = record.ID[0]
+            gt_fields = record.INFO  # Placeholder; actual GT fields extraction may differ
+
+            an = gt_fields.get("AN", 0)
+            if an == 0:
+                continue
+
+            ac_hom = gt_fields.get("AC_hom", 0)
+            ac_het = gt_fields.get("AC_het", 0)
+            af_hom = gt_fields.get("AF_hom", 0.0)
+            af_het = gt_fields.get("AF_het", 0.0)
+            max_hl = gt_fields.get("max_observed_heteroplasmy", 0.0)
+            hl_histogram = gt_fields.get("heteroplasmy_histogram", [])
+            hl_hist = ",".join(map(str, hl_histogram)) if hl_histogram else "NA"
+
+            row = {
+                'variant': variant,
+                'an': an,
+                'ac_hom': ac_hom,
+                'ac_het': ac_het,
+                'af_hom': af_hom,
+                'af_het': af_het,
+                'hl_hist': hl_hist,
+                'max_hl': max_hl
+            }
+            rows.append(row)
+        return rows
+

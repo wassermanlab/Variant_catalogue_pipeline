@@ -49,9 +49,9 @@ from publisher.VCF_filters import (
     SnvsCallFilter,
     MtsCallFilter,
     GenomicIbvlFrequenciesCallFilter,
-    GenomicGnomadFrequenciesCallFilter,
+#    GenomicGnomadFrequenciesCallFilter,
     MtIbvlFrequenciesCallFilter,
-    MtGnomadFrequenciesCallFilter,
+#    MtGnomadFrequenciesCallFilter,
 )
 
 # Helper function to get fixture paths
@@ -240,7 +240,6 @@ class TestVariantsAnnotationsCallFilter(unittest.TestCase):
             self.assertIn('transcript', result[0])
             self.assertIn('variant', result[0])
 
-
 @skipUnlessFocused
 class TestVariantsConsequencesCallFilter(unittest.TestCase):
     """Test VariantsConsequencesCallFilter."""
@@ -310,16 +309,13 @@ class TestMtsCallFilter(unittest.TestCase):
     # Class variables initialized to None
     filter = None
     vcf_files = None
-    gnomad_file = None
     
     def setUp(self):
         self.skipTest("MtsCallFilter.getTableRows() not yet implemented")
         """Set up test fixtures."""
         self.vcf_files = [get_fixture_path('mock_mt.vcf')]
-        TestMtsCallFilter.gnomad_file = get_fixture_path('gnomad_mt.tsv')
         self.filter = MtsCallFilter(
             self.vcf_files,
-            TestMtsCallFilter.gnomad_file,
             assembly='GRCh37'
         )
     
@@ -367,40 +363,8 @@ class TestGenomicIbvlFrequenciesCallFilter(unittest.TestCase):
             self.assertIn('variant', result[0])
             self.assertIn('af_tot', result[0])
             self.assertIn('ac_tot', result[0])
-
-
-@skipUnlessFocused
-class TestGenomicGnomadFrequenciesCallFilter(unittest.TestCase):
-    """Test GenomicGnomadFrequenciesCallFilter."""
-    
-    # Class variables initialized to None
-    filter = None
-    vcf_files = None
-    gnomad_file = None
-    
-    def setUp(self):
-        """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        TestGenomicGnomadFrequenciesCallFilter.gnomad_file = get_fixture_path('gnomad_snv.tsv')
-        self.filter = GenomicGnomadFrequenciesCallFilter(
-            self.vcf_files,
-            TestGenomicGnomadFrequenciesCallFilter.gnomad_file,
-        )
-    
-    def test_getTableRows_output_structure(self):
-        """Test that getTableRows returns correct structure."""
-        try:
-            result = self.filter.getTableRows()
-        except NotImplementedError:
-            self.skipTest("GenomicGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
-        
-        self.assertIsInstance(result, list)
-        
-        if result:
-            self.assertIn('variant', result[0])
-            self.assertIn('af_tot', result[0])
-            self.assertIn('ac_tot', result[0])
-
+            self.assertEquals(result[0]['af_tot'], 0.188889)
+            self.assertEquals(result[0]['hom_tot'], 34)
 
 @skipUnlessFocused
 class TestMtIbvlFrequenciesCallFilter(unittest.TestCase):
@@ -432,42 +396,6 @@ class TestMtIbvlFrequenciesCallFilter(unittest.TestCase):
             self.assertIn('an', result[0])
             self.assertIn('ac_hom', result[0])
             self.assertIn('ac_het', result[0])
-
-
-@skipUnlessFocused
-class TestMtGnomadFrequenciesCallFilter(unittest.TestCase):
-    """Test MtGnomadFrequenciesCallFilter."""
-    
-    # Class variables initialized to None
-    filter = None
-    vcf_files = None
-    gnomad_mt_file = None
-    
-    def setUp(self):
-        self.skipTest("MtGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
-        """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_mt.vcf')]
-        TestMtGnomadFrequenciesCallFilter.gnomad_mt_file = get_fixture_path('gnomad_mt.tsv')
-        self.filter = MtGnomadFrequenciesCallFilter(
-            self.vcf_files,
-            TestMtGnomadFrequenciesCallFilter.gnomad_mt_file
-        )
-    
-    def test_getTableRows_output_structure(self):
-        """Test that getTableRows returns correct structure."""
-        try:
-            result = self.filter.getTableRows()
-        except NotImplementedError:
-            self.skipTest("MtGnomadFrequenciesCallFilter.getTableRows() not yet implemented")
-        
-        self.assertIsInstance(result, list)
-        
-        if result:
-            self.assertIn('variant', result[0])
-            self.assertIn('an', result[0])
-            self.assertIn('ac_hom', result[0])
-            self.assertIn('ac_het', result[0])
-
 
 if __name__ == '__main__':
     unittest.main()

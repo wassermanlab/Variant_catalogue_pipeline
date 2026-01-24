@@ -20,3 +20,4 @@ for record in reader:
     line += [alt.value for alt in record.ALT]
     line += [call.data.get("GT") or "./." for call in record.calls]
     print("\t".join(map(str, line)))
+    

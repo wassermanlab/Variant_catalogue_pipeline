@@ -1,0 +1,1 @@
+Rscript modules/SNV_data_organization_nognomad.R GRCh38 chr1 test_case/HG002-4_chr21_SNV_v7.vcf severity_table.tsv

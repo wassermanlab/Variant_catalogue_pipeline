@@ -29,9 +29,9 @@
             "console": "integratedTerminal",
             "justMyCode": false
         },
-        
+
         {
-            "name": "Debug Current Test File",
+            "name": "Debug Current File",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",

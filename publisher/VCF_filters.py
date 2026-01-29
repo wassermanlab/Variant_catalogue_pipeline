@@ -10,6 +10,8 @@ the relevant data for each specific table (genes, frequencies, transcripts, etc.
 """
 
 import logging
+import gzip
+import io
 from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
 import urllib.parse
@@ -24,11 +26,13 @@ console_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
+
+NA = "." # fallback None value filler
     
 class CallFilter(ABC):
     vcf_records: List[vcfpy.Record]
     
-    def __init__(self, vcf_file_paths: List[str]):
+    def __init__(self, vcf_file_path: str):
         self.vcf_records = []
         self.csq_fields = []
         self.csq_index_map = {}
@@ -44,41 +48,50 @@ class CallFilter(ABC):
                 for line in f.readlines()[1:]:
                     parts = line.strip().split("\t")
                     if len(parts) == 3:
-                        severity, _, consequence = parts
+                        severity, consequence = parts
                         self.severity_map[consequence] = int(severity)
         except FileNotFoundError:
             logger.warning("Severity table file not found: %s", severity_table_path)
         
-        self.load_vcf_files(vcf_file_paths)
+        self.load_vcf_file(vcf_file_path)
         
     
-    def load_vcf_files(self, vcf_file_paths: List[str], type = "SNV"):
-        """
-        Load and parse VCF files into internal records structure.
-        Subclasses can override this if they need custom parsing.
-        """
+    def load_vcf_file(self, file, type = "SNV"):
         
-        if type == "SNV":
+        def read_vcf(reader: vcfpy.Reader):
+                
+            if type == "SNV":
             
-            for file in vcf_file_paths:
-                reader = vcfpy.Reader.from_path(file)
                 csq = reader.header.get_info_field_info("CSQ")
                 csq_elements = csq.description.split("Format: ")[1]
                 self.csq_fields = csq_elements.split("|")
                 self.csq_index_map = {field: index for index, field in enumerate(self.csq_fields)}
-
-                for record in reader:
-    #                if not record.is_snv():
-    #                    continue
-                    self.vcf_records.append(record)
-        elif type == "MT":
-            for file in vcf_file_paths:
                 
-                reader = vcfpy.Reader.from_path(file, )
+                for record in reader:
+                    try:
+                        self.vcf_records.append(record)
+                    except Exception as e:
+                        logger.error(f"Error processing record {l} in file {file}: {e}")
+                        
+            elif type == "MT":
+                # ????? TBA
+                
                 self.csq_index_map = {field: index for index, field in enumerate(self.csq_fields)}
 
                 for record in reader:    
                     self.vcf_records.append(record)
+                
+        if file.endswith('.gz'):
+            with gzip.open(file, 'rb') as gz:
+                with io.TextIOWrapper(gz, encoding='utf-8', errors='replace') as f:  # or errors='ignore'
+                    vcf_reader = vcfpy.Reader(stream=f)
+                    read_vcf(vcf_reader)
+                        
+        else:
+            with io.TextIOWrapper(open(file, 'rb'), encoding='utf-8', errors='replace') as f:
+                vcf_reader = vcfpy.Reader(stream=f)
+                read_vcf(vcf_reader)
+        
     
     def get_csq_values(self, record: vcfpy.Record, field_name: str) -> List[str]:
         """
@@ -102,6 +115,16 @@ class CallFilter(ABC):
             else:
                 values.append(csq_parts[index])
         return values
+    
+    def get_info_value(self, record: vcfpy.Record, field_name: str, fallback = None) -> str:
+        """
+        Helper method to extract a specific INFO field value from a VCF record.
+        
+        Args:
+            record: VCF record object
+            field_name: Name of the INFO field to extract
+        """
+        return record.INFO.get(field_name, fallback)
 
     @abstractmethod
     def getTableRows(self) -> List[Dict[str, Any]]:
@@ -135,8 +158,6 @@ class GenesCallFilter(CallFilter):
         Returns:
             List of dicts with structure: {'short_name': str}
         """
-        
-        gene_index = self.csq_fields.index("SYMBOL")
 
         short_names = set()
         for record in self.vcf_records:
@@ -179,29 +200,39 @@ class TranscriptsCallFilter(CallFilter):
         # TODO: Return unique transcript records
         
         transcripts = {};
-        feature_index = self.csq_fields.index("Feature")
-        symbol_index = self.csq_fields.index("SYMBOL")
-        source_index = self.csq_fields.index("SOURCE")
-        tsl_index = self.csq_fields.index("TSL")
+        
         for record in self.vcf_records:
-            for csq in record.INFO.get("CSQ", []):
-#            csq = record.INFO.get("CSQ", [])[0]
-                csq_parts = csq.split("|")
-                feature = csq_parts[feature_index]
-                if feature == "" or feature == "NA":
-#                    logger.info("skipping transcript with no feature: %s", feature)
-                    continue
-                symbol = csq_parts[symbol_index]
-                source = csq_parts[source_index]
-                tsl = csq_parts[tsl_index]
-                transcript = {'transcript_id': feature,
-                            'gene': symbol,
-                            'transcript_type': 'E' if source == 'Ensembl' else ('R' if (source == 'RefSeq' or source == 'Refseq') else source),
-                            'tsl': tsl}
-                if feature not in transcripts:
-                    transcripts[feature] = transcript
-                else:
-                    continue
+            feature = self.get_csq_values(record, "Feature")
+            
+            if feature == "" or feature == "NA":
+                logger.warning("skipping transcript with no feature: %s", feature)
+                continue
+            symbol = self.get_csq_values(record, "SYMBOL")
+            source = self.get_csq_values(record, "SOURCE")
+            tsl = self.get_csq_values(record, "TSL")
+            
+            l = len(feature)
+            if not (l == len(symbol) == len(source) == len(tsl)):
+                logger.warning("mismatched lengths for transcript feature, symbol, source, tsl: %d vs %d vs %d vs %d", 
+                               l, len(symbol), len(source), len(tsl))
+                continue
+            for i in range(l):
+                transcript_id = feature[i]
+                if transcript_id not in transcripts:
+                    transcript_type = source[i]
+                    if transcript_type == "Ensembl":
+                        transcript_type = "E"
+                    elif transcript_type == "RefSeq" or transcript_type == "Refseq":
+                        transcript_type = "R"
+                    else:
+                        transcript_type = NA
+                        
+                    transcripts[transcript_id] = {
+                        'transcript_id': transcript_id,
+                        'gene': symbol[i],
+                        'transcript_type': transcript_type,
+                        'tsl': tsl[i]
+                    }
             
 #                logger.info("seen this transcript before: %s", feature)
         return list(transcripts.values())
@@ -220,16 +251,13 @@ class VariantsCallFilter(CallFilter):
     Output Fields: variant_id, var_type
     """
     
-    def __init__(self, vcf_file_paths: List[str]):
-        super().__init__(vcf_file_paths)
+    def __init__(self, vcf_file_path: str):
+        super().__init__(vcf_file_path)
     
     def getTableRows(self) -> List[Dict[str, Any]]:
         # TODO: Extract variant ID from VCF ID field in loaded records
         # TODO: Assign variant type
         # TODO: Return unique variant records
-        
-        typeIndex = self.csq_fields.index("VARIANT_CLASS")
-    
     
         variants = {}
         for record in self.vcf_records:
@@ -237,12 +265,14 @@ class VariantsCallFilter(CallFilter):
             filter = ";".join(record.FILTER)
             for csq in record.INFO.get("CSQ", []):
                 csq_parts = csq.split("|")
-                variant_class = csq_parts[typeIndex]
-    #            filter = record.INFO.split("|")[filterIndex]
+                var_type = self.get_csq_values(record, "VARIANT_CLASS")
+                if var_type == []:
+                    var_type = self.get_info_value(record, "TYPE")
+                filter =  ";".join(record.FILTER)
                 if variant_id not in variants:
                     variants[variant_id] = {
                         'variant_id': variant_id, 
-                        'var_type': variant_class,
+                        'var_type': var_type[0] if var_type and var_type != [] else NA,
                         'filter': filter
                     }
                 else:
@@ -350,9 +380,12 @@ class VariantsAnnotationsCallFilter(CallFilter):
                 continue    
             l = len(hgvsp_list)
             if not (l == len(sift_list) == len(polyphen_list) == len(transcript_list)):
-                logger.warning("mismatched lengths in annotation fields for variant %s", variant)
-                continue
-            
+                # pad sift and polyphen lists with NAs to match transcript list length
+                # Pad lists with "NA" to match the length of hgvsp_list
+                def pad_list(lst, target_len):
+                    return lst + [NA] * (target_len - len(lst))
+                sift_list = pad_list(sift_list, l)
+                polyphen_list = pad_list(polyphen_list, l)
             for i in range(l):
                 hgvsp = urllib.parse.unquote(hgvsp_list[i])
                 sift = sift_list[i]
@@ -388,8 +421,8 @@ class VariantsConsequencesCallFilter(CallFilter):
     Output Fields: severity, variant, transcript
     """
     
-    def __init__(self, vcf_file_paths: List[str]):
-        super().__init__(vcf_file_paths)
+    def __init__(self, vcf_file_path: str):
+        super().__init__(vcf_file_path)
     
     def getTableRows(self) -> List[Dict[str, Any]]:
         """
@@ -446,15 +479,15 @@ class SnvsCallFilter(CallFilter):
                    clinvar_vcv, splice_ai
     """
     
-    def __init__(self, vcf_file_paths: List[str], assembly: Optional[str] = None):
+    def __init__(self, vcf_file_path: str, assembly: Optional[str] = None):
         """
         Initialize with VCF files and optional assembly version.
         
         Args:
-            vcf_file_paths: List of VCF file paths
+            vcf_file_path: List of VCF file paths
             assembly: Genome assembly ("GRCh37" or "GRCh38"), auto-detected if None
         """
-        super().__init__(vcf_file_paths)
+        super().__init__(vcf_file_path)
         self.assembly = assembly
         # TODO: Auto-detect assembly from VCF ##contig headers if not provided
     
@@ -505,7 +538,7 @@ class SnvsCallFilter(CallFilter):
                 if ev.startswith("VCV"):
                     clinvar_vcvs.append(ev)
             
-            variant_class = csq_list[0] if csq_list else "NA"
+            variant_class = csq_list[0] if csq_list else NA
             cadd_phred = float(cadd_phred_list[0]) if cadd_phred_list and cadd_phred_list[0] != "" else None
             
             # Determine variant length
@@ -520,7 +553,7 @@ class SnvsCallFilter(CallFilter):
             if cadd_phred is not None:
                 cadd_intr = "Damaging" if cadd_phred > 15 else "Tolerable"
             else:
-                cadd_intr = "NA"
+                cadd_intr = NA
             #clinvar_vcv
             
             
@@ -544,9 +577,9 @@ class SnvsCallFilter(CallFilter):
                     'alt': alt,
                     'cadd_score': cadd_phred,
                     'cadd_intr': cadd_intr,
-                    'dbsnp_id': dbsnp_ids[0] if dbsnp_ids else "NA",
-                    "clinvar_vcv": clinvar_vcvs[0] if clinvar_vcvs else "NA",
-                    "splice_ai": max_splice_ai if max_splice_ai else "NA"
+                    'dbsnp_id': dbsnp_ids[0] if dbsnp_ids else NA,
+                    "clinvar_vcv": clinvar_vcvs[0] if clinvar_vcvs else NA,
+                    "splice_ai": max_splice_ai if max_splice_ai else NA
                 }
             else:
 #                logger.info("seen this snv before: %s", variant)
@@ -603,31 +636,95 @@ class GenomicIbvlFrequenciesCallFilter(CallFilter):
                     return [None, None, None]
                 return values[0:3]
 
-            af_tot, af_xx, af_xy = parse_info_field("AF_tot_XX_XY")
-            ac_tot, ac_xx, ac_xy = parse_info_field("AC_tot_XX_XY")
-            an_tot, an_xx, an_xy = parse_info_field("AN_tot_XX_XY")
-            hom_tot, hom_xx, hom_xy = parse_info_field("hom_tot_XX_XY")
-
-            try:
+            if "AF_tot_XX_XY" in info:
+                # ibvl format
+                af_tot, af_xx, af_xy = parse_info_field("AF_tot_XX_XY")
+                ac_tot, ac_xx, ac_xy = parse_info_field("AC_tot_XX_XY")
+                an_tot, an_xx, an_xy = parse_info_field("AN_tot_XX_XY")
+                hom_tot, hom_xx, hom_xy = parse_info_field("hom_tot_XX_XY")
+                
                 row = {
-                    'variant': variant,
-                    'af_tot': float(af_tot) if af_tot not in [None, ""] else "NA",
-                    'af_xx': float(af_xx) if af_xx not in [None, ""] else "NA",
-                    'af_xy': float(af_xy) if af_xy not in [None, ""] else "NA",
-                    'ac_tot': int(ac_tot) if ac_tot not in [None, ""] else "NA",
-                    'ac_xx': int(ac_xx) if ac_xx not in [None, ""] else "NA",
-                    'ac_xy': int(ac_xy) if ac_xy not in [None, ""] else "NA",
-                    'an_tot': int(an_tot) if an_tot not in [None, ""] else "NA",
-                    'an_xx': int(an_xx) if an_xx not in [None, ""] else "NA",
-                    'an_xy': int(an_xy) if an_xy not in [None, ""] else "NA",
-                    'hom_tot': int(hom_tot) if hom_tot not in [None, ""] else "NA",
-                    'hom_xx': int(hom_xx) if hom_xx not in [None, ""] else "NA",
-                    'hom_xy': int(hom_xy) if hom_xy not in [None, ""] else "NA",
-                    'quality': qual
-                }
+                            'variant': variant,
+                            'af_tot': validate_get(af_tot, i),
+                            'ac_tot': validate_get(ac_tot, i),
+                            'an_tot': validate_get(an_tot, i),
+                            'hom_tot': validate_get(hom_tot, i),
+                            'hemi_tot': validate_get(hemi_tot, i),
+                            'af_xx': validate_get(af_xx, i),
+                            'af_xy': validate_get(af_xy, i),
+                            'ac_xy': validate_get(ac_xy, i),
+                            'an_xx': validate_get(an_xx, i),
+                            'ac_xx': validate_get(ac_xx, i),
+                            'an_xy': validate_get(an_xy, i),
+                            'hom_xx': validate_get(hom_xx, i),
+                            'hom_xy': validate_get(hom_xy, i),
+                            'hemi_xx': validate_get(hemi_xx, i),
+                            'hemi_xy': validate_get(hemi_xy, i),
+                            'quality': qual
+                        }
+                
                 rows.append(row)
-            except Exception as e:
-                logger.warning("Error parsing frequency fields for variant %s: %s", variant, e)
+                
+            else:
+                # variome format
+                af_tot = info.get("AF", None)
+                af_xx = info.get("AF_XX", None)
+                af_xy = info.get("AF_XY", None)
+                ac_tot = info.get("AC", None)
+                ac_xx = info.get("AC_XX", None)
+                ac_xy = info.get("AC_XY", None)
+                an_tot = info.get("AN", None)
+                an_xx = info.get("AN_XX", None)
+                an_xy = info.get("AN_XY", None)
+                hom_tot = info.get("AC_Hom", None)
+                hom_xx = info.get("AC_Hom_XX", None)
+                hom_xy = info.get("AC_Hom_XY", None)
+                hemi_tot = info.get("AC_Hemi", None)
+                hemi_xx = info.get("AC_Hemi_XX", None)
+                hemi_xy = info.get("AC_Hemi_XY", None)
+
+                i = 0
+                l = len(af_tot)
+                
+                for i in range(l):
+                    
+                    def validate_get(v, index):
+                        if v is [] or v is None:
+                            return NA
+                        # if type of v is not list, return v
+                        if not isinstance(v, list):
+                            return v
+                        if len(v) <= index:
+                            return NA
+                        val = v[index]
+                        if v in [None, ""]:
+                            return NA
+                        return val
+                
+                    try:
+                        row = {
+                            'variant': variant,
+                            'af_tot': validate_get(af_tot, i),
+                            'ac_tot': validate_get(ac_tot, i),
+                            'an_tot': validate_get(an_tot, i),
+                            'hom_tot': validate_get(hom_tot, i),
+                            'hemi_tot': validate_get(hemi_tot, i),
+                            'af_xx': validate_get(af_xx, i),
+                            'af_xy': validate_get(af_xy, i),
+                            'ac_xy': validate_get(ac_xy, i),
+                            'an_xx': validate_get(an_xx, i),
+                            'ac_xx': validate_get(ac_xx, i),
+                            'an_xy': validate_get(an_xy, i),
+                            'hom_xx': validate_get(hom_xx, i),
+                            'hom_xy': validate_get(hom_xy, i),
+                            'hemi_xx': validate_get(hemi_xx, i),
+                            'hemi_xy': validate_get(hemi_xy, i),
+                            'quality': qual
+                        }                        
+                        rows.append(row)
+                        
+                    except Exception as e:
+                        logger.warning("Error parsing frequency fields for variant %s: %s", variant, e)
         return rows
 
 class MtsCallFilter(CallFilter):
@@ -647,16 +744,16 @@ class MtsCallFilter(CallFilter):
                    dbsnp_id, dbsnp_url, clinvar_url, clinvar_vcv
     """
     
-    def __init__(self, vcf_file_paths: List[str], 
+    def __init__(self, vcf_file_path: str, 
                  assembly: Optional[str] = None):
         """
         Initialize with VCF files, gnomAD data, and optional assembly.
         
         Args:
-            vcf_file_paths: List of VCF file paths
+            vcf_file_path: List of VCF file paths
             assembly: Genome assembly, auto-detected if None
         """
-        super().__init__(vcf_file_paths)
+        super().__init__(vcf_file_path)
         self.assembly = assembly
         self.gnomad_variants = set()
     
@@ -684,8 +781,8 @@ class MtsCallFilter(CallFilter):
 
             # Extract CSQ values
             existing_variation_list = self.get_csq_values(record, "Existing_variation")
-            dbsnp_id = "NA"
-            clinvar_vcv = "NA"
+            dbsnp_id = NA
+            clinvar_vcv = NA
             for ev in existing_variation_list:
                 if ev.startswith("rs"):
                     dbsnp_id = ev
@@ -696,8 +793,8 @@ class MtsCallFilter(CallFilter):
             ucsc_url = f"https://genome.ucsc.edu/cgi-bin/hgTracks?db={self.assembly or 'hg38'}&position=chrM%3A{pos}-{pos}"
             mitomap_url = f"https://www.mitomap.org/foswiki/bin/view/MITOMAP/MutationsCodingControl#{pos}"
             gnomad_url = f"https://gnomad.broadinstitute.org/variant/M-{pos}-{ref}-{alt}?dataset=gnomad_r3"
-            dbsnp_url = f"https://www.ncbi.nlm.nih.gov/snp/{dbsnp_id}" if dbsnp_id != "NA" else ""
-            clinvar_url = f"https://www.ncbi.nlm.nih.gov/clinvar/variation/{clinvar_vcv[3:]}" if clinvar_vcv != "NA" else ""
+            dbsnp_url = f"https://www.ncbi.nlm.nih.gov/snp/{dbsnp_id}" if dbsnp_id != NA else ""
+            clinvar_url = f"https://www.ncbi.nlm.nih.gov/clinvar/variation/{clinvar_vcv[3:]}" if clinvar_vcv != NA else ""
 
             if variant not in mts:
                 mts[variant] = {
@@ -765,7 +862,7 @@ class MtIbvlFrequenciesCallFilter(CallFilter):
             af_het = gt_fields.get("AF_het", 0.0)
             max_hl = gt_fields.get("max_observed_heteroplasmy", 0.0)
             hl_histogram = gt_fields.get("heteroplasmy_histogram", [])
-            hl_hist = ",".join(map(str, hl_histogram)) if hl_histogram else "NA"
+            hl_hist = ",".join(map(str, hl_histogram)) if hl_histogram else NA
 
             row = {
                 'variant': variant,

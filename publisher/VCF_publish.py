@@ -25,14 +25,17 @@ from VCF_filters import (
 #    MtGnomadFrequenciesCallFilter,
 )
 
-snv_vcfs = [
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/HG002-4_chr21_SNV_v7.vcf')
-#    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/vcf/mock_snv.vcf')
-]
 
-mt_vcfs = [
-#    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/HG002-4_MT_v3.vcf')
-]
+#    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/HG002-4_chr21_SNV_v7.vcf')
+#    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/ben.vcf')
+#    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/ben-big.vcf.gz')
+#snv_vcf = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/ben-big.vcf.gz')
+snv_vcf = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/crop3.vcf')
+
+#    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/vcf/mock_snv.vcf')
+
+
+mt_vcf = None
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +46,8 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
+logger.info("importing from vcfs: SNV VCF=%s, MT VCF=%s", snv_vcf, mt_vcf)
+
 class VariantPublisher:
     
     def __init__(self):
@@ -50,48 +55,99 @@ class VariantPublisher:
     
     def start(self, config: Dict[str, Any]) -> None:
         
-        results = {}
-        now = datetime.now()
+        start_time = datetime.now()
+        last_now = datetime.now()
         
-        results['genes'] = GenesCallFilter(snv_vcfs).getTableRows()
-        results['transcripts'] = TranscriptsCallFilter(snv_vcfs).getTableRows()
-        results['variants'] = VariantsCallFilter(snv_vcfs).getTableRows()
-        results['variants_transcripts'] = VariantsTranscriptsCallFilter(snv_vcfs).getTableRows()
-        results['variants_annotations'] = VariantsAnnotationsCallFilter(snv_vcfs).getTableRows()
-        results['variants_consequences'] = VariantsConsequencesCallFilter(snv_vcfs).getTableRows()
-        results['snvs'] = SnvsCallFilter(snv_vcfs).getTableRows( )
-        results['genomic_ibvl_frequencies'] = GenomicIbvlFrequenciesCallFilter(snv_vcfs).getTableRows()
-        results['mts'] = MtsCallFilter(mt_vcfs).getTableRows()
-        results['mt_ibvl_frequencies'] = MtIbvlFrequenciesCallFilter(mt_vcfs).getTableRows()
+        def log_timing(name):
+            nonlocal last_now
+            duration = datetime.now() - last_now
+            logger.info(f"{name} took {str(duration)}")
+            last_now = datetime.now()
+            
+        results = {}
+        output_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        def export_to_tsv(table_name, records):
+            if not records:
+                return
+            output_path = output_dir / f"{table_name}.tsv"
+            with open(output_path, "w", encoding="utf-8") as f:
+                header = records[0].keys() if isinstance(records[0], dict) else []
+                if header:
+                    f.write("\t".join(header) + "\n")
+                for row in records:
+                    if isinstance(row, dict):
+                        f.write("\t".join(str(row.get(col, "")) for col in header) + "\n")
+            logger.info(f"TSV file written: {output_path}")
+
+        # Process and export each table one by one to avoid accumulating all in RAM
+        genes = GenesCallFilter(snv_vcf).getTableRows()
+        log_timing("genes", start_time)
+        export_to_tsv("genes", genes)
+        del genes
+        
+        transcripts = TranscriptsCallFilter(snv_vcf).getTableRows()
+        log_timing("transcripts")
+        export_to_tsv("transcripts", transcripts)
+        del transcripts
+        
+        variants = VariantsCallFilter(snv_vcf).getTableRows()
+        log_timing("variants")
+        export_to_tsv("variants", variants)
+        del variants
+        
+        variants_transcripts = VariantsTranscriptsCallFilter(snv_vcf).getTableRows()
+        log_timing("variants_transcripts")
+        export_to_tsv("variants_transcripts", variants_transcripts)
+        del variants_transcripts
+        
+        variants_annotations = VariantsAnnotationsCallFilter(snv_vcf).getTableRows()
+        log_timing("variants_annotations")   
+        export_to_tsv("variants_annotations", variants_annotations)
+        del variants_annotations
+        
+        variants_consequences = VariantsConsequencesCallFilter(snv_vcf).getTableRows()
+        log_timing("variants_consequences")
+        export_to_tsv("variants_consequences", variants_consequences)
+        del variants_consequences
+        
+        snvs = SnvsCallFilter(snv_vcf).getTableRows()
+        log_timing("snvs")
+        export_to_tsv("snvs", snvs)
+        del snvs
+        
+        genomic_ibvl_frequencies = GenomicIbvlFrequenciesCallFilter(snv_vcf).getTableRows()
+        log_timing("genomic_ibvl_frequencies")
+        export_to_tsv("genomic_ibvl_frequencies", genomic_ibvl_frequencies)
+        del genomic_ibvl_frequencies
+        
+#        mts_begin = datetime.now()
+#        mts = MtsCallFilter(mt_vcf).getTableRows()
+#        log_timing("mts", mts_begin)
+#        export_to_tsv("mts", mts)
+#        del mts
+        
+#        mtf_begin = datetime.now()
+#        mt_ibvl_frequencies = MtIbvlFrequenciesCallFilter(mt_vcf).getTableRows()
+#        log_timing("mt_ibvl_frequencies", mtf_begin)
+#        export_to_tsv("mt_ibvl_frequencies", mt_ibvl_frequencies)
+#        del mt_ibvl_frequencies
+        
         
         for table_name, records in results.items():
             for r in records[:5]:
                 logger.info(f"SNV Table {table_name} record: {r}")
             #send it to the database
             
-        output_dir = Path(os.path.dirname(os.path.abspath(__file__))) / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
 
-        for table_name, records in results.items():
-            if not records:
-                continue
-            output_path = output_dir / f"{table_name}.tsv"
-            with open(output_path, "w", encoding="utf-8") as f:
-                # Write header
-                header = records[0].keys() if isinstance(records[0], dict) else []
-                if header:
-                    f.write("\t".join(header) + "\n")
-                # Write rows
-                for row in records:
-                    if isinstance(row, dict):
-                        f.write("\t".join(str(row.get(col, "")) for col in header) + "\n")
-                    
         logger.info(f"TSV files written to {output_dir}")
         logger.info(f"Processing completed at {datetime.now()}")
-        duration = datetime.now() - now
+        duration = datetime.now() - start_time
         logger.info(f"Total duration: {duration}")
         duration_seconds = duration.total_seconds()
         logger.info(f"Total duration in seconds: {duration_seconds}")
+        logger.info(f"total duration in hours:minutes:seconds: {str(duration)}")
 
 def main():
     """Command-line entry point."""

@@ -28,7 +28,9 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 NA = "." # fallback None value filler
-    
+CHR_NOTATION = False  # whether to keep 'chr' prefix in chromosome names
+HYPEN_VARIANT_NOTATION = True  # whether to use hyphen '-' in variant IDs instead of underscores '_'
+
 class CallFilter(ABC):
     vcf_records: List[vcfpy.Record]
     
@@ -126,6 +128,27 @@ class CallFilter(ABC):
         """
         return record.INFO.get(field_name, fallback)
 
+    def make_variant_id(self, record: vcfpy.Record) -> str:
+        """
+        Helper method to construct a variant ID from VCF record fields.
+        
+        Args:
+            record: VCF record object
+        """
+        if HYPEN_VARIANT_NOTATION:
+            if CHR_NOTATION:
+                chrom = record.CHROM
+            else:
+                chrom = record.CHROM.replace("chr", "")
+            pos = record.POS
+            ref = record.REF
+            alt = record.ALT[0].value  # assuming single ALT allele
+        
+            variant_id = f"{chrom}-{pos}-{ref}-{alt}"
+        else:
+            variant_id = record.ID[0]
+        
+        return variant_id
     @abstractmethod
     def getTableRows(self) -> List[Dict[str, Any]]:
         """
@@ -210,6 +233,7 @@ class TranscriptsCallFilter(CallFilter):
             symbol = self.get_csq_values(record, "SYMBOL")
             source = self.get_csq_values(record, "SOURCE")
             tsl = self.get_csq_values(record, "TSL")
+            biotype = self.get_csq_values(record, "BIOTYPE")
             
             l = len(feature)
             if not (l == len(symbol) == len(source) == len(tsl)):
@@ -231,7 +255,8 @@ class TranscriptsCallFilter(CallFilter):
                         'transcript_id': transcript_id,
                         'gene': symbol[i],
                         'transcript_type': transcript_type,
-                        'tsl': tsl[i]
+                        'tsl': tsl[i],
+                        'biotype': biotype[i] if biotype and len(biotype) > i else NA
                     }
             
 #                logger.info("seen this transcript before: %s", feature)
@@ -261,10 +286,9 @@ class VariantsCallFilter(CallFilter):
     
         variants = {}
         for record in self.vcf_records:
-            variant_id = record.ID[0]
+            variant_id = self.make_variant_id(record)
             filter = ";".join(record.FILTER)
             for csq in record.INFO.get("CSQ", []):
-                csq_parts = csq.split("|")
                 var_type = self.get_csq_values(record, "VARIANT_CLASS")
                 if var_type == []:
                     var_type = self.get_info_value(record, "TYPE")
@@ -273,7 +297,7 @@ class VariantsCallFilter(CallFilter):
                     variants[variant_id] = {
                         'variant_id': variant_id, 
                         'var_type': var_type[0] if var_type and var_type != [] else NA,
-                        'filter': filter
+                        'filter': filter if filter != "" else NA
                     }
                 else:
                     continue
@@ -314,7 +338,7 @@ class VariantsTranscriptsCallFilter(CallFilter):
         
         for record in self.vcf_records:
             transcript = self.get_csq_values(record, "Feature")
-            variant = record.ID[0]
+            variant = self.make_variant_id(record)
             hgvsc = self.get_csq_values(record, "HGVSc")
             
             l = len(transcript)
@@ -370,14 +394,15 @@ class VariantsAnnotationsCallFilter(CallFilter):
         
         annotations = []
         for record in self.vcf_records:
-            variant = record.ID[0]
+            variant = self.make_variant_id(record)
             hgvsp_list = self.get_csq_values(record, "HGVSp")
             sift_list = self.get_csq_values(record, "SIFT")
             polyphen_list = self.get_csq_values(record, "PolyPhen")
             transcript_list = self.get_csq_values(record, "Feature")
+            impact_list = self.get_csq_values(record, "IMPACT")
             
-            if hgvsp_list and hgvsp_list[0] == "":
-                continue    
+ #           if hgvsp_list and hgvsp_list[0] == "":
+ #               continue    
             l = len(hgvsp_list)
             if not (l == len(sift_list) == len(polyphen_list) == len(transcript_list)):
                 # pad sift and polyphen lists with NAs to match transcript list length
@@ -387,20 +412,22 @@ class VariantsAnnotationsCallFilter(CallFilter):
                 sift_list = pad_list(sift_list, l)
                 polyphen_list = pad_list(polyphen_list, l)
             for i in range(l):
-                hgvsp = urllib.parse.unquote(hgvsp_list[i])
+                hgvsp = urllib.parse.unquote(hgvsp_list[i]) if hgvsp_list[i] not in [NA, ""] else NA
                 sift = sift_list[i]
                 polyphen = polyphen_list[i]
                 transcript = transcript_list[i]
+                impact = impact_list[i]
                 
-                if hgvsp == "" or hgvsp == "NA":
-                    continue
+#                if hgvsp == "" or hgvsp == "NA":
+#                    continue
                 
                 annotations.append({
                     'hgvsp': hgvsp,
                     'sift': sift,
                     'polyphen': polyphen,
                     'transcript': transcript,
-                    'variant': variant
+                    'variant': variant,
+                    'impact': impact
                 })
         return annotations
 
@@ -438,7 +465,7 @@ class VariantsConsequencesCallFilter(CallFilter):
         # TODO: Return variant-transcript-severity associations 
         variant_consequences = []
         for record in self.vcf_records:
-            variant = record.ID[0]
+            variant = self.make_variant_id(record)
             transcript_list = self.get_csq_values(record, "Feature")
             consequence_list = self.get_csq_values(record, "Consequence")
             l = len(transcript_list)
@@ -480,13 +507,6 @@ class SnvsCallFilter(CallFilter):
     """
     
     def __init__(self, vcf_file_path: str, assembly: Optional[str] = None):
-        """
-        Initialize with VCF files and optional assembly version.
-        
-        Args:
-            vcf_file_path: List of VCF file paths
-            assembly: Genome assembly ("GRCh37" or "GRCh38"), auto-detected if None
-        """
         super().__init__(vcf_file_path)
         self.assembly = assembly
         # TODO: Auto-detect assembly from VCF ##contig headers if not provided
@@ -511,20 +531,18 @@ class SnvsCallFilter(CallFilter):
         # TODO: Return unique SNV annotations
         
         snvs = {}
+        
         for record in self.vcf_records:
-            variant = record.ID[0]
+            variant = self.make_variant_id(record)
             chrom = record.CHROM
             pos = record.POS
             ref = record.REF
             alt = record.ALT[0].value  # assuming single ALT allele
-            qual = record.QUAL
-            info = record.INFO
             
             # Extract CSQ values
-            csq_list = self.get_csq_values(record, "VARIANT_CLASS")
-            cadd_phred_list = self.get_csq_values(record, "CADD_PHRED")
+            class_list = self.get_csq_values(record, "VARIANT_CLASS")
+            cadd_phred_list = record.INFO.get("CADD_PHREDscore",    self.get_csq_values(record, "CADD_PHRED", )) #variome: info field. ibvl: CSQ field.
             existing_variation_list = self.get_csq_values(record, "Existing_variation")
-            var_synonyms_list = self.get_csq_values(record, "VAR_SYNONYMS")
             ds_ag_list = self.get_csq_values(record, "DS_AG")
             ds_al_list = self.get_csq_values(record, "DS_AL")
             ds_dg_list = self.get_csq_values(record, "DS_DG")
@@ -538,13 +556,13 @@ class SnvsCallFilter(CallFilter):
                 if ev.startswith("VCV"):
                     clinvar_vcvs.append(ev)
             
-            variant_class = csq_list[0] if csq_list else NA
+            variant_class = record.INFO.get("TYPE")[0] if record.INFO.get("TYPE") else (class_list[0] if class_list else NA)
             cadd_phred = float(cadd_phred_list[0]) if cadd_phred_list and cadd_phred_list[0] != "" else None
             
             # Determine variant length
-            if variant_class == "SNV":
+            if variant_class in ["SNV", "SNP"]:
                 var_length = 1
-            elif variant_class in ["INS", "DEL"]:
+            elif variant_class in ["INS", "DEL", "INDEL", "SNP"]:
                 var_length = abs(len(alt) - len(ref))
             else:
                 var_length = None
@@ -568,10 +586,10 @@ class SnvsCallFilter(CallFilter):
             max_splice_ai = max(splice_ai_scores) if splice_ai_scores else None
             if snvs.get(variant) is None:
                 snvs[variant] = {
-                    'variant': variant,
+                    'variant': variant.replace("chr", "") if not CHR_NOTATION else variant,
                     'type': variant_class,
                     'length': var_length,
-                    'chr': chrom,
+                    'chr': chrom.replace("chr", "") if not CHR_NOTATION else chrom,
                     'pos': pos,
                     'ref': ref,
                     'alt': alt,
@@ -586,10 +604,10 @@ class SnvsCallFilter(CallFilter):
                 continue
         return list(snvs.values())  
 
-class GenomicIbvlFrequenciesCallFilter(CallFilter):
+class GenomicBvlFrequenciesCallFilter(CallFilter):
 
     """
-    Generates the 'genomic_ibvl_frequencies' table.
+    Generates the 'genomic_bvl_frequencies' table.
     
     Data Source: VCF INFO field, Hail-calculated frequencies: AF_tot_XX_XY, AC_tot_XX_XY,
                  AN_tot_XX_XY, hom_tot_XX_XY
@@ -623,9 +641,23 @@ class GenomicIbvlFrequenciesCallFilter(CallFilter):
         # TODO: Extract QUAL field
         # TODO: Return unique frequency records
         
+        def validate_get(v, index):
+            if v is [] or v is None:
+                return NA
+            # if type of v is not list, return v
+            if not isinstance(v, list):
+                return v
+            if len(v) <= index:
+                return NA
+            val = v[index]
+            if v in [None, ""]:
+                return NA
+            return val
+
+        
         rows = []
         for record in self.vcf_records:
-            variant = record.ID[0]
+            variant = self.make_variant_id(record)
             qual = record.QUAL
             info = record.INFO
 
@@ -645,21 +677,21 @@ class GenomicIbvlFrequenciesCallFilter(CallFilter):
                 
                 row = {
                             'variant': variant,
-                            'af_tot': validate_get(af_tot, i),
-                            'ac_tot': validate_get(ac_tot, i),
-                            'an_tot': validate_get(an_tot, i),
-                            'hom_tot': validate_get(hom_tot, i),
-                            'hemi_tot': validate_get(hemi_tot, i),
-                            'af_xx': validate_get(af_xx, i),
-                            'af_xy': validate_get(af_xy, i),
-                            'ac_xy': validate_get(ac_xy, i),
-                            'an_xx': validate_get(an_xx, i),
-                            'ac_xx': validate_get(ac_xx, i),
-                            'an_xy': validate_get(an_xy, i),
-                            'hom_xx': validate_get(hom_xx, i),
-                            'hom_xy': validate_get(hom_xy, i),
-                            'hemi_xx': validate_get(hemi_xx, i),
-                            'hemi_xy': validate_get(hemi_xy, i),
+                            'af_tot': af_tot,
+                            'ac_tot': ac_tot,
+                            'an_tot': an_tot,
+                            'hom_tot': hom_tot,
+#                            'hemi_tot': hemi_tot,
+                            'af_xx': af_xx,
+                            'af_xy': af_xy,
+                            'ac_xy': ac_xy,
+                            'an_xx': an_xx,
+                            'ac_xx': ac_xx,
+                            'an_xy': an_xy,
+                            'hom_xx': hom_xx,
+                            'hom_xy': hom_xy,
+#                            'hemi_xx': validate_get(hemi_xx, i),
+#                            'hemi_xy': validate_get(hemi_xy, i),
                             'quality': qual
                         }
                 
@@ -688,19 +720,6 @@ class GenomicIbvlFrequenciesCallFilter(CallFilter):
                 
                 for i in range(l):
                     
-                    def validate_get(v, index):
-                        if v is [] or v is None:
-                            return NA
-                        # if type of v is not list, return v
-                        if not isinstance(v, list):
-                            return v
-                        if len(v) <= index:
-                            return NA
-                        val = v[index]
-                        if v in [None, ""]:
-                            return NA
-                        return val
-                
                     try:
                         row = {
                             'variant': variant,
@@ -774,7 +793,7 @@ class MtsCallFilter(CallFilter):
         
         mts = {}
         for record in self.vcf_records:
-            variant = record.ID[0]
+            variant = self.make_variant_id(record)
             pos = record.POS
             ref = record.REF
             alt = record.ALT[0].value  # assuming single ALT allele
@@ -812,9 +831,9 @@ class MtsCallFilter(CallFilter):
                 }
         return list(mts.values())
 
-class MtIbvlFrequenciesCallFilter(CallFilter):
+class MtBvlFrequenciesCallFilter(CallFilter):
     """
-    Generates the 'mt_ibvl_frequencies' table.
+    Generates the 'mt_bvl_frequencies' table.
     
     Data Source: VCF GT fields with Hail-calculated MT-specific metrics
     
@@ -849,7 +868,7 @@ class MtIbvlFrequenciesCallFilter(CallFilter):
         
         rows = []
         for record in self.vcf_records:
-            variant = record.ID[0]
+            variant = self.make_variant_id(record)
             gt_fields = record.INFO  # Placeholder; actual GT fields extraction may differ
 
             an = gt_fields.get("AN", 0)

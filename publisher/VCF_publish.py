@@ -19,9 +19,9 @@ from VCF_filters import (
     VariantsConsequencesCallFilter,
     SnvsCallFilter,
     MtsCallFilter,
-    GenomicIbvlFrequenciesCallFilter,
+    GenomicBvlFrequenciesCallFilter,
 #    GenomicGnomadFrequenciesCallFilter,
-    MtIbvlFrequenciesCallFilter,
+    MtBvlFrequenciesCallFilter,
 #    MtGnomadFrequenciesCallFilter,
 )
 
@@ -83,7 +83,7 @@ class VariantPublisher:
 
         # Process and export each table one by one to avoid accumulating all in RAM
         genes = GenesCallFilter(snv_vcf).getTableRows()
-        log_timing("genes", start_time)
+        log_timing("genes")
         export_to_tsv("genes", genes)
         del genes
         
@@ -117,10 +117,10 @@ class VariantPublisher:
         export_to_tsv("snvs", snvs)
         del snvs
         
-        genomic_ibvl_frequencies = GenomicIbvlFrequenciesCallFilter(snv_vcf).getTableRows()
-        log_timing("genomic_ibvl_frequencies")
-        export_to_tsv("genomic_ibvl_frequencies", genomic_ibvl_frequencies)
-        del genomic_ibvl_frequencies
+        genomic_bvl_frequencies = GenomicBvlFrequenciesCallFilter(snv_vcf).getTableRows()
+        log_timing("genomic_bvl_frequencies")
+        export_to_tsv("genomic_variome_frequencies", genomic_bvl_frequencies)
+        del genomic_bvl_frequencies
         
 #        mts_begin = datetime.now()
 #        mts = MtsCallFilter(mt_vcf).getTableRows()
@@ -129,10 +129,10 @@ class VariantPublisher:
 #        del mts
         
 #        mtf_begin = datetime.now()
-#        mt_ibvl_frequencies = MtIbvlFrequenciesCallFilter(mt_vcf).getTableRows()
-#        log_timing("mt_ibvl_frequencies", mtf_begin)
-#        export_to_tsv("mt_ibvl_frequencies", mt_ibvl_frequencies)
-#        del mt_ibvl_frequencies
+#        mt_bvl_frequencies = MtBvlFrequenciesCallFilter(mt_vcf).getTableRows()
+#        log_timing("mt_bvl_frequencies", mtf_begin)
+#        export_to_tsv("mt_bvl_frequencies", mt_bvl_frequencies)
+#        del mt_bvl_frequencies
         
         
         for table_name, records in results.items():

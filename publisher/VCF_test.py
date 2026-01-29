@@ -22,7 +22,6 @@ To focus on a single test (similar to fit() in Mocha):
 import unittest
 import os
 from pathlib import Path
-import vcfpy
 
 # Set to True to enable focus mode - only focused tests will run
 FOCUS_MODE = os.environ.get('FOCUS_TEST', 'false').lower() == 'true'
@@ -48,9 +47,9 @@ from publisher.VCF_filters import (
     VariantsConsequencesCallFilter,
     SnvsCallFilter,
     MtsCallFilter,
-    GenomicIbvlFrequenciesCallFilter,
+    GenomicBvlFrequenciesCallFilter,
 #    GenomicGnomadFrequenciesCallFilter,
-    MtIbvlFrequenciesCallFilter,
+    MtBvlFrequenciesCallFilter,
 #    MtGnomadFrequenciesCallFilter,
 )
 
@@ -65,14 +64,14 @@ class TestBaseFilter(unittest.TestCase):
     testInstance = None
     class MockFilter(CallFilter):
             
-        def load_vcf_files(self, vcf_file_paths: list[str]):
-            super().load_vcf_files(vcf_file_paths)
+        def load_vcf_file(self, vcf_file_path: str):
+            super().load_vcf_file(vcf_file_path)
 
         def getTableRows(self):
             return []
 
     def setUp(self):
-        self.testInstance = self.MockFilter([get_fixture_path('mock_snv.vcf')])
+        self.testInstance = self.MockFilter(get_fixture_path('mock_snv.vcf'))
         
     def test_instance_creation(self):
         self.assertIsInstance(self.testInstance, CallFilter)
@@ -93,10 +92,9 @@ class TestGenesCallFilter(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.filter = GenesCallFilter([
+        self.filter = GenesCallFilter(
             get_fixture_path('mock_snv.vcf'),
-            
-        ])
+        )
     
     def test_getTableRows_output_structure(self):
         """Test that getTableRows returns correct structure."""
@@ -124,7 +122,7 @@ class TestTranscriptsCallFilter(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
+        self.vcf_files = get_fixture_path('mock_snv.vcf')
         self.filter = TranscriptsCallFilter(self.vcf_files)
     
     def test_getTableRows_output_structure(self):
@@ -144,7 +142,8 @@ class TestTranscriptsCallFilter(unittest.TestCase):
             self.assertIn('tsl', result[0])
             
             # Check transcript type is encoded (E or R)
-            self.assertIn(result[0]['transcript_type'], ['E', 'R'])
+            self.assertIn(result[0]['transcript_type'], ['.'])
+            self.assertIn(result[1]['transcript_type'], ['E'])
 
 
 @skipUnlessFocused
@@ -157,7 +156,7 @@ class TestVariantsCallFilter(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
+        self.vcf_files = get_fixture_path('mock_snv.vcf')
         self.filter = VariantsCallFilter(
             self.vcf_files
         )
@@ -189,7 +188,7 @@ class TestVariantsTranscriptsCallFilter(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
+        self.vcf_files = get_fixture_path('mock_snv.vcf')
         self.filter = VariantsTranscriptsCallFilter(
             self.vcf_files
         )
@@ -207,7 +206,7 @@ class TestVariantsTranscriptsCallFilter(unittest.TestCase):
             self.assertIn('transcript', result[0])
             self.assertIn('variant', result[0])
             self.assertIn('hgvsc', result[0])
-
+            self.assertEqual(result[0]['hgvsc'], 'ENST00000398242.2:n.402G>C')
 
 @skipUnlessFocused
 class TestVariantsAnnotationsCallFilter(unittest.TestCase):
@@ -219,7 +218,7 @@ class TestVariantsAnnotationsCallFilter(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
+        self.vcf_files = get_fixture_path('mock_snv.vcf')
         self.filter = VariantsAnnotationsCallFilter(
             self.vcf_files
         )
@@ -250,7 +249,7 @@ class TestVariantsConsequencesCallFilter(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
+        self.vcf_files = get_fixture_path('mock_snv.vcf')
         self.filter = VariantsConsequencesCallFilter(
             self.vcf_files
         )
@@ -263,12 +262,12 @@ class TestVariantsConsequencesCallFilter(unittest.TestCase):
             self.skipTest("VariantsConsequencesCallFilter.getTableRows() not yet implemented")
         
         self.assertIsInstance(result, list)
-        
         if result:
             self.assertIn('severity', result[0])
             self.assertIn('variant', result[0])
             self.assertIn('transcript', result[0])
-
+            
+            self.assertEqual(result[0]['severity'], 'FIXME - WHY DOESNT THIS FAIL') #fixme
 
 @skipUnlessFocused
 class TestSnvsCallFilter(unittest.TestCase):
@@ -280,7 +279,7 @@ class TestSnvsCallFilter(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
+        self.vcf_files = get_fixture_path('mock_snv.vcf')
         self.filter = SnvsCallFilter(
             self.vcf_files,
             assembly='GRCh37'
@@ -313,7 +312,7 @@ class TestMtsCallFilter(unittest.TestCase):
     def setUp(self):
         self.skipTest("MtsCallFilter.getTableRows() not yet implemented")
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_mt.vcf')]
+        self.vcf_files = get_fixture_path('mock_mt.vcf')
         self.filter = MtsCallFilter(
             self.vcf_files,
             assembly='GRCh37'
@@ -336,8 +335,8 @@ class TestMtsCallFilter(unittest.TestCase):
 
 
 @skipUnlessFocused
-class TestGenomicIbvlFrequenciesCallFilter(unittest.TestCase):
-    """Test GenomicIbvlFrequenciesCallFilter."""
+class TestGenomicBvlFrequenciesCallFilter(unittest.TestCase):
+    """Test GenomicBvlFrequenciesCallFilter."""
     
     # Class variables initialized to None
     filter = None
@@ -345,8 +344,8 @@ class TestGenomicIbvlFrequenciesCallFilter(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_snv.vcf')]
-        self.filter = GenomicIbvlFrequenciesCallFilter(
+        self.vcf_files = get_fixture_path('mock_snv.vcf')
+        self.filter = GenomicBvlFrequenciesCallFilter(
             self.vcf_files
         )
     
@@ -355,7 +354,7 @@ class TestGenomicIbvlFrequenciesCallFilter(unittest.TestCase):
         try:
             result = self.filter.getTableRows()
         except NotImplementedError:
-            self.skipTest("GenomicIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
+            self.skipTest("GenomicBvlFrequenciesCallFilter.getTableRows() not yet implemented")
         
         self.assertIsInstance(result, list)
         
@@ -367,18 +366,18 @@ class TestGenomicIbvlFrequenciesCallFilter(unittest.TestCase):
             self.assertEquals(result[0]['hom_tot'], 34)
 
 @skipUnlessFocused
-class TestMtIbvlFrequenciesCallFilter(unittest.TestCase):
-    """Test MtIbvlFrequenciesCallFilter."""
+class TestMtBvlFrequenciesCallFilter(unittest.TestCase):
+    """Test MtBvlFrequenciesCallFilter."""
     
     # Class variables initialized to None
     filter = None
     vcf_files = None
     
     def setUp(self):
-        self.skipTest("MtIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
+        self.skipTest("MtBvlFrequenciesCallFilter.getTableRows() not yet implemented")
         """Set up test fixtures."""
-        self.vcf_files = [get_fixture_path('mock_mt.vcf')]
-        self.filter = MtIbvlFrequenciesCallFilter(
+        self.vcf_files = get_fixture_path('mock_mt.vcf')
+        self.filter = MtBvlFrequenciesCallFilter(
             self.vcf_files
         )
     
@@ -387,7 +386,7 @@ class TestMtIbvlFrequenciesCallFilter(unittest.TestCase):
         try:
             result = self.filter.getTableRows()
         except NotImplementedError:
-            self.skipTest("MtIbvlFrequenciesCallFilter.getTableRows() not yet implemented")
+            self.skipTest("MtBvlFrequenciesCallFilter.getTableRows() not yet implemented")
         
         self.assertIsInstance(result, list)
         

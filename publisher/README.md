@@ -64,6 +64,10 @@ watchmedo shell-command --command='python -m VCF_publish'
   .
 ```
 
+```
+uv run pytest VCF_test.py -v; uv run watchmedo shell-command --command='uv run pytest VCF_test.py -v'
+```
+
 This will rerun the command whenever any `.vcf` or `.tsv` file in the current directory changes.
 
 ## Summary of Data Flow

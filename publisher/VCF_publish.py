@@ -10,29 +10,29 @@ import logging
 import os
 from datetime import datetime
 
-from VCF_filters import (
-    GenesCallFilter,
-    TranscriptsCallFilter,
-    VariantsCallFilter,
-    VariantsTranscriptsCallFilter,
-    VariantsAnnotationsCallFilter,
-    VariantsConsequencesCallFilter,
-    SnvsCallFilter,
-    MtsCallFilter,
-    GenomicBvlFrequenciesCallFilter,
-#    GenomicGnomadFrequenciesCallFilter,
-    MtBvlFrequenciesCallFilter,
-#    MtGnomadFrequenciesCallFilter,
-)
+from constants import NA, CHR_NOTATION, HYPEN_VARIANT_NOTATION
+
+from filters.GenesCallFilter import GenesCallFilter
+from filters.TranscriptsCallFilter import TranscriptsCallFilter
+from filters.VariantsCallFilter import VariantsCallFilter
+from filters.VariantsTranscriptsCallFilter import VariantsTranscriptsCallFilter
+from filters.VariantsAnnotationsCallFilter import VariantsAnnotationsCallFilter
+from filters.VariantsConsequencesCallFilter import VariantsConsequencesCallFilter
+from filters.SnvsCallFilter import SnvsCallFilter
+from filters.MtsCallFilter import MtsCallFilter
+from filters.GenomicBvlFrequenciesCallFilter import GenomicBvlFrequenciesCallFilter
+# from filters.GenomicGnomadFrequenciesCallFilter import GenomicGnomadFrequenciesCallFilter
+from filters.MtBvlFrequenciesCallFilter import MtBvlFrequenciesCallFilter
+# from filters.MtGnomadFrequenciesCallFilter import MtGnomadFrequenciesCallFilter
 
 
 #    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/HG002-4_chr21_SNV_v7.vcf')
 #    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/ben.vcf')
 #    os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/ben-big.vcf.gz')
 #snv_vcf = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/ben-big.vcf.gz')
-snv_vcf = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/crop3.vcf')
+snv_vcf = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/vcf/variome.vcf')
+#os.path.join(os.path.dirname(os.path.abspath(__file__)), '../test_case/crop3.vcf')
 
-#    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures/vcf/mock_snv.vcf')
 
 
 mt_vcf = None
@@ -41,12 +41,19 @@ mt_vcf = None
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
+# Set handler to lowest level you want to capture (INFO and above, including WARNING)
 console_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
+# Add a helper to log warnings
+def log_warning(message, *args, **kwargs):
+    logger.warning(message, *args, **kwargs)
+
+
 logger.info("importing from vcfs: SNV VCF=%s, MT VCF=%s", snv_vcf, mt_vcf)
+
 
 class VariantPublisher:
     
